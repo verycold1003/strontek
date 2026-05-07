@@ -402,7 +402,8 @@ function buildInvCard(inv) {
   const statusClass = { pending:'', loading:'ocr-ing', done:'ocr-ok', error:'ocr-err' }[inv.status]||'';
 
   // thumb
-  const thumbSrc = URL.createObjectURL(inv.file);
+  if (!inv.thumbSrc) inv.thumbSrc = URL.createObjectURL(inv.file);
+  const thumbSrc = inv.thumbSrc;
   const d = inv.ocrData;
 
   div.innerHTML = `
@@ -418,7 +419,17 @@ function buildInvCard(inv) {
       ${d ? `<div class="inv-amount">$${Number(d.total||0).toLocaleString()}</div>` : ''}
       <div class="inv-toggle${inv.expanded?' open':''}" id="tog_${inv.id}">▼</div>
     </div>
-    ${buildEditSection(inv)}`;
+    ${inv.status === 'error' ? `
+    <div style="padding:14px 18px;background:rgba(248,113,113,.08);
+      border-top:1px solid rgba(248,113,113,.2);color:var(--error);
+      font-size:15px;line-height:1.7;">
+      <div style="font-weight:700;margin-bottom:6px;">❌ 辨識失敗</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;
+        word-break:break-all;">${esc(inv.errMsg)}</div>
+      <div style="margin-top:10px;font-size:13px;color:var(--text2);">
+        請開啟瀏覽器 Console（F12）查看詳細錯誤
+      </div>
+    </div>` : buildEditSection(inv)}`;
   return div;
 }
 
@@ -546,13 +557,29 @@ async function ocrAll() {
           invoiceType: 'vendor'
         })
       });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
+      // HTTP 狀態檢查
+      if (!res.ok) {
+        const rawText = await res.text();
+        console.error(`[OCR] HTTP ${res.status}:`, rawText);
+        throw new Error(`伺服器回應 HTTP ${res.status}：${rawText.substring(0, 200)}`);
+      }
+      // JSON 解析
+      const text = await res.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch(jsonErr) {
+        console.error('[OCR] JSON 解析失敗，原始回應：', text);
+        throw new Error(`回應格式錯誤：${text.substring(0, 300)}`);
+      }
+      console.log('[OCR] 回應：', result);
+      if (!result.success) throw new Error(result.error || '未知錯誤');
       inv.ocrData = result.data;
       inv.ocrData._project = '';
       inv.status = 'done';
       inv.selected = true;
     } catch(e) {
+      console.error(`[OCR] 發票 ${inv.file.name} 失敗：`, e);
       inv.status = 'error';
       inv.errMsg = e.message;
       inv.selected = false;
@@ -576,6 +603,9 @@ function refreshCard(inv) {
 // ── 送出全部 ─────────────────────────────────────────────────
 async function submitAll() {
   if (submitting) return;
+
+  const selected = invoices.filter(i => i.selected && i.ocrData);
+  if (!selected.length) { toast('請至少勾選一張已辨識的發票'); return; }
 
   const noTotal = selected.filter(i => !i.ocrData.total);
   if (noTotal.length) { toast(`⚠ 有 ${noTotal.length} 張發票未填含稅總額`); return; }
