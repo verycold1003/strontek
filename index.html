@@ -2,731 +2,936 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>廠商請款申請</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>POERP 員工 LIFF — Wireframe v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0f0f11; --surface:#1c1c21; --surface2:#26262e;
-  --border:#38383f; --border2:#48484f;
-  --accent:#f5c842; --accent2:#e8a020;
-  --text:#f2f2f2; --text2:#a8a8b8; --text3:#68687a;
-  --success:#4ade80; --error:#f87171; --warning:#fbbf24;
-  --radius:12px;
-  /* 大字體版核心變數 */
-  --fs-base:18px;
-  --fs-sm:15px;
-  --fs-xs:13px;
-  --fs-label:13px;
-  --fs-h2:22px;
-  --fs-h3:19px;
-  --fs-amount:28px;
-  --input-h:52px;
-  --btn-h:56px;
-  --gap:20px;
+  --bg:#111318; --bg2:#181c24; --bg3:#1f2430;
+  --card:#242936; --card2:#2c3244;
+  --border:#333a4d; --border2:#3f4a60;
+  --accent:#ff7d3b; --accent2:#ff5500;
+  --blue:#3b8dff; --blue2:#1a6bdf;
+  --green:#2ecc8a; --green2:#1aaa6e;
+  --yellow:#f5c518; --red:#ff4d6a;
+  --purple:#a78bfa;
+  --text:#eef0f5; --text2:#9aa0b5; --text3:#5a6278;
+  --line-green:#00b900;
+  --r:14px; --r-sm:8px;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;
-  font-size:var(--fs-base);min-height:100vh;display:flex;flex-direction:column;
-  align-items:center;padding:28px 16px 100px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:16px;overflow:hidden;}
 
-/* ── Header ── */
-header{width:100%;max-width:720px;margin-bottom:24px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border);padding-bottom:16px;}
-.logo{display:flex;align-items:center;gap:12px;}
-.logo-icon{width:44px;height:44px;background:var(--accent);border-radius:10px;
-  display:flex;align-items:center;justify-content:center;font-size:22px;}
-.logo-title{font-size:var(--fs-h2);font-weight:700;letter-spacing:-.3px;}
-.logo-sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px;}
-.version-badge{font-size:12px;padding:4px 10px;background:rgba(74,222,128,.12);
-  color:var(--success);border-radius:6px;white-space:nowrap;}
+/* ── 手機外框 ── */
+.phone-shell{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,#1a1f2e 0%,#0a0c12 100%);}
+.phone-frame{width:390px;height:844px;max-height:95vh;background:var(--bg);border-radius:44px;
+  box-shadow:0 0 0 10px #1a1f2e,0 0 0 12px #242936,0 40px 120px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.06);
+  overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;
+  background:#0a0c12;border-radius:0 0 20px 20px;z-index:50;}
+.phone-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding-top:34px;scrollbar-width:none;}
+.phone-inner::-webkit-scrollbar{display:none;}
 
-/* ── Config bar ── */
-.config-bar{width:100%;max-width:720px;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px 18px;margin-bottom:22px;
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.config-label{font-size:var(--fs-xs);color:var(--text2);white-space:nowrap;
-  font-family:'JetBrains Mono',monospace;font-weight:600;}
-.config-input{flex:1;min-width:200px;background:var(--surface2);
-  border:1px solid var(--border);border-radius:8px;
-  padding:10px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;
-  font-size:13px;outline:none;transition:border-color .2s;}
-.config-input:focus{border-color:var(--accent);}
-.btn-sm{padding:10px 18px;background:var(--accent);color:#000;border:none;
-  border-radius:8px;font-size:var(--fs-sm);font-weight:700;cursor:pointer;}
-.cfg-ok{font-size:13px;padding:4px 10px;border-radius:6px;white-space:nowrap;
-  background:rgba(74,222,128,.12);color:var(--success);}
-.cfg-ng{font-size:13px;padding:4px 10px;border-radius:6px;white-space:nowrap;
-  background:rgba(248,113,113,.12);color:var(--error);}
+/* ── 狀態列 ── */
+.status-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 24px 0;font-size:13px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;color:var(--text2);}
 
-/* ── Card ── */
-.card{width:100%;max-width:720px;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius);
-  overflow:hidden;margin-bottom:18px;}
-.card-head{padding:16px 22px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;}
-.card-title{font-size:var(--fs-h3);font-weight:700;}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;}
-.dot.on{background:var(--accent);}
-.dot.ok{background:var(--success);}
-.dot.err{background:var(--error);}
+/* ── App Bar ── */
+.app-bar{display:flex;align-items:center;gap:10px;padding:10px 18px 8px;
+  border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:20;}
+.app-bar-logo{width:30px;height:30px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.app-bar-title{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+.app-bar-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.user-avatar{margin-left:auto;width:32px;height:32px;border-radius:50%;
+  background:var(--line-green);display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;flex-shrink:0;position:relative;}
+.user-avatar::after{content:'';position:absolute;bottom:1px;right:1px;width:8px;height:8px;
+  border-radius:50%;background:var(--green);border:2px solid var(--bg);}
 
-/* ── 申請人資訊 ── */
-.applicant-wrap{padding:20px 22px;
-  background:rgba(245,200,66,.04);border-bottom:1px solid var(--border);}
-.ap-label{font-size:var(--fs-label);color:var(--accent);font-weight:600;
-  font-family:'JetBrains Mono',monospace;text-transform:uppercase;
-  letter-spacing:.5px;margin-bottom:14px;}
-.ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);}
-@media(max-width:520px){.ap-grid{grid-template-columns:1fr;}}
+/* ── 畫面 ── */
+.screen{display:none;padding:14px 14px 90px;animation:fadeIn .25s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-/* ── 表單欄位 ── */
-.form-wrap{padding:22px;}
-.field{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--gap);}
-.field:last-child{margin-bottom:0;}
-.field-label{font-size:var(--fs-label);color:var(--text2);font-weight:600;
-  font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
-.field-input{height:var(--input-h);background:var(--surface2);
-  border:2px solid var(--border);border-radius:10px;
-  padding:0 16px;color:var(--text);font-size:var(--fs-base);
-  outline:none;width:100%;font-family:'Noto Sans TC',sans-serif;
-  transition:border-color .2s,-webkit-appearance:none;}
-.field-input:focus{border-color:var(--accent);}
-.field-input.changed{border-color:var(--warning);}
-.field-input.amount{font-family:'JetBrains Mono',monospace;
-  font-size:var(--fs-amount);color:var(--accent);font-weight:700;
-  text-align:right;}
-select.field-input{cursor:pointer;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8a8b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;
-  padding-right:42px;}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);}
-@media(max-width:480px){.field-row{grid-template-columns:1fr;}}
+/* ── 專案選擇器 ── */
+.proj-selector{background:var(--card);border:2px solid var(--border2);border-radius:var(--r);
+  padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:14px;
+  position:relative;transition:border-color .2s;}
+.proj-selector:hover{border-color:var(--accent);}
+.proj-icon{font-size:22px;flex-shrink:0;}
+.proj-name{font-size:17px;font-weight:700;}
+.proj-meta{font-size:12px;color:var(--text3);margin-top:2px;}
+.proj-arrow{font-size:20px;color:var(--text3);margin-left:auto;}
+.proj-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card2);
+  border:1px solid var(--border2);border-radius:var(--r-sm);z-index:30;display:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:200px;overflow-y:auto;}
+.proj-dropdown.open{display:block;}
+.proj-option{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.proj-option:last-child{border-bottom:none;}
+.proj-option:hover{background:rgba(255,125,59,.08);}
+.proj-option-name{font-size:15px;font-weight:600;}
+.proj-option-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.proj-option.current .proj-option-name{color:var(--accent);}
 
-/* ── 上傳區 ── */
-.upload-zone{padding:22px;border-bottom:1px solid var(--border);}
-.upload-drop{border:2px dashed var(--border2);border-radius:12px;
-  padding:36px 24px;display:flex;flex-direction:column;align-items:center;
-  gap:14px;cursor:pointer;position:relative;
-  transition:border-color .2s,background .2s;}
-.upload-drop:hover,.upload-drop.dg{border-color:var(--accent);
-  background:rgba(245,200,66,.03);}
-.upload-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.upload-icon{font-size:44px;opacity:.5;}
-.upload-text{font-size:var(--fs-base);color:var(--text2);text-align:center;line-height:1.6;}
-.upload-hint{font-size:var(--fs-xs);color:var(--text3);
+/* ── 區塊標題 ── */
+.section-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.section-label{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:1px;padding:3px 9px;border-radius:20px;}
+.section-label.client{background:rgba(59,141,255,.15);color:var(--blue);}
+.section-label.vendor{background:rgba(255,125,59,.15);color:var(--accent);}
+.section-label.expense{background:rgba(46,204,138,.15);color:var(--green);}
+.section-label.dept{background:rgba(167,139,250,.15);color:var(--purple);}
+.section-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:14px 0;}
+
+/* ── A-1：累積收款進度條 ── */
+.contract-bar{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);
+  padding:14px;margin-bottom:12px;}
+.contract-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.contract-collected{font-size:11px;color:var(--text3);}
+.contract-ratio{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:var(--green);}
+.contract-amounts{display:flex;align-items:baseline;gap:4px;margin-bottom:8px;}
+.collected-amt{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;color:var(--text);}
+.contract-sep{color:var(--text3);font-size:18px;}
+.contract-total{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--text2);}
+.progress-track{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.progress-fill{height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--green),var(--blue));transition:width .6s ease;}
+.progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);
   font-family:'JetBrains Mono',monospace;}
-.upload-hint2{font-size:var(--fs-sm);color:var(--accent);}
 
-/* ── 發票清單 ── */
-.invoice-list{padding:0 22px 22px;}
-.inv-item{background:var(--surface2);border:2px solid var(--border);
-  border-radius:12px;margin-top:16px;overflow:hidden;
-  transition:border-color .2s;}
-.inv-item.selected{border-color:var(--accent);}
-.inv-item.has-error{border-color:var(--error);}
+/* ── A-2：預收款 banner ── */
+.prepay-banner{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.2);
+  border-radius:var(--r-sm);margin-bottom:12px;font-size:13px;}
+.prepay-icon{font-size:18px;flex-shrink:0;}
+.prepay-text{flex:1;color:var(--text2);line-height:1.5;}
+.prepay-amt{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--yellow);}
 
-.inv-head{padding:14px 18px;display:flex;align-items:center;gap:14px;
-  border-bottom:1px solid var(--border);cursor:pointer;}
-.inv-check{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  transition:background .2s,border-color .2s;}
-.inv-check.checked{background:var(--accent);border-color:var(--accent);}
-.inv-check.checked::after{content:'✓';color:#000;font-size:15px;font-weight:700;}
-.inv-thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;}
-.inv-info{flex:1;min-width:0;}
-.inv-filename{font-size:var(--fs-sm);font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.inv-status{font-size:var(--fs-xs);color:var(--text3);margin-top:3px;
+/* ── 收款期數卡片 ── */
+.milestone-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin:0 -2px;padding-left:2px;scrollbar-width:none;}
+.milestone-scroll::-webkit-scrollbar{display:none;}
+.milestone-card{flex-shrink:0;width:154px;background:var(--card);border:2px solid var(--border);
+  border-radius:var(--r);padding:12px;cursor:pointer;transition:border-color .2s,transform .15s;}
+.milestone-card:hover{transform:translateY(-2px);}
+.milestone-card.done{border-color:var(--green);}
+.milestone-card.partial{border-color:var(--yellow);}
+.milestone-card.pending{border-color:var(--border2);}
+/* A-3：期數分母 */
+.ms-seq{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+.ms-name{font-size:13px;font-weight:700;margin-bottom:2px;line-height:1.3;}
+.ms-pct{font-size:11px;color:var(--text2);margin-bottom:8px;}
+.ms-amount{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px;letter-spacing:-1px;}
+/* A-2：預收扣抵 */
+.ms-deduct{font-size:10px;color:var(--yellow);margin-bottom:8px;
   font-family:'JetBrains Mono',monospace;}
-.inv-status.ocr-ok{color:var(--success);}
-.inv-status.ocr-ing{color:var(--accent);}
-.inv-status.ocr-err{color:var(--error);}
-.inv-amount{font-family:'JetBrains Mono',monospace;font-size:20px;
-  color:var(--accent);font-weight:700;white-space:nowrap;}
-.inv-toggle{font-size:20px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
-.inv-toggle.open{transform:rotate(180deg);}
+.ms-checks{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.ms-check{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;
+  border-radius:var(--r-sm);background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:background .2s;}
+.ms-check:hover{background:var(--bg2);}
+.ms-check-icon{font-size:14px;}
+/* A-4：日期顯示 */
+.ms-check-date{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+.ms-check-label{font-size:9px;color:var(--text3);text-align:center;line-height:1.3;}
+.ms-check.checked{background:rgba(46,204,138,.1);border-color:var(--green);}
+.ms-check.checked .ms-check-label{color:var(--green);}
+.ms-check.checked .ms-check-date{color:var(--green);}
+.ms-progress{height:3px;border-radius:2px;background:var(--bg3);margin-top:8px;overflow:hidden;}
+.ms-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .5s;}
+/* A-5：追加 chip */
+.ms-addon{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;
+  border-radius:8px;background:rgba(255,125,59,.12);color:var(--accent);
+  font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
 
-/* 展開的編輯區 */
-.inv-edit{display:none;padding:18px;border-top:1px solid var(--border);}
-.inv-edit.open{display:block;}
-.inv-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-@media(max-width:480px){.inv-edit-grid{grid-template-columns:1fr;}}
-.inv-field{display:flex;flex-direction:column;gap:6px;}
-.inv-field.wide{grid-column:1/-1;}
-.inv-label{font-size:var(--fs-label);color:var(--text2);font-weight:600;
-  font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
-.inv-input{height:48px;background:var(--bg);border:2px solid var(--border);
-  border-radius:8px;padding:0 14px;color:var(--text);
-  font-size:var(--fs-base);outline:none;width:100%;
-  font-family:'Noto Sans TC',sans-serif;transition:border-color .2s;}
-.inv-input:focus{border-color:var(--accent);}
-.inv-input.changed{border-color:var(--warning);}
-.inv-input.amt{font-family:'JetBrains Mono',monospace;
-  font-size:22px;color:var(--accent);font-weight:700;text-align:right;}
-select.inv-input{cursor:pointer;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a8a8b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
-.conf-badge{display:inline-flex;align-items:center;gap:4px;
-  padding:3px 9px;border-radius:5px;font-size:12px;
-  font-family:'JetBrains Mono',monospace;margin-left:8px;}
-.conf-badge.high{background:rgba(74,222,128,.12);color:var(--success);}
-.conf-badge.medium{background:rgba(251,191,36,.12);color:var(--warning);}
-.conf-badge.low{background:rgba(248,113,113,.12);color:var(--error);}
-.ai-note{padding:10px 13px;background:rgba(251,191,36,.06);
-  border:1px solid rgba(251,191,36,.2);border-radius:8px;
-  font-size:var(--fs-sm);color:var(--text2);margin-top:12px;line-height:1.6;}
+/* ── 廠商端 ── */
+.vendor-list{display:flex;flex-direction:column;gap:8px;}
+.vendor-card{background:var(--card);border:2px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .2s;}
+.vendor-card:hover{border-color:var(--accent);}
+.vendor-head{padding:10px 12px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.vendor-avatar{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.vendor-avatar.eq{background:rgba(59,141,255,.15);}
+.vendor-avatar.work1{background:rgba(255,125,59,.15);}
+.vendor-avatar.work2{background:rgba(245,197,24,.15);}
+.vendor-name{font-size:14px;font-weight:700;}
+.vendor-type{font-size:11px;color:var(--text3);margin-top:1px;}
+.vendor-total{margin-left:auto;text-align:right;}
+.vendor-total-amt{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.vendor-total-label{font-size:10px;color:var(--text3);}
+.vendor-payments{padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;}
+.pay-chip{display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:20px;font-size:11px;border:1px solid var(--border2);background:var(--bg3);}
+.pay-chip.paid{background:rgba(46,204,138,.1);border-color:var(--green);color:var(--green);}
+.pay-chip.pending{color:var(--text2);}
+.pay-chip.review{background:rgba(245,197,24,.1);border-color:var(--yellow);color:var(--yellow);}
+.pay-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+/* B-1：完成日期 */
+.pay-date{font-size:9px;color:inherit;opacity:.7;margin-left:2px;font-family:'JetBrains Mono',monospace;}
 
-/* ── 合計列 ── */
-.total-bar{margin:0 22px 22px;padding:18px 22px;
-  background:rgba(245,200,66,.06);border:2px solid rgba(245,200,66,.2);
-  border-radius:12px;display:flex;align-items:center;
-  justify-content:space-between;flex-wrap:wrap;gap:12px;}
-.total-left{font-size:var(--fs-sm);color:var(--text2);}
-.total-count{font-size:var(--fs-base);font-weight:700;color:var(--text);margin-top:2px;}
-.total-right{text-align:right;}
-.total-label{font-size:var(--fs-sm);color:var(--text2);}
-.total-amount{font-family:'JetBrains Mono',monospace;font-size:32px;
-  font-weight:700;color:var(--accent);}
+/* ── 費用核銷清單（員工依專案，A-三-1）── */
+.expense-log{display:flex;flex-direction:column;gap:6px;}
+.expense-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);}
+.expense-date{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;min-width:44px;}
+.expense-icon{font-size:18px;flex-shrink:0;}
+.expense-desc{flex:1;font-size:13px;line-height:1.4;}
+.expense-desc-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.expense-amt{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;white-space:nowrap;}
+.expense-status{font-size:10px;padding:2px 6px;border-radius:8px;white-space:nowrap;margin-left:4px;}
+.es-ok{background:rgba(46,204,138,.12);color:var(--green);}
+.es-wait{background:rgba(255,125,59,.12);color:var(--accent);}
+.es-auto{background:rgba(59,141,255,.12);color:var(--blue);}
 
-/* ── 送出區 ── */
-.submit-wrap{padding:22px;border-top:1px solid var(--border);}
-.btn-submit{width:100%;height:var(--btn-h);background:var(--success);
-  color:#000;border:none;border-radius:12px;font-size:var(--fs-h3);
-  font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:opacity .2s;}
-.btn-submit:disabled{opacity:.35;cursor:not-allowed;}
-.btn-submit:hover:not(:disabled){opacity:.88;}
-.btn-ocr-all{width:100%;height:56px;background:var(--accent);color:#000;
-  border:none;border-radius:12px;font-size:var(--fs-base);font-weight:700;
-  cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:opacity .2s;margin-top:16px;}
-.btn-ocr-all:disabled{opacity:.35;cursor:not-allowed;}
+/* ── B：費用 Tab ── */
+.fee-upload-btns{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.fee-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--card);border:2px solid var(--border2);border-radius:var(--r);
+  cursor:pointer;transition:border-color .2s,background .2s;}
+.fee-btn:hover{border-color:var(--green);background:rgba(46,204,138,.04);}
+.fee-btn:active{transform:scale(.98);}
+.fee-btn-icon{font-size:28px;flex-shrink:0;width:42px;text-align:center;}
+.fee-btn-info{flex:1;}
+.fee-btn-title{font-size:16px;font-weight:700;}
+.fee-btn-sub{font-size:12px;color:var(--text3);margin-top:3px;line-height:1.4;}
+.fee-btn-arrow{color:var(--text3);font-size:18px;}
+.fee-btn.primary{border-color:var(--green);}
 
-/* ── 狀態 ── */
-.state-box{padding:40px 22px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:16px;text-align:center;}
-.state-icon{font-size:48px;}
-.state-title{font-size:var(--fs-h2);font-weight:700;}
-.state-sub{font-size:var(--fs-base);color:var(--text2);line-height:1.7;}
-.state-id{font-family:'JetBrains Mono',monospace;font-size:var(--fs-h3);
-  color:var(--accent);padding:10px 20px;background:var(--surface2);
-  border-radius:10px;margin-top:4px;}
-.spinner{width:36px;height:36px;border:3px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.step-text{font-size:var(--fs-sm);color:var(--text2);}
+/* 無專案歸屬 badge */
+.no-proj-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;
+  padding:2px 8px;border-radius:10px;background:rgba(167,139,250,.12);
+  color:var(--purple);font-family:'JetBrains Mono',monospace;margin-left:6px;}
 
-.err-box{margin:0 22px 22px;padding:16px 18px;
-  background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);
-  border-radius:10px;color:var(--error);font-size:var(--fs-base);
-  line-height:1.6;display:none;}
+/* ── C：廠商手寫 Tab ── */
+.vendor-ocr-wrap{display:flex;flex-direction:column;gap:12px;}
+.handwrite-zone{background:var(--card);border:2px dashed var(--border2);border-radius:var(--r);
+  padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:pointer;min-height:130px;justify-content:center;transition:border-color .2s;}
+.handwrite-zone:hover{border-color:var(--accent);}
+.handwrite-preview{background:var(--bg3);border-radius:var(--r-sm);padding:12px;
+  font-size:13px;color:var(--text2);line-height:1.8;border:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;white-space:pre-wrap;}
+.result-table{width:100%;border-collapse:collapse;font-size:13px;}
+.result-table th{padding:7px 9px;background:var(--card2);color:var(--accent);
+  font-size:10px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;
+  text-align:left;border-bottom:1px solid var(--border2);}
+.result-table td{padding:8px 9px;border-bottom:1px solid var(--border);color:var(--text2);}
+.result-table tr:last-child td{border-bottom:none;}
+.result-input{background:transparent;border:none;color:var(--text);font-size:13px;
+  width:100%;outline:none;font-family:'Sora',sans-serif;}
+.result-input:focus{color:var(--accent);}
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
-  padding:14px 22px;font-size:var(--fs-base);color:var(--text);
-  opacity:0;transition:transform .3s,opacity .3s;z-index:200;
-  white-space:nowrap;max-width:90vw;}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+/* ── Tab Bar ── */
+.tab-bar{position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--border);
+  display:flex;padding:6px 0 18px;z-index:20;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:5px;cursor:pointer;transition:color .2s;}
+.tab-icon{font-size:20px;}
+.tab-label{font-size:9px;font-weight:600;color:var(--text3);}
+.tab.active .tab-label{color:var(--accent);}
+.tab.active .tab-icon{filter:drop-shadow(0 0 5px var(--accent));}
 
-/* ── Reset btn ── */
-.btn-again{padding:14px 28px;background:var(--surface2);
-  border:2px solid var(--border);color:var(--text2);border-radius:10px;
-  cursor:pointer;font-size:var(--fs-base);font-family:'Noto Sans TC',sans-serif;
-  margin-top:8px;}
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:100;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{width:390px;background:var(--bg2);border-radius:24px 24px 0 0;
+  padding:14px 18px 40px;border-top:1px solid var(--border2);
+  animation:slideUp .28s ease;max-height:82vh;overflow-y:auto;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px;}
+.modal-title{font-size:19px;font-weight:700;margin-bottom:16px;}
+.modal-upload-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:28px 18px;
+  display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;
+  transition:border-color .2s;margin-bottom:14px;}
+.modal-upload-zone:hover{border-color:var(--green);}
+.modal-upload-icon{font-size:38px;opacity:.6;}
+.modal-upload-text{font-size:15px;color:var(--text2);text-align:center;}
+.modal-upload-hint{font-size:12px;color:var(--text3);}
+.modal-field{margin-bottom:12px;}
+.modal-label{font-size:11px;font-weight:700;color:var(--text2);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.modal-input{width:100%;background:var(--card);border:2px solid var(--border2);border-radius:var(--r-sm);
+  padding:12px 13px;color:var(--text);font-size:15px;outline:none;font-family:'Sora',sans-serif;transition:border-color .2s;}
+.modal-input:focus{border-color:var(--accent);}
+select.modal-input{cursor:pointer;-webkit-appearance:none;}
+.modal-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;
+  border-radius:var(--r-sm);font-size:16px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;margin-top:4px;}
+.modal-btn-sec{width:100%;padding:12px;background:var(--card);color:var(--text2);
+  border:1px solid var(--border2);border-radius:var(--r-sm);font-size:15px;
+  font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;margin-top:8px;}
+
+/* 里程申請內容 */
+.mileage-wrap{display:flex;flex-direction:column;gap:10px;}
+.mileage-point{display:flex;align-items:center;gap:10px;}
+.mileage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.mileage-dot.start{background:var(--green);}
+.mileage-dot.end{background:var(--red);}
+.mileage-line{width:2px;height:20px;background:var(--border2);margin:0 4px;}
+.mileage-calc{padding:10px 12px;background:var(--card);border-radius:var(--r-sm);
+  display:flex;justify-content:space-between;align-items:center;}
+.mileage-calc-label{font-size:13px;color:var(--text2);}
+.mileage-calc-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--green);}
+
+/* 載具綁定 */
+.carrier-wrap{display:flex;flex-direction:column;gap:8px;}
+.carrier-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--card);border:1px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;}
+.carrier-item:hover{border-color:var(--blue);}
+.carrier-icon{font-size:22px;flex-shrink:0;}
+.carrier-title{font-size:15px;font-weight:600;}
+.carrier-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.carrier-arrow{margin-left:auto;color:var(--text3);}
+
+/* ── 右側說明 ── */
+.side-panel{position:fixed;right:20px;top:50%;transform:translateY(-50%);width:210px;display:flex;flex-direction:column;gap:10px;}
+.side-card{background:rgba(36,41,54,.95);border:1px solid var(--border2);border-radius:var(--r-sm);padding:10px 13px;font-size:11px;color:var(--text2);line-height:1.6;}
+.side-card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.side-card-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.side-nav{display:flex;flex-direction:column;gap:5px;}
+.side-nav-btn{padding:7px 11px;border-radius:var(--r-sm);background:var(--card);border:1px solid var(--border);
+  color:var(--text2);font-size:11px;cursor:pointer;text-align:left;transition:border-color .2s,color .2s;font-family:'Sora',sans-serif;}
+.side-nav-btn:hover,.side-nav-btn.active{border-color:var(--accent);color:var(--accent);}
+
+/* toast */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:rgba(36,41,54,.98);border:1px solid var(--border2);border-radius:10px;
+  padding:11px 18px;font-size:13px;color:var(--text);opacity:0;
+  transition:transform .3s,opacity .3s;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
+
+/* wf badge */
+.wf-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;
+  border-radius:8px;background:rgba(255,125,59,.1);color:var(--accent);
+  font-family:'JetBrains Mono',monospace;margin-left:5px;vertical-align:middle;}
 </style>
 </head>
 <body>
+<div class="phone-shell">
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">🧾</div>
-    <div>
-      <div class="logo-title">廠商請款申請</div>
+<!-- 右側說明面板 -->
+<div class="side-panel">
+  <div class="side-card">
+    <div class="side-card-title"><span class="side-card-dot" style="background:var(--accent)"></span>畫面切換</div>
+    <div class="side-nav">
+      <button class="side-nav-btn active" onclick="showScreen('project')">📊 A. 專案 Tab</button>
+      <button class="side-nav-btn" onclick="showScreen('expense')">🧾 B. 費用 Tab</button>
+      <button class="side-nav-btn" onclick="showScreen('vendor-ocr')">✍️ C. 廠商手寫</button>
     </div>
   </div>
-</header>
-
-<!-- 發票上傳 -->
-<div class="card">
-  <div class="card-head">
-    <div class="dot" id="dotUpload"></div>
-    <span class="card-title">上傳發票</span>
-    <span style="margin-left:auto;font-size:var(--fs-xs);color:var(--text3);" id="uploadCount"></span>
+  <div class="side-card">
+    <div class="side-card-title"><span class="side-card-dot" style="background:var(--green)"></span>修改重點</div>
+    A-1 累積收款進度條<br>
+    A-2 預收款扣抵顯示<br>
+    A-3 第n/全N期<br>
+    A-4 發票/收款日期<br>
+    A-5 進度+追加<br>
+    B 整合為3大功能<br>
+    C 獨立廠商介面
   </div>
-
-  <div class="upload-zone">
-    <div class="upload-drop" id="uploadDrop">
-      <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(event)" />
-      <div class="upload-icon">📎</div>
-      <div class="upload-text">點擊選取或拖曳發票圖片<br>可一次選多張</div>
-      <div class="upload-hint2">支援 JPG・PNG・HEIC・PDF</div>
-      <div class="upload-hint">每張最大 5MB</div>
-    </div>
-    <button class="btn-ocr-all" id="btnOcrAll" disabled onclick="ocrAll()">
-      <span id="btnOcrText">✦ 開始辨識所有發票</span>
-    </button>
-  </div>
-
-  <!-- 發票清單 -->
-  <div class="invoice-list" id="invoiceList" style="display:none;"></div>
-
-  <!-- 錯誤訊息 -->
-  <div class="err-box" id="errBox"></div>
-
-  <!-- 合計列 -->
-  <div class="total-bar" id="totalBar" style="display:none;">
-    <div class="total-left">
-      <div>已選取發票</div>
-      <div class="total-count" id="totalCount">0 張</div>
-    </div>
-    <div class="total-right">
-      <div class="total-label">合計含稅金額</div>
-      <div class="total-amount" id="totalAmount">$0</div>
-    </div>
-  </div>
-
-  <!-- 送出 -->
-  <div class="submit-wrap" id="submitWrap" style="display:none;">
-    <div class="field" style="margin-bottom:var(--gap);">
-      <div class="field-label">整批備註</div>
-      <input type="text" class="field-input" id="f_memo"
-        placeholder="本次請款說明（選填）" />
-    </div>
-    <button class="btn-submit" id="btnSubmit" onclick="submitAll()">
-      <span>送出請款申請</span>
-      <span style="font-size:22px;">→</span>
-    </button>
+  <div class="side-card">
+    <div class="side-card-title"><span class="side-card-dot" style="background:var(--blue)"></span>點擊互動</div>
+    收款格：切換已開票/已收款<br>
+    費用按鈕：開啟 Modal<br>
+    廠商卡：查看期數
   </div>
 </div>
 
-<!-- Loading 狀態 -->
-<div class="card" id="cardLoading" style="display:none;">
-  <div class="state-box">
-    <div class="spinner"></div>
-    <div class="state-title" id="loadTitle">處理中...</div>
-    <div class="step-text" id="loadStep">請稍候</div>
+<!-- 手機外框 -->
+<div class="phone-frame">
+  <div class="notch"></div>
+  <div class="phone-inner">
+    <div class="status-bar"><span>9:41</span><span>●●●● WiFi 100%</span></div>
+
+    <!-- App Bar -->
+    <div class="app-bar">
+      <div class="app-bar-logo">🏗</div>
+      <div><div class="app-bar-title">POERP</div><div class="app-bar-sub">專案導向工程管理</div></div>
+      <div class="user-avatar">王</div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         A. 專案 Tab
+    ══════════════════════════════════════ -->
+    <div class="screen active" id="screen-project">
+
+      <!-- 專案選擇器 -->
+      <div class="proj-selector" onclick="toggleDropdown()" id="projSelector">
+        <div class="proj-icon">🧊</div>
+        <div class="proj-info">
+          <div class="proj-name" id="projName">台北某工廠冷凍機組</div>
+          <div class="proj-meta" id="projMeta">2025-TPE-001 ‧ 進行中 ‧ 合約 $980,000</div>
+        </div>
+        <div class="proj-arrow">▾</div>
+        <div class="proj-dropdown" id="projDropdown">
+          <div class="proj-option current" onclick="selectProject('台北某工廠冷凍機組','2025-TPE-001 ‧ 進行中 ‧ 合約 $980,000',490000,980000,3)">
+            <div class="proj-option-name">台北某工廠冷凍機組</div>
+            <div class="proj-option-meta">2025-TPE-001 ‧ 進行中</div>
+          </div>
+          <div class="proj-option" onclick="selectProject('新竹科技廠空調工程','2025-HSC-002 ‧ 進行中 ‧ 合約 $1,250,000',0,1250000,3)">
+            <div class="proj-option-name">新竹科技廠空調工程</div>
+            <div class="proj-option-meta">2025-HSC-002 ‧ 進行中</div>
+          </div>
+          <div class="proj-option" onclick="selectProject('桃園物流中心冷藏室','2025-TYN-003 ‧ 完工驗收 ‧ 合約 $650,000',650000,650000,2)">
+            <div class="proj-option-name">桃園物流中心冷藏室</div>
+            <div class="proj-option-meta">2025-TYN-003 ‧ 完工驗收</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── A 業主端 ── -->
+      <div class="section-head">
+        <span class="section-label client">業主收款進度</span>
+        <span class="wf-badge">上半</span>
+      </div>
+
+      <!-- A-1：累積收款進度條 -->
+      <div class="contract-bar">
+        <div class="contract-top">
+          <div>
+            <div class="contract-collected">累積收款</div>
+            <div class="contract-amounts">
+              <span class="collected-amt" id="collectedAmt">$490,000</span>
+              <span class="contract-sep">/</span>
+              <span class="contract-total" id="contractTotal">$980,000</span>
+            </div>
+          </div>
+          <div class="contract-ratio" id="contractRatio">50%</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:50%"></div>
+        </div>
+        <div class="progress-labels">
+          <span>$0</span><span id="progressLabel">已收 $490K</span><span id="contractTotalLabel">$980K</span>
+        </div>
+      </div>
+
+      <!-- A-2：預收款 banner -->
+      <div class="prepay-banner">
+        <div class="prepay-icon">⬇️</div>
+        <div class="prepay-text">
+          預收款 <span class="prepay-amt">$50,000</span> 已設定<br>
+          <span style="font-size:11px;">各期依比例扣抵 10%，共分 4 期攤還</span>
+        </div>
+      </div>
+
+      <!-- 收款期數（橫向滑動）-->
+      <div class="milestone-scroll">
+
+        <!-- 第 1/4 期：訂金 -->
+        <div class="milestone-card done">
+          <div class="ms-seq">第 1 / 4 期</div><!-- A-3 -->
+          <div class="ms-name">訂金</div>
+          <div class="ms-pct">10%</div>
+          <div class="ms-amount">$98,000</div>
+          <div class="ms-deduct">▼ 扣抵預收 $5,000</div><!-- A-2 -->
+          <div class="ms-checks">
+            <div class="ms-check checked" onclick="toggleCheck(event,this,'invoice')">
+              <div class="ms-check-icon">🧾</div>
+              <div class="ms-check-label">已開票</div>
+              <div class="ms-check-date">05/02</div><!-- A-4 -->
+            </div>
+            <div class="ms-check checked" onclick="toggleCheck(event,this,'payment')">
+              <div class="ms-check-icon">💰</div>
+              <div class="ms-check-label">已收款</div>
+              <div class="ms-check-date">05/05</div><!-- A-4 -->
+            </div>
+          </div>
+          <div class="ms-progress"><div class="ms-progress-bar" style="width:100%"></div></div>
+        </div>
+
+        <!-- 第 2/4 期：設備完成款 -->
+        <div class="milestone-card partial">
+          <div class="ms-seq">第 2 / 4 期</div>
+          <div class="ms-name">設備完成款</div>
+          <div class="ms-pct">40%</div>
+          <div class="ms-amount">$392,000</div>
+          <div class="ms-deduct">▼ 扣抵預收 $5,000</div>
+          <div class="ms-checks">
+            <div class="ms-check checked" onclick="toggleCheck(event,this,'invoice')">
+              <div class="ms-check-icon">🧾</div>
+              <div class="ms-check-label">已開票</div>
+              <div class="ms-check-date">05/15</div>
+            </div>
+            <div class="ms-check" onclick="toggleCheck(event,this,'payment')">
+              <div class="ms-check-icon">💰</div>
+              <div class="ms-check-label">待收款</div>
+              <div class="ms-check-date">—</div>
+            </div>
+          </div>
+          <div class="ms-progress"><div class="ms-progress-bar" style="width:50%"></div></div>
+        </div>
+
+        <!-- 第 3/4 期：安裝完成款 + 追加 -->
+        <div class="milestone-card pending">
+          <div class="ms-seq">第 3 / 4 期</div>
+          <div class="ms-name">安裝完成款</div>
+          <div class="ms-pct">30%</div>
+          <div class="ms-amount">$294,000</div>
+          <div class="ms-addon">＋追加 $28,000</div><!-- A-5 追加 -->
+          <div class="ms-deduct">▼ 扣抵預收 $5,000</div>
+          <div class="ms-checks">
+            <div class="ms-check" onclick="toggleCheck(event,this,'invoice')">
+              <div class="ms-check-icon">🧾</div>
+              <div class="ms-check-label">待開票</div>
+              <div class="ms-check-date">—</div>
+            </div>
+            <div class="ms-check" onclick="toggleCheck(event,this,'payment')">
+              <div class="ms-check-icon">💰</div>
+              <div class="ms-check-label">待收款</div>
+              <div class="ms-check-date">—</div>
+            </div>
+          </div>
+          <div class="ms-progress"><div class="ms-progress-bar" style="width:0%"></div></div>
+        </div>
+
+        <!-- 第 4/4 期：驗收尾款 -->
+        <div class="milestone-card pending">
+          <div class="ms-seq">第 4 / 4 期</div>
+          <div class="ms-name">驗收尾款</div>
+          <div class="ms-pct">20%</div>
+          <div class="ms-amount">$196,000</div>
+          <div class="ms-deduct">▼ 扣抵預收 $35,000</div>
+          <div class="ms-checks">
+            <div class="ms-check" onclick="toggleCheck(event,this,'invoice')">
+              <div class="ms-check-icon">🧾</div>
+              <div class="ms-check-label">待開票</div>
+              <div class="ms-check-date">—</div>
+            </div>
+            <div class="ms-check" onclick="toggleCheck(event,this,'payment')">
+              <div class="ms-check-icon">💰</div>
+              <div class="ms-check-label">待收款</div>
+              <div class="ms-check-date">—</div>
+            </div>
+          </div>
+          <div class="ms-progress"><div class="ms-progress-bar" style="width:0%"></div></div>
+        </div>
+
+      </div><!-- milestone-scroll -->
+
+      <div class="section-divider"></div>
+
+      <!-- ── 廠商端 ── -->
+      <div class="section-head">
+        <span class="section-label vendor">廠商請款進度</span>
+        <span class="wf-badge">下半</span>
+      </div>
+
+      <div class="vendor-list">
+        <div class="vendor-card">
+          <div class="vendor-head">
+            <div class="vendor-avatar eq">⚙️</div>
+            <div><div class="vendor-name">冷凍設備有限公司</div><div class="vendor-type">設備供應廠商</div></div>
+            <div class="vendor-total">
+              <div class="vendor-total-amt">$480,000</div>
+              <div class="vendor-total-label">合約金額</div>
+            </div>
+          </div>
+          <div class="vendor-payments">
+            <!-- B-1：已完成加日期 -->
+            <div class="pay-chip paid"><div class="pay-dot"></div>預付款 30% ✓<span class="pay-date">05/01</span></div>
+            <div class="pay-chip review"><div class="pay-dot"></div>交貨款 50% 審核中</div>
+            <div class="pay-chip pending"><div class="pay-dot"></div>尾款 20% 待請</div>
+          </div>
+        </div>
+        <div class="vendor-card">
+          <div class="vendor-head">
+            <div class="vendor-avatar work1">🔧</div>
+            <div><div class="vendor-name">精冷工程行</div><div class="vendor-type">冷凍管路施作</div></div>
+            <div class="vendor-total"><div class="vendor-total-amt">$220,000</div><div class="vendor-total-label">合約金額</div></div>
+          </div>
+          <div class="vendor-payments">
+            <div class="pay-chip paid"><div class="pay-dot"></div>進場款 $60,000 ✓<span class="pay-date">04/28</span></div>
+            <div class="pay-chip pending"><div class="pay-dot"></div>完成款 $160,000 待請</div>
+          </div>
+        </div>
+        <div class="vendor-card">
+          <div class="vendor-head">
+            <div class="vendor-avatar work2">⚡</div>
+            <div><div class="vendor-name">台電工程社</div><div class="vendor-type">電氣配線施作</div></div>
+            <div class="vendor-total"><div class="vendor-total-amt">$95,000</div><div class="vendor-total-label">合約金額</div></div>
+          </div>
+          <div class="vendor-payments">
+            <div class="pay-chip pending"><div class="pay-dot"></div>一次付清 $95,000 待請</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- ── A-三：員工費用核銷（依上傳日期排序）── -->
+      <div class="section-head">
+        <span class="section-label expense">本專案費用核銷</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text3);">依上傳日期 ↓</span>
+      </div>
+
+      <div class="expense-log">
+        <!-- 依上傳日期排序 -->
+        <div class="expense-item">
+          <div class="expense-date">05/16</div>
+          <div class="expense-icon">⛽</div>
+          <div class="expense-desc">加油發票 — 中油<div class="expense-desc-sub">辨識：統編 03717009</div></div>
+          <div class="expense-amt">$1,200</div>
+          <div class="expense-status es-ok">核准</div>
+        </div>
+        <div class="expense-item">
+          <div class="expense-date">05/14</div>
+          <div class="expense-icon">🛣️</div>
+          <div class="expense-desc">ETC 過路費<div class="expense-desc-sub">國道 1 號 台北→桃園</div></div>
+          <div class="expense-amt">$180</div>
+          <div class="expense-status es-auto">自動</div>
+        </div>
+        <div class="expense-item">
+          <div class="expense-date">05/12</div>
+          <div class="expense-icon">🅿️</div>
+          <div class="expense-desc">停車場收據<div class="expense-desc-sub">信義停車場</div></div>
+          <div class="expense-amt">$120</div>
+          <div class="expense-status es-ok">核准</div>
+        </div>
+        <div class="expense-item">
+          <div class="expense-date">05/10</div>
+          <div class="expense-icon">⛽</div>
+          <div class="expense-desc">加油發票 — 台塑<div class="expense-desc-sub">辨識：統編 27206484</div></div>
+          <div class="expense-amt">$960</div>
+          <div class="expense-status es-wait">待審</div>
+        </div>
+        <div class="expense-item">
+          <div class="expense-date">05/08</div>
+          <div class="expense-icon">🪙</div>
+          <div class="expense-desc">路邊停車扣繳<div class="expense-desc-sub">重慶北路 × 3 次</div></div>
+          <div class="expense-amt">$90</div>
+          <div class="expense-status es-auto">自動</div>
+        </div>
+      </div>
+
+    </div><!-- screen-project -->
+
+    <!-- ══════════════════════════════════════
+         B. 費用 Tab（整合為 3 大功能）
+    ══════════════════════════════════════ -->
+    <div class="screen" id="screen-expense">
+
+      <div class="section-head" style="margin-bottom:12px;">
+        <span class="section-label expense">費用上傳</span>
+        <span class="wf-badge">B 整合版</span>
+      </div>
+
+      <!-- B-1：三大功能 -->
+      <div class="fee-upload-btns">
+
+        <!-- 辨識憑證 -->
+        <div class="fee-btn primary" onclick="openModal('modal-receipt')">
+          <div class="fee-btn-icon">📷</div>
+          <div class="fee-btn-info">
+            <div class="fee-btn-title">辨識憑證</div>
+            <div class="fee-btn-sub">油單發票・電子發票・ETC 帳單<br>手開收據・其他憑證，AI 自動辨識</div>
+          </div>
+          <div class="fee-btn-arrow">›</div>
+        </div>
+
+        <!-- Google 里程 -->
+        <div class="fee-btn" onclick="openModal('modal-mileage')">
+          <div class="fee-btn-icon">🗺️</div>
+          <div class="fee-btn-info">
+            <div class="fee-btn-title">Google 里程申請</div>
+            <div class="fee-btn-sub">輸入起終點 → Google Maps 自動計算<br>距離 × 補助標準 = 申請金額</div>
+          </div>
+          <div class="fee-btn-arrow">›</div>
+        </div>
+
+        <!-- 載具匯入 -->
+        <div class="fee-btn" onclick="openModal('modal-carrier')">
+          <div class="fee-btn-icon">📲</div>
+          <div class="fee-btn-info">
+            <div class="fee-btn-title">載具匯入</div>
+            <div class="fee-btn-sub">手機條碼・自然人憑證<br>月底自動抓取電子發票清單</div>
+          </div>
+          <div class="fee-btn-arrow">›</div>
+        </div>
+
+      </div>
+
+      <!-- B-2：無法歸類到專案 → 專案部 -->
+      <div class="section-divider"></div>
+      <div class="section-head">
+        <span class="section-label dept">無法歸屬專案</span>
+        <span class="wf-badge">B-2 新增</span>
+      </div>
+      <div style="padding:12px 14px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px;">
+        費用無法對應到特定工程專案時，歸屬<br>
+        <strong style="color:var(--purple);">「專案部（部門成本）」</strong><br>
+        例如：總部油資、辦公室停車、非專案出差
+      </div>
+      <div class="fee-btn" onclick="openModal('modal-receipt','dept')" style="border-color:rgba(167,139,250,.3);">
+        <div class="fee-btn-icon">🏢</div>
+        <div class="fee-btn-info">
+          <div class="fee-btn-title">歸屬專案部 <span class="no-proj-badge">非專案費用</span></div>
+          <div class="fee-btn-sub">上傳憑證並指定為部門成本</div>
+        </div>
+        <div class="fee-btn-arrow">›</div>
+      </div>
+
+    </div><!-- screen-expense -->
+
+    <!-- ══════════════════════════════════════
+         C. 廠商手寫辨識（獨立 Tab）
+    ══════════════════════════════════════ -->
+    <div class="screen" id="screen-vendor-ocr">
+      <div class="section-head">
+        <span class="section-label vendor">廠商手寫請款辨識</span>
+        <span class="wf-badge">C 獨立</span>
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6;
+        padding:10px 12px;background:var(--card);border-radius:var(--r-sm);border:1px solid var(--border);">
+        📌 此介面日後獨立提供廠商使用（廠商 LIFF）<br>
+        師傅無需打字，拍手寫明細 → AI 轉成電腦文字
+      </div>
+
+      <div class="vendor-ocr-wrap">
+        <div class="handwrite-zone" onclick="showToast('開啟相機拍攝手寫請款單')">
+          <div style="font-size:38px;">✍️</div>
+          <div style="font-size:15px;color:var(--text2);text-align:center;">拍攝手寫請款明細<br><span style="font-size:12px;color:var(--text3);">支援手寫中文、數字、表格</span></div>
+        </div>
+
+        <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">AI 辨識原始文字</div>
+        <div class="handwrite-preview">冷凍機組安裝工程請款
+廠商：精冷工程行
+日期：114年5月8日
+
+1. 冷媒管路施工  28,000
+2. 保溫材料安裝   8,500
+3. 電氣配線工程  15,000
+4. 試運轉調試     3,500
+
+合計：55,000元整
+統編：12345678</div>
+
+        <div style="font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">轉換結果（可修改）</div>
+        <table class="result-table">
+          <thead><tr><th>品項名稱</th><th style="width:86px;text-align:right;">金額</th></tr></thead>
+          <tbody>
+            <tr><td><input class="result-input" value="冷媒管路施工"/></td><td style="text-align:right;"><input class="result-input" value="28,000" style="text-align:right;width:76px;"/></td></tr>
+            <tr><td><input class="result-input" value="保溫材料安裝"/></td><td style="text-align:right;"><input class="result-input" value="8,500" style="text-align:right;width:76px;"/></td></tr>
+            <tr><td><input class="result-input" value="電氣配線工程"/></td><td style="text-align:right;"><input class="result-input" value="15,000" style="text-align:right;width:76px;"/></td></tr>
+            <tr><td><input class="result-input" value="試運轉調試"/></td><td style="text-align:right;"><input class="result-input" value="3,500" style="text-align:right;width:76px;"/></td></tr>
+            <tr style="background:var(--card2);"><td style="font-weight:700;color:var(--accent);">合計</td><td style="text-align:right;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">55,000</td></tr>
+          </tbody>
+        </table>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px;">
+          <div><div class="modal-label">廠商名稱</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="精冷工程行"/></div>
+          <div><div class="modal-label">統編</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="12345678"/></div>
+        </div>
+        <div style="margin-top:6px;"><div class="modal-label">歸屬專案</div>
+          <select class="modal-input" style="padding:10px 12px;font-size:14px;">
+            <option>台北某工廠冷凍機組（2025-TPE-001）</option>
+            <option>新竹科技廠空調工程（2025-HSC-002）</option>
+          </select>
+        </div>
+        <button class="modal-btn" style="margin-top:6px;" onclick="showToast('請款單已轉換，送出至三層簽核流程')">確認送出請款申請</button>
+      </div>
+    </div>
+
+    <!-- Tab Bar（4 個 Tab）-->
+    <div class="tab-bar">
+      <div class="tab active" id="tab-project" onclick="showScreen('project')">
+        <div class="tab-icon">📊</div><div class="tab-label">專案</div>
+      </div>
+      <div class="tab" id="tab-expense" onclick="showScreen('expense')">
+        <div class="tab-icon">🧾</div><div class="tab-label">費用</div>
+      </div>
+      <div class="tab" id="tab-vendorocr" onclick="showScreen('vendor-ocr')">
+        <div class="tab-icon">✍️</div><div class="tab-label">廠商手寫</div>
+      </div>
+      <div class="tab">
+        <div class="tab-icon">📈</div><div class="tab-label">報表</div>
+      </div>
+    </div>
+
+  </div><!-- phone-inner -->
+</div><!-- phone-frame -->
+</div><!-- phone-shell -->
+
+<!-- ══ Modal：辨識憑證 ══ -->
+<div class="modal-overlay" id="modal-receipt" onclick="closeModalIfOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="receipt-title">📷 上傳並辨識憑證</div>
+    <div class="modal-upload-zone" onclick="showToast('開啟相機/相簿選取憑證')">
+      <div class="modal-upload-icon">📎</div>
+      <div class="modal-upload-text">拍照或選取圖片</div>
+      <div class="modal-upload-hint">油單・電子發票・ETC帳單・手開收據・其他<br>Gemini AI 自動辨識金額、日期、統編</div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">歸屬專案</div>
+      <select class="modal-input" id="receipt-project">
+        <option>台北某工廠冷凍機組（2025-TPE-001）</option>
+        <option>新竹科技廠空調工程（2025-HSC-002）</option>
+        <option>桃園物流中心冷藏室（2025-TYN-003）</option>
+        <option style="color:#a78bfa;">── 專案部（無法歸類）──</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">備註（選填）</div>
+      <input class="modal-input" placeholder="例：前往工地現場" />
+    </div>
+    <button class="modal-btn" onclick="showToast('憑證上傳中，AI 辨識後送核');closeModal()">上傳並送出申請</button>
+    <button class="modal-btn-sec" onclick="closeModal()">取消</button>
   </div>
 </div>
 
-<!-- 成功 -->
-<div class="card" id="cardSuccess" style="display:none;">
-  <div class="state-box">
-    <div class="state-icon">✅</div>
-    <div class="state-title">申請送出成功</div>
-    <div class="state-id" id="successId"></div>
-    <div class="state-sub">主管將收到簽核通知<br>請等候審核結果</div>
-    <button class="btn-again" onclick="resetAll()">再送一筆</button>
+<!-- ══ Modal：Google 里程 ══ -->
+<div class="modal-overlay" id="modal-mileage" onclick="closeModalIfOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗺️ Google 里程申請</div>
+    <div class="mileage-wrap">
+      <div class="mileage-point">
+        <div class="mileage-dot start"></div>
+        <input class="modal-input" placeholder="起點（例：公司地址）" style="flex:1;" />
+      </div>
+      <div style="display:flex;padding-left:4px;"><div class="mileage-line"></div></div>
+      <div class="mileage-point">
+        <div class="mileage-dot end"></div>
+        <input class="modal-input" placeholder="終點（例：工地地址）" style="flex:1;" />
+      </div>
+    </div>
+    <div style="margin:10px 0;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);cursor:pointer;">
+        <input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px;" checked />
+        來回計算（× 2）
+      </label>
+    </div>
+    <div class="mileage-calc" style="margin-bottom:14px;">
+      <div>
+        <div class="mileage-calc-label">Google Maps 距離</div>
+        <div style="font-size:11px;color:var(--text3);">來回 47.2 公里</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="mileage-calc-label">申請金額</div>
+        <div class="mileage-calc-val">$283</div>
+        <div style="font-size:10px;color:var(--text3);">47.2 km × $6/km</div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">外勤事由</div>
+      <input class="modal-input" placeholder="例：前往台北工廠現場勘查" />
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">歸屬專案</div>
+      <select class="modal-input">
+        <option>台北某工廠冷凍機組（2025-TPE-001）</option>
+        <option>新竹科技廠空調工程（2025-HSC-002）</option>
+        <option style="color:#a78bfa;">── 專案部（無法歸類）──</option>
+      </select>
+    </div>
+    <button class="modal-btn" onclick="showToast('里程申請已送出，申請金額 $283');closeModal()">送出里程申請 $283</button>
+    <button class="modal-btn-sec" onclick="closeModal()">取消</button>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- ══ Modal：載具匯入 ══ -->
+<div class="modal-overlay" id="modal-carrier" onclick="closeModalIfOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📲 電子發票載具匯入</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      綁定載具後，財政部電子發票平台每月自動匯入發票清單，免逐張上傳。
+    </div>
+    <div class="carrier-wrap">
+      <div class="carrier-item" onclick="showToast('開啟手機條碼掃描/綁定')">
+        <div class="carrier-icon">📱</div>
+        <div><div class="carrier-title">手機條碼</div><div class="carrier-sub">掃描自然人憑證條碼綁定</div></div>
+        <div class="carrier-arrow">›</div>
+      </div>
+      <div class="carrier-item" onclick="showToast('前往財政部電子發票整合平台')">
+        <div class="carrier-icon">🏛️</div>
+        <div><div class="carrier-title">財政部平台匯入</div><div class="carrier-sub">已綁定 → 月底自動抓取清單</div></div>
+        <div class="carrier-arrow">›</div>
+      </div>
+      <div class="carrier-item" onclick="showToast('掃描發票條碼（單張）')">
+        <div class="carrier-icon">📷</div>
+        <div><div class="carrier-title">單張掃碼</div><div class="carrier-sub">掃電子發票 QR Code → 自動帶入</div></div>
+        <div class="carrier-arrow">›</div>
+      </div>
+    </div>
+    <button class="modal-btn-sec" style="margin-top:14px;" onclick="closeModal()">關閉</button>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
-// ── 狀態 ─────────────────────────────────────────────────────
-let invoices = []; // [{ id, file, base64, mime, ocrData, selected, expanded }]
-let submitting = false;
-const gasUrl = "https://script.google.com/macros/s/AKfycbzIf6tPlZa-Y3K4s4GtF-tQzspz2VA7qgmxOTiFHl104Z7f37v_QaDcrzGK_YVuCP8K/exec";
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const tabMap = { project:'tab-project', expense:'tab-expense', 'vendor-ocr':'tab-vendorocr' };
+  if (tabMap[name]) document.getElementById(tabMap[name]).classList.add('active');
+  const sideMap = { project:0, expense:1, 'vendor-ocr':2 };
+  document.querySelectorAll('.side-nav-btn').forEach((b,i) => b.classList.toggle('active', i === sideMap[name]));
+}
 
-
-// ── 拖曳 ─────────────────────────────────────────────────────
-const drop = document.getElementById('uploadDrop');
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dg'); });
-drop.addEventListener('dragleave', () => drop.classList.remove('dg'));
-drop.addEventListener('drop', e => {
-  e.preventDefault(); drop.classList.remove('dg');
-  handleFiles({ target: { files: e.dataTransfer.files } });
+function toggleDropdown() { document.getElementById('projDropdown').classList.toggle('open'); }
+function selectProject(name, meta, collected, total, periods) {
+  document.getElementById('projName').textContent = name;
+  document.getElementById('projMeta').textContent = meta;
+  const pct = total > 0 ? Math.round(collected / total * 100) : 0;
+  document.getElementById('collectedAmt').textContent = '$' + collected.toLocaleString();
+  document.getElementById('contractTotal').textContent = '$' + total.toLocaleString();
+  document.getElementById('contractRatio').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = '已收 $' + Math.round(collected/1000) + 'K';
+  document.getElementById('contractTotalLabel').textContent = '$' + Math.round(total/1000) + 'K';
+  document.getElementById('projDropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('projSelector').contains(e.target))
+    document.getElementById('projDropdown').classList.remove('open');
 });
 
-// ── 讀取多個檔案 ──────────────────────────────────────────────
-function handleFiles(event) {
-  const files = Array.from(event.target.files);
-  if (!files.length) return;
-  const oversized = files.filter(f => f.size > 5 * 1024 * 1024);
-  if (oversized.length) {
-    toast(`⚠ ${oversized.length} 個檔案超過 5MB，已略過`);
+function toggleCheck(event, el, type) {
+  event.stopPropagation();
+  el.classList.toggle('checked');
+  const label = el.querySelector('.ms-check-label');
+  const date  = el.querySelector('.ms-check-date');
+  const icon  = el.querySelector('.ms-check-icon');
+  const isChecked = el.classList.contains('checked');
+  if (type === 'invoice') {
+    label.textContent = isChecked ? '已開票' : '待開票';
+    date.textContent  = isChecked ? '05/' + (Math.floor(Math.random()*28)+1).toString().padStart(2,'0') : '—';
+  } else {
+    label.textContent = isChecked ? '已收款' : '待收款';
+    date.textContent  = isChecked ? '05/' + (Math.floor(Math.random()*28)+1).toString().padStart(2,'0') : '—';
   }
-  const valid = files.filter(f => f.size <= 5 * 1024 * 1024);
-  if (!valid.length) return;
-
-  let loaded = 0;
-  valid.forEach(file => {
-    const id = 'inv_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const reader = new FileReader();
-    reader.onload = r => {
-      const base64 = r.target.result.split(',')[1];
-      invoices.push({ id, file, base64, mime: file.type||'image/jpeg',
-        ocrData: null, selected: true, expanded: false,
-        status: 'pending', errMsg: '' });
-      loaded++;
-      if (loaded === valid.length) {
-        renderList();
-        document.getElementById('btnOcrAll').disabled = false;
-        document.getElementById('uploadCount').textContent =
-          `共 ${invoices.length} 張`;
-      }
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('fileInput').value = '';
+  const card = el.closest('.milestone-card');
+  const checks = card.querySelectorAll('.ms-check.checked');
+  card.querySelector('.ms-progress-bar').style.width = (checks.length * 50) + '%';
+  card.classList.remove('done','partial','pending');
+  card.classList.add(checks.length === 2 ? 'done' : checks.length === 1 ? 'partial' : 'pending');
 }
 
-// ── 渲染發票清單 ──────────────────────────────────────────────
-function renderList() {
-  const list = document.getElementById('invoiceList');
-  list.style.display = 'block';
-  list.innerHTML = '';
-  invoices.forEach(inv => list.appendChild(buildInvCard(inv)));
-  updateTotal();
-  document.getElementById('totalBar').style.display = 'flex';
-  document.getElementById('submitWrap').style.display = 'block';
-}
-
-function buildInvCard(inv) {
-  const div = document.createElement('div');
-  div.className = `inv-item${inv.selected?' selected':''}${inv.status==='error'?' has-error':''}`;
-  div.id = 'card_' + inv.id;
-
-  const statusText = {
-    pending: '待辨識',
-    loading: '辨識中...',
-    done:    `辨識完成 ${inv.ocrData?.confidence==='high'?'✓ 高信心':inv.ocrData?.confidence==='medium'?'~ 中等信心':'! 低信心'}`,
-    error:   inv.errMsg || '辨識失敗'
-  }[inv.status] || '';
-  const statusClass = { pending:'', loading:'ocr-ing', done:'ocr-ok', error:'ocr-err' }[inv.status]||'';
-
-  // thumb
-  if (!inv.thumbSrc) inv.thumbSrc = URL.createObjectURL(inv.file);
-  const thumbSrc = inv.thumbSrc;
-  const d = inv.ocrData;
-
-  div.innerHTML = `
-    <div class="inv-head" onclick="toggleCard('${inv.id}')">
-      <div class="inv-check${inv.selected?' checked':''}" id="chk_${inv.id}"
-        onclick="event.stopPropagation();toggleSelect('${inv.id}')"></div>
-      <img class="inv-thumb" src="${thumbSrc}" />
-      <div class="inv-info">
-        <div class="inv-filename">${esc(inv.file.name)}</div>
-        <div class="inv-status ${statusClass}">${statusText}</div>
-        ${d ? `<div style="font-size:13px;color:var(--text3);margin-top:2px;">${d.vendor||''} ${d.invoiceDate||''}</div>` : ''}
-      </div>
-      ${d ? `<div class="inv-amount">$${Number(d.total||0).toLocaleString()}</div>` : ''}
-      <div class="inv-toggle${inv.expanded?' open':''}" id="tog_${inv.id}">▼</div>
-    </div>
-    ${inv.status === 'error' ? `
-    <div style="padding:14px 18px;background:rgba(248,113,113,.08);
-      border-top:1px solid rgba(248,113,113,.2);color:var(--error);
-      font-size:15px;line-height:1.7;">
-      <div style="font-weight:700;margin-bottom:6px;">❌ 辨識失敗</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;
-        word-break:break-all;">${esc(inv.errMsg)}</div>
-      <div style="margin-top:10px;font-size:13px;color:var(--text2);">
-        請開啟瀏覽器 Console（F12）查看詳細錯誤
-      </div>
-    </div>` : buildEditSection(inv)}`;
-  return div;
-}
-
-function buildEditSection(inv) {
-  if (!inv.ocrData) return `<div class="inv-edit" id="edit_${inv.id}"></div>`;
-  const d = inv.ocrData;
-
-  // 專案下拉（未來可從 GAS 取得專案清單，現在先手動輸入）
-  return `<div class="inv-edit${inv.expanded?' open':''}" id="edit_${inv.id}">
-    <div class="inv-edit-grid">
-      <div class="inv-field wide">
-        <div class="inv-label">廠商名稱</div>
-        <input type="text" class="inv-input" data-key="vendor" data-id="${inv.id}"
-          value="${esc(d.vendor||'')}" oninput="updateField(this,'${inv.id}','vendor')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">廠商統編</div>
-        <input type="text" class="inv-input" data-id="${inv.id}"
-          value="${esc(d.vendorTaxId||'')}" oninput="updateField(this,'${inv.id}','vendorTaxId')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">發票號碼</div>
-        <input type="text" class="inv-input" data-id="${inv.id}"
-          value="${esc(d.invoiceNumber||'')}" oninput="updateField(this,'${inv.id}','invoiceNumber')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">發票日期</div>
-        <input type="date" class="inv-input" data-id="${inv.id}"
-          value="${esc(d.invoiceDate||'')}" oninput="updateField(this,'${inv.id}','invoiceDate')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">付款方式</div>
-        <select class="inv-input" data-id="${inv.id}" onchange="updateField(this,'${inv.id}','paymentMethod')">
-          ${['現金','刷卡','轉帳','其他'].map(v=>
-            `<option value="${v}"${(d.paymentMethod||'')===v?' selected':''}>${v}</option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">專案代號</div>
-        <input type="text" class="inv-input" data-id="${inv.id}"
-          placeholder="PROJECT-CODE"
-          value="${esc(d._project||'')}" oninput="updateField(this,'${inv.id}','_project')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">未稅金額</div>
-        <input type="number" class="inv-input" data-id="${inv.id}"
-          value="${d.subtotal!=null?d.subtotal:''}" oninput="updateField(this,'${inv.id}','subtotal')" />
-      </div>
-      <div class="inv-field">
-        <div class="inv-label">稅額</div>
-        <input type="number" class="inv-input" data-id="${inv.id}"
-          value="${d.tax!=null?d.tax:''}" oninput="updateField(this,'${inv.id}','tax')" />
-      </div>
-      <div class="inv-field wide">
-        <div class="inv-label">含稅總額</div>
-        <input type="number" class="inv-input amt" data-id="${inv.id}"
-          value="${d.total!=null?d.total:''}"
-          oninput="updateField(this,'${inv.id}','total');updateTotal()" />
-      </div>
-    </div>
-    ${d.notes ? `<div class="ai-note">⚠ ${esc(d.notes)}</div>` : ''}
-  </div>`;
-}
-
-// ── 卡片操作 ─────────────────────────────────────────────────
-function toggleCard(id) {
-  const inv = invoices.find(i => i.id === id);
-  if (!inv || !inv.ocrData) return;
-  inv.expanded = !inv.expanded;
-  const editEl = document.getElementById('edit_' + id);
-  const togEl  = document.getElementById('tog_' + id);
-  if (editEl) editEl.classList.toggle('open', inv.expanded);
-  if (togEl)  togEl.classList.toggle('open', inv.expanded);
-}
-
-function toggleSelect(id) {
-  const inv = invoices.find(i => i.id === id);
-  if (!inv) return;
-  inv.selected = !inv.selected;
-  const card = document.getElementById('card_' + id);
-  const chk  = document.getElementById('chk_' + id);
-  if (card) card.classList.toggle('selected', inv.selected);
-  if (chk)  chk.classList.toggle('checked', inv.selected);
-  updateTotal();
-}
-
-function updateField(el, id, key) {
-  const inv = invoices.find(i => i.id === id);
-  if (!inv || !inv.ocrData) return;
-  el.classList.add('changed');
-  const val = el.type === 'number' ? (parseFloat(el.value) || null) : el.value;
-  inv.ocrData[key] = val;
-}
-
-function updateTotal() {
-  const selected = invoices.filter(i => i.selected && i.ocrData);
-  const sum = selected.reduce((a, i) => a + (Number(i.ocrData.total) || 0), 0);
-  document.getElementById('totalCount').textContent = `${selected.length} 張`;
-  document.getElementById('totalAmount').textContent = `$${sum.toLocaleString()}`;
-}
-
-// ── OCR 全部辨識 ──────────────────────────────────────────────
-async function ocrAll() {
-  const pending = invoices.filter(i => i.status === 'pending');
-  if (!pending.length) { toast('所有發票已辨識完成'); return; }
-
-  document.getElementById('btnOcrAll').disabled = true;
-  document.getElementById('btnOcrText').textContent = '辨識中...';
-  document.getElementById('dotUpload').classList.add('on');
-
-  // 逐張辨識（避免 GAS 同時大量請求）
-  for (let i = 0; i < pending.length; i++) {
-    const inv = pending[i];
-    document.getElementById('btnOcrText').textContent =
-      `辨識中 ${i+1} / ${pending.length}`;
-    inv.status = 'loading';
-    refreshCard(inv);
-
-    try {
-      const res = await fetch(gasUrl, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          imageBase64: inv.base64, imageMime: inv.mime,
-          invoiceType: 'vendor'
-        })
-      });
-      // HTTP 狀態檢查
-      if (!res.ok) {
-        const rawText = await res.text();
-        console.error(`[OCR] HTTP ${res.status}:`, rawText);
-        throw new Error(`伺服器回應 HTTP ${res.status}：${rawText.substring(0, 200)}`);
-      }
-      // JSON 解析
-      const text = await res.text();
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch(jsonErr) {
-        console.error('[OCR] JSON 解析失敗，原始回應：', text);
-        throw new Error(`回應格式錯誤：${text.substring(0, 300)}`);
-      }
-      console.log('[OCR] 回應：', result);
-      if (!result.success) throw new Error(result.error || '未知錯誤');
-      inv.ocrData = result.data;
-      inv.ocrData._project = '';
-      inv.status = 'done';
-      inv.selected = true;
-    } catch(e) {
-      console.error(`[OCR] 發票 ${inv.file.name} 失敗：`, e);
-      inv.status = 'error';
-      inv.errMsg = e.message;
-      inv.selected = false;
-    }
-    refreshCard(inv);
-    updateTotal();
-  }
-
-  document.getElementById('btnOcrAll').disabled = false;
-  document.getElementById('btnOcrText').textContent = '✦ 重新辨識待處理發票';
-  toast(`✓ 辨識完成，共 ${invoices.filter(i=>i.status==='done').length} 張成功`);
-}
-
-function refreshCard(inv) {
-  const card = document.getElementById('card_' + inv.id);
-  if (!card) return;
-  const newCard = buildInvCard(inv);
-  card.replaceWith(newCard);
-}
-
-// ── 送出全部 ─────────────────────────────────────────────────
-async function submitAll() {
-  if (submitting) return;
-
-  const selected = invoices.filter(i => i.selected && i.ocrData);
-  if (!selected.length) { toast('請至少勾選一張已辨識的發票'); return; }
-
-  const noTotal = selected.filter(i => !i.ocrData.total);
-  if (noTotal.length) { toast(`⚠ 有 ${noTotal.length} 張發票未填含稅總額`); return; }
-
-  submitting = true;
-  document.getElementById('btnSubmit').disabled = true;
-
-  // 顯示 loading
-  document.getElementById('cardLoading').style.display = 'block';
-  document.getElementById('loadTitle').textContent = '上傳中...';
-  document.getElementById('loadStep').textContent = `上傳發票圖片 0 / ${selected.length}`;
-
-  try {
-    // Step 1：逐張上傳圖片到 Drive
-    const fileUrls = [];
-    for (let i = 0; i < selected.length; i++) {
-      const inv = selected[i];
-      document.getElementById('loadStep').textContent =
-        `上傳圖片 ${i+1} / ${selected.length}：${inv.file.name}`;
-      try {
-        const upRes = await fetch(gasUrl, {
-          method: 'POST', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'uploadFile',
-            imageBase64: inv.base64, imageMime: inv.mime,
-            projectCode: inv.ocrData._project || '未指定專案',
-            vendor: inv.ocrData.vendor,
-            invoiceDate: inv.ocrData.invoiceDate,
-            invoiceNumber: inv.ocrData.invoiceNumber
-          })
-        });
-        const upResult = await upRes.json();
-        fileUrls.push(upResult.success ? upResult.fileUrl : '');
-      } catch(e) {
-        fileUrls.push('');
-      }
-    }
-
-    // Step 2：組合送出
-    document.getElementById('loadTitle').textContent = '送出申請中...';
-    document.getElementById('loadStep').textContent = '寫入申請記錄';
-
-    const invoiceDetails = selected.map((inv, i) => ({
-      vendor:        inv.ocrData.vendor||'',
-      vendorTaxId:   inv.ocrData.vendorTaxId||'',
-      buyerTaxId:    inv.ocrData.buyerTaxId||'',
-      invoiceNumber: inv.ocrData.invoiceNumber||'',
-      invoiceDate:   inv.ocrData.invoiceDate||'',
-      paymentMethod: inv.ocrData.paymentMethod||'',
-      subtotal:      inv.ocrData.subtotal||'',
-      tax:           inv.ocrData.tax||'',
-      total:         inv.ocrData.total||'',
-      currency:      inv.ocrData.currency||'TWD',
-      projectCode:   inv.ocrData._project||'',
-      items:         inv.ocrData.items||[],
-      fileUrl:       fileUrls[i]||''
-    }));
-
-    const totalAmount = selected.reduce((a, i) => a + Number(i.ocrData.total||0), 0);
-    const allProjects = [...new Set(selected.map(i => i.ocrData._project).filter(Boolean))];
-
-    const payload = {
-      action: 'submitBatch',
-      applicantName:  name,
-      applicantEmail: email,
-      memo:           document.getElementById('f_memo').value.trim(),
-      invoiceCount:   selected.length,
-      totalAmount,
-      projects:       allProjects,
-      invoices:       invoiceDetails
-    };
-
-    const res = await fetch(gasUrl, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error);
-
-    document.getElementById('cardLoading').style.display = 'none';
-    document.getElementById('successId').textContent = result.applyId;
-    document.getElementById('cardSuccess').style.display = 'block';
-
-  } catch(e) {
-    document.getElementById('cardLoading').style.display = 'none';
-    showErr('送出失敗：' + e.message);
-    submitting = false;
-    document.getElementById('btnSubmit').disabled = false;
+function openModal(id, mode) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-receipt' && mode === 'dept') {
+    document.getElementById('receipt-title').textContent = '🏢 歸屬專案部費用';
+    document.getElementById('receipt-project').value = document.getElementById('receipt-project').options[3]?.value || '';
+  } else if (id === 'modal-receipt') {
+    document.getElementById('receipt-title').textContent = '📷 上傳並辨識憑證';
   }
 }
+function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+function closeModalIfOverlay(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
-// ── 重置 ─────────────────────────────────────────────────────
-function resetAll() {
-  invoices = [];
-  submitting = false;
-  document.getElementById('invoiceList').style.display = 'none';
-  document.getElementById('invoiceList').innerHTML = '';
-  document.getElementById('totalBar').style.display = 'none';
-  document.getElementById('submitWrap').style.display = 'none';
-  document.getElementById('cardSuccess').style.display = 'none';
-  document.getElementById('cardLoading').style.display = 'none';
-  document.getElementById('errBox').style.display = 'none';
-  document.getElementById('uploadCount').textContent = '';
-  document.getElementById('btnOcrAll').disabled = true;
-  document.getElementById('btnOcrText').textContent = '✦ 開始辨識所有發票';
-  document.getElementById('btnSubmit').disabled = false;
-  document.getElementById('dotUpload').classList.remove('on');
-}
-
-function showErr(msg) {
-  const el = document.getElementById('errBox');
-  el.textContent = msg; el.style.display = 'block';
-}
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function toast(msg) {
+function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(80px)';
+  }, 2800);
 }
 </script>
 </body>
