@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>POERP 員工 LIFF — Wireframe v2</title>
+<title>專案管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -281,9 +281,14 @@ select.modal-input{cursor:pointer;-webkit-appearance:none;}
       </div>
 
       <!-- ── A 業主端 ── -->
-      <div class="section-head">
+      <div class="section-head" style="flex-wrap:wrap;gap:6px;">
         <span class="section-label client">業主收款進度</span>
-        <span class="wf-badge">$490,000 / $980,000</span>
+        <span style="margin-left:auto;font-size:12px;font-family:'JetBrains Mono',monospace;">
+          <span id="collectedAmt" style="color:var(--green);font-weight:700;">$490,000</span>
+          <span style="color:var(--text3);"> / </span>
+          <span id="contractTotal" style="color:var(--text3);">$980,000</span>
+          <span id="contractRatio" style="color:var(--text2);margin-left:3px;">(50%)</span>
+        </span>
       </div>
 
       <!-- A-1：預收款 banner -->
@@ -291,7 +296,7 @@ select.modal-input{cursor:pointer;-webkit-appearance:none;}
         <div class="prepay-icon">⬇️</div>
         <div class="prepay-text">
           預收款 <span class="prepay-amt">$50,000</span> 已設定<br>
-          <span style="font-size:11px;">各期依比例扣抵 10%，共分 4 期攤還</span>
+          <span style="font-size:11px;">依各期收款比例攤還：10/40/30/20%</span>
         </div>
       </div>
 
@@ -397,7 +402,12 @@ select.modal-input{cursor:pointer;-webkit-appearance:none;}
       <!-- ── 廠商端 ── -->
       <div class="section-head">
         <span class="section-label vendor">廠商請款進度</span>
-        <span class="wf-badge">$204,000 / $795,000 </span>
+        <span style="margin-left:auto;font-size:12px;font-family:'JetBrains Mono',monospace;">
+          <span id="vendorAmt" style="color:var(--green);font-weight:700;">$204,000</span>
+          <span style="color:var(--text3);"> / </span>
+          <span id="vendorTotal" style="color:var(--text3);">$795,000</span>
+          <span id="vendorRatio" style="color:var(--text2);margin-left:3px;">(25%)</span>
+        </span>
       </div>
 
       <div class="vendor-list">
