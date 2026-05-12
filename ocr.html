@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>廠商手寫辨識</title>
+<title>手寫辨識</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -25,14 +25,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',
 /* ── 手機外框 ── */
 .phone-shell{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(ellipse at center,#1a1f2e 0%,#0a0c12 100%);}
-.phone-frame{width:100%;height:844px;max-height:95vh;background:var(--bg);
+.phone-frame{width:100%;max-width:550px;height:95vh;background:var(--bg);
   overflow:hidden;position:relative;display:flex;flex-direction:column;}
 .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;
   background:#0a0c12;border-radius:0 0 20px 20px;z-index:50;}
 .phone-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding-top:34px;scrollbar-width:none;}
 .phone-inner::-webkit-scrollbar{display:none;}
 
-/* ── C：廠商手寫 Tab ── */
+/* ── 手寫 ── */
 .vendor-ocr-wrap{display:flex;flex-direction:column;gap:12px;}
 .handwrite-zone{background:var(--card);border:2px dashed var(--border2);border-radius:var(--r);
   padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;
@@ -82,24 +82,18 @@ select.modal-input{cursor:pointer;-webkit-appearance:none;}
 
     <div class="screen" id="screen-vendor-ocr">
       <div class="section-head">
-        <span class="section-label vendor">廠商手寫請款辨識</span>
-        <span class="wf-badge">C 獨立</span>
-      </div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6;
-        padding:10px 12px;background:var(--card);border-radius:var(--r-sm);border:1px solid var(--border);">
-        📌 此介面日後獨立提供廠商使用（廠商 LIFF）<br>
-        師傅無需打字，拍手寫明細 → AI 轉成電腦文字
+        <span class="section-label vendor">手寫辨識</span>
       </div>
 
       <div class="vendor-ocr-wrap">
-        <div class="handwrite-zone" onclick="showToast('開啟相機拍攝手寫請款單')">
+        <div class="handwrite-zone" onclick="showToast('開啟相機拍攝手寫內容')">
           <div style="font-size:38px;">✍️</div>
-          <div style="font-size:15px;color:var(--text2);text-align:center;">拍攝手寫請款明細<br><span style="font-size:12px;color:var(--text3);">支援手寫中文、數字、表格</span></div>
+          <div style="font-size:15px;color:var(--text2);text-align:center;">拍攝手寫內容<br><span style="font-size:12px;color:var(--text3);">支援手寫中文、數字、表格</span></div>
         </div>
 
         <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">AI 辨識原始文字</div>
         <div class="handwrite-preview">冷凍機組安裝工程請款
-廠商：精冷工程行
+店家：精冷工程行
 日期：114年5月8日
 
 1. 冷媒管路施工  28,000
@@ -123,10 +117,10 @@ select.modal-input{cursor:pointer;-webkit-appearance:none;}
         </table>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px;">
-          <div><div class="modal-label">廠商名稱</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="精冷工程行"/></div>
+          <div><div class="modal-label">店家名稱</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="精冷工程行"/></div>
           <div><div class="modal-label">統編</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="12345678"/></div>
         </div>
-        <button class="modal-btn" style="margin-top:6px;" onclick="showToast('請款單已轉換，送出至三層簽核流程')">確認送出請款申請</button>
+        <button class="modal-btn" style="margin-top:6px;" onclick="showToast('手寫內容已轉換，匯出')">確認匯出</button>
       </div>
     </div>
 
