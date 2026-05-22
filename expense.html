@@ -554,7 +554,7 @@ async function startLineLogin() {
   }
 
   const state = crypto.randomUUID();
-  sessionStorage.setItem('line_state', state);
+  localStorage.setItem('line_state', state);
 
   const redirectUri = redirect || window.location.href.split('?')[0];
   const params = new URLSearchParams({
@@ -578,7 +578,7 @@ function handleLineCallback() {
   // Show callback message
   document.getElementById('loginCallbackMsg').style.display = 'block';
 
-  if (state !== sessionStorage.getItem('line_state')) {
+  if (state !== localStorage.getItem('line_state')) {
     toast('❌ LINE 登入 state 不符，請重試'); return;
   }
 
