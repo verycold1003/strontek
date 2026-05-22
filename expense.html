@@ -538,11 +538,9 @@ async function startLineLogin() {
 
   if (!chId) {
     if (gasErr) {
-      toast('❌ GAS 連線失敗：' + gasErr + '
-請確認 GAS 已部署並設定 Script Properties');
+      toast('❌ GAS 連線失敗：' + gasErr + '\n請確認 GAS 已部署並設定 Script Properties');
     } else {
-      toast('⚠️ LINE_CHANNEL_ID 未設定
-請在 GAS → 指令碼屬性 填入 LINE_CHANNEL_ID');
+      toast('⚠️ LINE_CHANNEL_ID 未設定\n請在 GAS → 指令碼屬性 填入 LINE_CHANNEL_ID');
     }
     return;
   }
