@@ -290,8 +290,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div class="card" style="margin-bottom:16px">
             <div class="card-hd">📁 選擇檔案</div>
             <div class="card-bd">
-              <input type="file" id="fileInput" multiple accept="image/*,application/pdf" style="display:none" onchange="onFilePick(this.files)">
-              <div class="dz" id="dz" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" multiple accept="image/*,application/pdf" style="display:none"
+                     onchange="onFilePick(this.files); this.value='';">
+              <div class="dz" id="dz" onclick="const fi=document.getElementById('fileInput'); fi.value=''; fi.click();">
                 <div style="font-size:38px;margin-bottom:10px">🖼️</div>
                 <div style="font-size:15px;font-weight:700">點擊或拖曳照片 / PDF</div>
                 <div style="font-size:12px;color:var(--muted);margin-top:6px">每張照片可包含多張發票或油單<br>支援 JPG · PNG · PDF</div>
@@ -335,7 +336,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="card-bd">
               <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="up-month"></div>
               <div class="frow"><label class="lbl">申請人</label>
-                <select class="inp" id="up-person"><option value="">— 請選擇 —</option></select>
+                <div class="inp" id="up-person-display" style="background:rgba(255,255,255,.04);color:var(--muted);cursor:default;user-select:none;display:flex;align-items:center;gap:8px">
+                  <span id="up-person-name" style="color:var(--text);font-weight:600">—</span>
+                </div>
+                <input type="hidden" id="up-person" value="">
               </div>
               <button class="btn btn-primary btn-full" id="btnUpload" onclick="doUpload()" disabled>☁️ 上傳至 Drive</button>
             </div>
@@ -714,22 +718,25 @@ function demoConfig() {
 
 function populateSelects() {
   const ps = S.config.persons;
-  ['up-person','exp-person'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">— 請選擇 —</option>' +
-      ps.map(p => `<option value="${p.name}">${p.name}（${p.dept}）</option>`).join('');
-    if (cur) sel.value = cur;
-    if (S.user) sel.value = S.user.name;
-  });
+
+  const upHidden  = document.getElementById('up-person');
+  const upDisplay = document.getElementById('up-person-name');
+  if (upHidden && upDisplay && S.user) {
+    upHidden.value      = S.user.name;
+    const p = ps.find(x => x.name === S.user.name);
+    upDisplay.textContent = p ? `${p.name}（${p.dept}）` : S.user.name;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
 // FILE UPLOAD FLOW
 // ════════════════════════════════════════════════════════════
 function onFilePick(files) {
-  S.pendingFiles = Array.from(files);
+  const incoming = Array.from(files);
+  incoming.forEach(f => {
+    const dup = S.pendingFiles.some(x => x.name === f.name && x.size === f.size);
+    if (!dup) S.pendingFiles.push(f);
+  });
   renderPendingFiles();
   document.getElementById('btnUpload').disabled = !S.pendingFiles.length;
 }
