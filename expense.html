@@ -225,6 +225,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
     <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
 
+    <!-- MSG LOG：顯示登入流程每個步驟 -->
+    <div id="loginMsgLog" style="display:none;margin-top:12px;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:10px 14px;text-align:left;max-height:140px;overflow-y:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.9"></div>
+
     <div id="bindNameSection" style="display:none;margin-top:20px;text-align:left">
       <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
@@ -596,27 +599,53 @@ function handleLineCallback() {
 
   // Show callback message
   document.getElementById('loginCallbackMsg').style.display = 'block';
+  loginLog('🔄 收到 LINE 授權碼，開始驗證...');
 
   if (state !== localStorage.getItem('line_state')) {
-    toast('❌ LINE 登入 state 不符，請重試'); return;
+    loginLog('❌ state 驗證失敗，可能遭到 CSRF 攻擊');
+    toast('❌ LINE 登入 state 不符，請重試');
+    return;
   }
+  loginLog('✅ state 驗證通過');
 
   // Clean URL
   window.history.replaceState({}, '', window.location.pathname);
   localStorage.removeItem('line_state');
-  
+  loginLog('🔄 向 GAS 交換 token 中...');
+
   // Exchange code via GAS (keep Channel Secret server-side)
   callGAS({ action: 'lineToken', code })
     .then(res => {
+      loginLog('📨 GAS 回傳：' + JSON.stringify(res).slice(0, 120));
       if (res.success) {
+        loginLog('✅ 比對成功，登入完成');
         finishLogin(res.person);
       } else if (res.needName) {
+        loginLog('⚠️ 找不到對應 LINE ID，顯示首次綁定畫面');
         S._pendingBind = { lineId: res.lineId, lineName: res.lineName, avatar: res.avatar, email: res.email };
         showBindNameUI();
       } else {
+        loginLog('❌ 登入失敗：' + (res.error || '未知'));
         toast('❌ LINE 登入失敗：' + (res.error || '未知'));
       }
+    })
+    .catch(err => {
+      loginLog('❌ callGAS 例外：' + err.message);
+      toast('❌ 登入過程發生錯誤：' + err.message);
     });
+}
+
+// 登入流程專用 log（顯示在登入框內）
+function loginLog(msg) {
+  const box = document.getElementById('loginMsgLog');
+  if (!box) return;
+  box.style.display = 'block';
+  const line = document.createElement('div');
+  const ts   = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  line.style.cssText = msg.startsWith('❌') ? 'color:#f87171' : msg.startsWith('⚠️') ? 'color:#fbbf24' : 'color:#9ca3af';
+  line.textContent = `[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
 }
 
 function finishLogin(person) {
@@ -624,6 +653,8 @@ function finishLogin(person) {
   // 隱藏驗證訊息，避免登出後重新顯示
   document.getElementById('loginCallbackMsg').style.display = 'none';
   document.getElementById('bindNameSection').style.display  = 'none';
+  const logBox = document.getElementById('loginMsgLog');
+  if (logBox) { logBox.style.display = 'none'; logBox.innerHTML = ''; }
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('appShell').style.display  = 'grid';
   renderUserBar();
@@ -632,6 +663,7 @@ function finishLogin(person) {
 }
 
 function showBindNameUI() {
+  loginLog('📋 顯示首次綁定畫面');
   document.getElementById('loginCallbackMsg').style.display = 'none';
   document.getElementById('bindNameSection').style.display = 'block';
   const b = S._pendingBind;
