@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>雜支申請</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -494,6 +494,23 @@ const CFG = {
 };
 
 // ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+const S = {
+  user: null,
+  config: { persons:[], departments:[], projects:[], mileageRates:[], userDept:'' },
+  pendingFiles: [],
+  driveFiles: [],
+  ocrQueue: [],
+  receipts: [],
+};
+
+// pending Maps query context
+let mapsCtx = { pid:'', rowIdx:0, km:0, origin:'', dest:'' };
+
+// ════════════════════════════════════════════════════════════
+// MILEAGE RATE
+// ════════════════════════════════════════════════════════════
 function getMileageRate(yearMonth) {
   const ym     = (yearMonth || today().slice(0,7)).slice(0,7);
   const refDay = ym + '-01';
@@ -503,25 +520,9 @@ function getMileageRate(yearMonth) {
     r.effectDate <= refDay &&
     (!r.endDate || r.endDate >= refDay)
   );
-
   candidates.sort((a,b) => b.effectDate.localeCompare(a.effectDate));
-  return parseFloat(candidates[0].rate);
+  return candidates.length ? parseFloat(candidates[0].rate) : 6;
 }
-
-// ════════════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════════════
-const S = {
-  user: null,
-  config: { persons:[], departments:[], projects:[] },
-  pendingFiles: [],
-  driveFiles: [],
-  ocrQueue: [],
-  receipts: [],
-};
-
-// pending Maps query context
-let mapsCtx = { pid:'', rowIdx:0, km:0, origin:'', dest:'' };
 
 // ════════════════════════════════════════════════════════════
 // BOOT
@@ -540,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ════════════════════════════════════════════════════════════
-// LINE LOGIN  (OAuth 2.0 / Login Channel)
+// LINE LOGIN
 // ════════════════════════════════════════════════════════════
 async function startLineLogin() {
   const btn = document.getElementById('btnLineLogin');
@@ -659,6 +660,7 @@ async function doBindName() {
     errEl.style.display = 'block';
   }
 }
+
 function renderUserBar() {
   const u = S.user;
   document.getElementById('uName').textContent      = u.name;
@@ -686,10 +688,20 @@ function logout() {
 async function loadConfig() {
   log('同步設定中...');
   try {
-    const res = await callGAS({ action:'getConfig' });
-    if (res.success) { S.config = res.data; log('✅ 同步完成 ' + now()); }
-    else throw new Error(res.error);
-  } catch { log('GAS 未連線'); }
+    const res = await callGAS({ action:'getConfig', lineId: S.user?.lineId || '' });
+    if (res.success) {
+      S.config = res.data;
+      if (!S.config.departments || !S.config.departments.length) {
+        const fallbackDept = res.data.userDept || S.user?.dept || '';
+        S.config.departments = fallbackDept ? [fallbackDept] : [];
+      }
+      log('✅ 同步完成 ' + now());
+    } else {
+      throw new Error(res.error);
+    }
+  } catch(e) {
+    log('GAS 未連線');
+  }
   if (S.user) renderUserBar();
   populateSelects();
 }
@@ -776,14 +788,19 @@ async function doUpload() {
     bar.style.width = `${(i/S.pendingFiles.length)*100}%`;
     fl.textContent  = rawFile.name;
     try {
-      // heic/heif → jpeg 轉換（在上傳前處理，Drive 存的就是 jpeg）
       const f = await normalizeFileForUpload(rawFile);
       if (f.name !== rawFile.name) {
-        fl.textContent = `${rawFile.name} → ${f.name}（HEIC 轉換中）`;
+        fl.textContent = `${rawFile.name} → ${f.name}（HEIC 已轉換）`;
       }
       const b64 = await toBase64(f);
-      const res = await callGAS({ action:'uploadFile', fileName:`${month}_${person}_${f.name}`, mimeType:f.type, base64:b64, person, month });
-      // GAS 整體失敗（例外被 doPost catch 住）
+      const res = await callGAS({
+        action:'uploadFile',
+        fileName:`${month}_${person}_${f.name}`,
+        mimeType: f.type,
+        base64:b64,
+        person,
+        month
+      });
       if (!res.success) {
         toast('❌ ' + f.name + ' 上傳失敗：' + (res.error || '未知錯誤'));
         continue;
@@ -792,7 +809,15 @@ async function doUpload() {
       if (res.sheetOk === false) {
         toast('⚠️ ' + f.name + ' 已上傳 Drive，但 Sheet 紀錄失敗：' + (res.sheetErr || ''));
       }
-      done.push({ id:res.fileId||'sim_'+Date.now(), name:f.name, size:(f.size/1024).toFixed(1)+' KB', time:now(), url:res.fileUrl||'#', mimeType:f.type, dataUrl:res.dataUrl||'' });
+      done.push({
+        id: res.fileId||'sim_'+Date.now(),
+        name: f.name,
+        size: (f.size/1024).toFixed(1)+' KB',
+        time: now(),
+        url: res.fileUrl||'#',
+        mimeType: f.type,
+        dataUrl: res.dataUrl||''
+      });
     } catch(e) { toast('❌ '+rawFile.name+' 上傳失敗：' + e.message); }
   }
 
@@ -823,7 +848,7 @@ function renderUploadedList(files) {
 async function loadDriveFiles() {
   try {
     const res = await callGAS({ action:'listFiles' });
-    S.driveFiles = res.files;
+    S.driveFiles = res.files || [];
   } catch { }
   renderDriveFiles();
 }
@@ -834,7 +859,7 @@ function renderDriveFiles() {
       <td><div class="chkbox" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
       <td style="font-size:12px">${f.name}</td>
       <td style="font-size:11px;color:var(--muted)">${f.date}</td>
-    </tr>`).join('');
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">尚無紀錄</td></tr>';
 }
 
 function toggleDriveChk(i) {
@@ -847,7 +872,10 @@ function toggleAllDrive() {
   const box = document.getElementById('chkAll');
   box.classList.toggle('on');
   const checked = box.classList.contains('on');
-  S.driveFiles.forEach((_,i) => { const b=document.getElementById('dc-'+i); if(b) { if(checked) b.classList.add('on'); else b.classList.remove('on'); } });
+  S.driveFiles.forEach((_,i) => {
+    const b=document.getElementById('dc-'+i);
+    if(b) { if(checked) b.classList.add('on'); else b.classList.remove('on'); }
+  });
   document.getElementById('btnSendOCR').disabled = !checked;
 }
 
@@ -877,7 +905,7 @@ function renderQueue() {
   }
   c.innerHTML = S.ocrQueue.map((f,i) => `
     <div class="file-item">
-      <div style="font-size:20px">🖼️</div>
+      <div style="font-size:20px">${f.mimeType==='application/pdf'?'📄':'🖼️'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
@@ -907,22 +935,45 @@ async function runOCR() {
 
     try {
       // Fetch base64 from Drive via GAS if no local data
-      let b64 = qf.dataUrl || '';
+      let b64      = qf.dataUrl || '';
+      let mimeType = qf.mimeType || 'image/jpeg';
+
       if (!b64 && qf.id && !qf.id.startsWith('sim_')) {
         const fr = await callGAS({ action:'getFileBase64', fileId:qf.id });
-        b64 = fr.base64;
+        b64      = fr.base64;
+        mimeType = fr.mimeType || mimeType;
       }
-      const res = await callGAS({ action:'ocrReceipt', fileName:qf.name, mimeType:qf.mimeType||'image/jpeg', base64:b64, fileId:qf.id });
-      const items = res.items;
+
+      const res = await callGAS({
+        action:'ocrReceipt',
+        fileName: qf.name,
+        mimeType,
+        base64: b64,
+        fileId: qf.id
+      });
+      const items = res.items || [];
       items.forEach((item, idx) => {
         const id = `${qf.id}_${idx}`;
         if (!S.receipts.find(r => r.id===id))
           S.receipts.push(mkReceipt(id, qf, item, idx));
       });
-      qf.status='done';
+      qf.status = res.success ? 'done' : 'error';
+      if (!res.success) {
+        S.receipts.push({
+          id: qf.id+'_err', source: qf.name, status:'error',
+          error: res.error || '辨識失敗', category:'other',
+          attribution:'project', projectId:'', dept: S.user?.dept||'',
+          vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
+        });
+      }
     } catch(e) {
       qf.status='error';
-      S.receipts.push({ id:qf.id+'_err', source:qf.name, status:'error', error:e.message, category:'other', attribution:'project', projectId:'', dept:S.user?.dept||'', vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{} });
+      S.receipts.push({
+        id: qf.id+'_err', source: qf.name, status:'error',
+        error: e.message, category:'other',
+        attribution:'project', projectId:'', dept: S.user?.dept||'',
+        vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
+      });
     }
     renderQueue();
   }
@@ -934,7 +985,6 @@ async function runOCR() {
   document.getElementById('ocrDoneBar').style.display='block';
   toast(`✅ 辨識完成：共 ${S.receipts.length} 張憑證`);
 }
-
 
 function mkReceipt(id, qf, item, idx) {
   return {
@@ -997,7 +1047,6 @@ function rcHTML(r) {
       <div style="color:var(--muted);font-size:12px">▼</div>
     </div>
     <div class="rc-body" id="rcb-${r.id}">
-      <!-- Edit fields -->
       <div class="fg4" style="margin-bottom:12px">
         <div><label class="lbl">廠商</label><input class="inp" value="${r.vendor}" onchange="upR('${r.id}','vendor',this.value)"></div>
         <div><label class="lbl">金額</label><input type="number" class="inp" value="${r.amount}" onchange="upR('${r.id}','amount',+this.value);updateStats()"></div>
@@ -1050,13 +1099,10 @@ function rcHTML(r) {
 
 function upR(id, k, v)   { const r=S.receipts.find(x=>x.id===id); if(r) r[k]=v; }
 
-// 費用類型切換 — 只更新按鈕樣式 + badge，不重繪整個卡片
 function setCat(id, cat) {
   upR(id, 'category', cat);
-  // 更新費用類型 toggle 按鈕
   const tgl = document.getElementById('tgl-cat-'+id);
   if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b,i) => b.classList.toggle('on', ['other','parking'][i]===cat));
-  // 更新卡片 header 裡的 badge
   const rc = document.getElementById('rc-'+id);
   if (rc) {
     const badgeEl = rc.querySelector('.rc-hd .badge');
@@ -1068,16 +1114,6 @@ function setCat(id, cat) {
   updateStats();
 }
 
-function reRC(id) {
-  const r = S.receipts.find(x=>x.id===id);
-  if (!r) return;
-  const wasOpen = document.getElementById('rcb-'+id)?.classList.contains('open');
-  const el = document.getElementById('rc-'+id);
-  if (!el) return;
-  el.outerHTML = rcHTML(r);
-  if (wasOpen) document.getElementById('rcb-'+id)?.classList.add('open');
-  updateStats();
-}
 function toggleRC(id)    { document.getElementById('rcb-'+id)?.classList.toggle('open'); }
 function delR(id)        { S.receipts=S.receipts.filter(r=>r.id!==id); document.getElementById('rc-'+id)?.remove(); updateStats(); }
 
@@ -1094,8 +1130,8 @@ function setAttr(id, attr) {
     const r = S.receipts.find(x=>x.id===id);
     const proj = S.config.projects.find(p=>p.id===r?.projectId);
     const attrLabel = attr==='project' ? (proj?proj.name:'未選') : attr==='dept' ? (r?.dept||'') : '其他';
-    const labelDiv = rc.querySelector('.rc-hd > div[style*="歸屬"]');
-    if (labelDiv) labelDiv.querySelector('div:last-child').textContent = attrLabel;
+    const labelDiv = rc.querySelector('.rc-hd > div[style*="text-align:center"]');
+    if (labelDiv) { const last = labelDiv.querySelector('div:last-child'); if(last) last.textContent = attrLabel; }
   }
 }
 
@@ -1124,7 +1160,6 @@ function refreshExport() {
   if (!S.receipts.length) { empty.style.display='block'; return; }
   empty.style.display='none';
 
-  // Group by attribution key
   const groups = {};
   S.receipts.forEach(r => {
     const key = r.attribution==='project' ? 'proj:'+r.projectId
@@ -1283,11 +1318,11 @@ function a2RowHTML(pid, i) {
     <div style="display:grid;grid-template-columns:1fr 1fr 110px auto;gap:8px;align-items:end">
       <div>
         <label class="lbl">起點</label>
-        <input class="inp" id="a2s-${pid}-${i}" placeholder="新北市三重區" oninput="updMapsLink('${pid}',${i})">
+        <input class="inp" id="a2s-${pid}-${i}" placeholder="新北市三重區">
       </div>
       <div>
         <label class="lbl">終點</label>
-        <input class="inp" id="a2e-${pid}-${i}" placeholder="台北市仁愛帝寶" oninput="updMapsLink('${pid}',${i})">
+        <input class="inp" id="a2e-${pid}-${i}" placeholder="台北市仁愛帝寶">
       </div>
       <div>
         <label class="lbl">公里數</label>
@@ -1314,10 +1349,6 @@ function setRound(btn, pid, i, isRound) {
   calcAtt2(pid);
 }
 
-function updMapsLink(pid, i) {
-  // nothing visual, user clicks Maps button to query
-}
-
 // ── Google Maps Distance Matrix ──
 async function queryMaps(pid, i) {
   const origin = document.getElementById(`a2s-${pid}-${i}`)?.value?.trim();
@@ -1329,7 +1360,6 @@ async function queryMaps(pid, i) {
 
   let km = 0, durationText = '', distText = '';
   try {
-    // Try via GAS proxy (keeps Maps key server-side)
     const res = await callGAS({ action:'getDistance', origin, dest });
     if (res.success) {
       km           = res.km;
@@ -1337,17 +1367,13 @@ async function queryMaps(pid, i) {
       distText     = res.distText;
     } else { throw new Error('GAS 連線失敗，請確認網路或聯絡管理員'); }
 
-    // Store for apply
     mapsCtx = { pid, i, km, origin, dest };
 
-    // Show in result area
     const res_el = document.getElementById(`a2km-result-${pid}-${i}`);
     if (res_el) res_el.innerHTML = `<span class="km-result">📍 ${distText} · ⏱ ${durationText} · <strong>${km} km</strong></span>
       <button class="btn btn-green btn-sm" style="margin-left:8px" onclick="applyKmInline('${pid}',${i},${km})">套用</button>`;
 
-    // Also show modal
     showMapsModal(origin, dest, km, distText, durationText, pid, i);
-
   } catch(e) {
     toast('❌ Maps 查詢失敗：' + e.message);
   }
@@ -1456,27 +1482,6 @@ async function doExportAll() {
 }
 
 // ════════════════════════════════════════════════════════════
-// HISTORY
-// ════════════════════════════════════════════════════════════
-async function loadHistory() {
-  try {
-    const res = await callGAS({ action:'getHistory' });
-    const rows = res.rows || [];
-    document.getElementById('historyTbl').innerHTML = rows.length
-      ? rows.map(r => `<tr>
-          <td class="mono">${r.month||'—'}</td>
-          <td>${r.person||'—'}</td>
-          <td>${r.project||r.dept||'—'}</td>
-          <td><span class="badge bd-blue">${r.attachment||'—'}</span></td>
-          <td class="mono" style="color:var(--gold)">$${(r.amount||0).toLocaleString()}</td>
-          <td><span class="badge bd-green">${r.status||'—'}</span></td>
-          <td>${r.pdfUrl?`<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent);font-size:12px">開啟↗</a>`:'—'}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">尚無歷史紀錄</td></tr>';
-  } catch { toast('❌ 讀取歷史失敗'); }
-}
-
-// ════════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
 function nav(name) {
@@ -1484,8 +1489,7 @@ function nav(name) {
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  if (name==='export')   refreshExport();
-  if (name==='history')  loadHistory();
+  if (name==='export') refreshExport();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1527,8 +1531,6 @@ function toBase64(file) {
   });
 }
 
-// heic/heif → jpeg（上傳前轉換，Drive 存 jpeg 方便後續處理）
-// jpeg / png / gif / webp / pdf 直接通過
 async function normalizeFileForUpload(file) {
   const name = file.name.toLowerCase();
   const mime = file.type || '';
@@ -1537,14 +1539,17 @@ async function normalizeFileForUpload(file) {
   if (!isHeic) return file;
 
   try {
+    if (typeof heic2any === 'undefined') {
+      throw new Error('heic2any 函式庫未載入');
+    }
     const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.88 });
-    // heic2any 動畫 heic 可能回傳 Blob[]，取第一張
     const blob = Array.isArray(converted) ? converted[0] : converted;
     const newName = file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg');
     return new File([blob], newName, { type: 'image/jpeg' });
   } catch (e) {
-    console.warn('[normalizeFileForUpload] heic 轉換失敗，改用原檔：', e);
-    return file; // fallback：原檔送出，GAS 端當 jpeg 處理
+    console.warn('[normalizeFileForUpload] HEIC 轉換失敗：', e);
+    toast('⚠️ ' + file.name + ' HEIC 轉換失敗，將以原格式上傳：' + e.message);
+    return file; // fallback：原檔送出
   }
 }
 
@@ -1556,8 +1561,6 @@ function toast(msg, ms=3200) {
 }
 
 function log(msg) {
-  const el=document.getElementById('syncLog');
-  if(el) el.innerHTML += msg+'<br>';
   se('syncStatus', msg.slice(0,40));
 }
 
