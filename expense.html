@@ -489,7 +489,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL:      'https://script.google.com/macros/s/AKfycbzq1LAGDvwSlhsX1CzmPKUS41SWkogmG6kx5wj6YldMgT3F11-snVZVHozYhvVhmgY/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbzq1LAGDvwSlhsX1CzmPKUS41SWkogmG6kx5wj6YldMgT3F11-snVZVHozYhvVhmgY/exec'
 };
 
 // ════════════════════════════════════════════════════════════
@@ -692,28 +692,8 @@ async function loadConfig() {
     const res = await callGAS({ action:'getConfig' });
     if (res.success) { S.config = res.data; log('✅ 同步完成 ' + now()); }
     else throw new Error(res.error);
-  } catch { S.config = demoConfig(); log('⚠️ 範例資料（GAS 未連線）'); }
+  } catch { log('GAS 未連線'); }
   populateSelects();
-}
-
-function demoConfig() {
-  return {
-    persons:[
-      { name:'Joan',  dept:'研發部', title:'工程師',    lineId:'Udev', depts:['研發部','業務部'] },
-      { name:'王小明', dept:'業務部', title:'業務專員',  lineId:'U002', depts:['業務部'] },
-    ],
-    departments:['業務部','研發部','財務部','行政部'],
-    projects:[
-      { id:'P001', name:'Hermes 專案', quota:true,  subsidy:3000, effectDate:'2025-01-01', closeDate:'2025-12-31' },
-      { id:'P002', name:'群創-金龍',   quota:false, subsidy:0,    effectDate:'2025-03-01', closeDate:'2025-09-30' },
-      { id:'P003', name:'Alpha 計畫',  quota:true,  subsidy:2000, effectDate:'2024-07-01', closeDate:'2026-06-30' },
-    ],
-    // 全域里程補助標準歷史
-    mileageRates:[
-      { rate:7,   effectDate:'2024-01-01', endDate:'2024-12-31', note:'2024 年度標準' },
-      { rate:7.5, effectDate:'2025-01-01', endDate:'',           note:'2025 年度調整' },
-    ],
-  };
 }
 
 function populateSelects() {
@@ -833,17 +813,9 @@ function renderUploadedList(files) {
 async function loadDriveFiles() {
   try {
     const res = await callGAS({ action:'listFiles' });
-    S.driveFiles = res.files || demoDriveFiles();
-  } catch { S.driveFiles = demoDriveFiles(); }
+    S.driveFiles = res.files;
+  } catch { }
   renderDriveFiles();
-}
-
-function demoDriveFiles() {
-  return [
-    { id:'f1', name:'2025-05_Joan_receipt1.jpg', date:'2025-05-10', mimeType:'image/jpeg' },
-    { id:'f2', name:'2025-05_Joan_receipt2.jpg', date:'2025-05-12', mimeType:'image/jpeg' },
-    { id:'f3', name:'2025-05_Joan_fuel.jpg',     date:'2025-05-14', mimeType:'image/jpeg' },
-  ];
 }
 
 function renderDriveFiles() {
@@ -1503,21 +1475,9 @@ async function callGAS(payload) {
     const text = await res.text();
     return JSON.parse(text);
   } catch (err) {
-    console.warn('[callGAS] 失敗:', payload.action, err.message, '');
-    return simulateGAS(payload);
+    console.warn('[callGAS] 失敗:', payload.action, err.message);
+    return { success:false, error:err.message };
   }
-}
-
-function simulateGAS(p) {
-  if (p.action==='getConfig')    return { success:false };
-  if (p.action==='lineToken')    return { success:true, person:{ name:'Joan', dept:'研發部', title:'工程師', lineId:'Udev', avatar:'' } };
-  if (p.action==='listFiles')    return { success:true, files:demoDriveFiles() };
-  if (p.action==='uploadFile')   return { success:true, fileId:'sim_'+Date.now(), fileUrl:'#', dataUrl:'' };
-  if (p.action==='ocrReceipt')   return { success:true, items:demoItems(p.fileName) };
-  if (p.action==='getDistance')  return { success:true, km:28.5, distText:'28.5 km', duration:'約 35 分鐘' };
-  if (p.action==='exportAll')    return { success:true, urls:[] };
-  if (p.action==='getHistory')   return { success:true, rows:[{ month:'2025-04', person:'Joan', project:'Hermes 專案', attachment:'附件三', amount:2850, status:'已核准', pdfUrl:'#' }] };
-  return { success:false, error:'未知操作' };
 }
 
 function toBase64(file) {
