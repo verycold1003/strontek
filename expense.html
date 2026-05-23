@@ -489,7 +489,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL:      'https://script.google.com/macros/s/AKfycbzq1LAGDvwSlhsX1CzmPKUS41SWkogmG6kx5wj6YldMgT3F11-snVZVHozYhvVhmgY/exec'
+  GAS_URL:      'https://script.google.com/macros/s/AKfycbx3cQMDpX8k_RyAdEd2X3Ro6juWzIKe-2g1XYAp-zEO9p6im-30FmpV0qpeaJHtAMJO/exec'
 };
 
 // ════════════════════════════════════════════════════════════
@@ -796,15 +796,11 @@ async function doUpload() {
       // GAS 整體失敗（例外被 doPost catch 住）
       if (!res.success) {
         toast('❌ ' + f.name + ' 上傳失敗：' + (res.error || '未知錯誤'));
-        loginLog('❌ uploadFile GAS error: ' + (res.error || ''));
         continue;
       }
       // Drive 成功但 Sheet 寫入失敗
       if (res.sheetOk === false) {
         toast('⚠️ ' + f.name + ' 已上傳 Drive，但 Sheet 紀錄失敗：' + (res.sheetErr || ''));
-        loginLog('⚠️ Sheet 寫入失敗: ' + (res.sheetErr || ''));
-      } else {
-        loginLog('✅ ' + f.name + ' 上傳完成，Sheet 已記錄');
       }
       done.push({ id:res.fileId||'sim_'+Date.now(), name:f.name, size:(f.size/1024).toFixed(1)+' KB', time:now(), url:res.fileUrl||'#', mimeType:f.type, dataUrl:res.dataUrl||'' });
     } catch(e) { toast('❌ '+f.name+' 上傳失敗：' + e.message); }
