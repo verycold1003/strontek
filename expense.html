@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>雜支申請</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -304,7 +304,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <div class="dz" id="dz" onclick="const fi=document.getElementById('fileInput'); fi.value=''; fi.click();">
                 <div style="font-size:38px;margin-bottom:10px">🖼️</div>
                 <div style="font-size:15px;font-weight:700">點擊或拖曳照片 / PDF</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:6px">每張照片可包含多張發票或油單<br>支援 JPG · PNG · WEBP · HEIC · PDF</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:6px">每張照片可包含多張發票或油單<br>支援 JPG · PNG · WEBP · HEIC<br>PDF 自動逐頁轉 JPEG 再上傳</div>
               </div>
               <div id="fileList" style="margin-top:12px"></div>
             </div>
@@ -394,7 +394,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               📥 辨識佇列
               <span class="badge bd-blue" id="queueCnt">0 個</span>
               <div style="margin-left:auto;display:flex;gap:8px">
-                <button class="btn btn-ghost btn-sm" onclick="clearQueue()">清空</button>
+                <button class="btn btn-ghost btn-sm" id="btnLoadOcr" onclick="loadOcrResults()">📥 從 Sheet 載入</button>
+                <button class="btn btn-ghost btn-sm" onclick="clearQueue()">清空佇列</button>
                 <button class="btn btn-primary btn-sm" id="btnOCR" onclick="runOCR()" disabled>▶ 開始辨識</button>
               </div>
             </div>
@@ -417,7 +418,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div id="ocrResults"></div>
           <div id="ocrDoneBar" style="display:none;margin-top:12px;gap:8px">
             <button class="btn btn-primary" onclick="nav('export')">📄 前往整理匯出 →</button>
-            <button class="btn btn-gold" onclick="doStashSelected()">💾 暫存勾選</button>
+            <button class="btn btn-gold" onclick="doStashAll()">💾 暫存</button>
           </div>
         </div>
 
@@ -463,7 +464,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               </div>
               <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month"></div>
               <button class="btn btn-primary btn-full" onclick="doExportAll()">✅ 全部匯出 PDF</button>
-              <button class="btn btn-gold btn-full" id="btnStash" onclick="doStashSelected()">💾 暫存勾選</button>
+              <button class="btn btn-gold btn-full" id="btnStash" onclick="doStashAll()">💾 暫存</button>
               <button class="btn btn-ghost btn-full" onclick="refreshExport()">🔄 重新整理分群</button>
             </div>
           </div>
@@ -762,39 +763,50 @@ async function doUpload() {
   progCard.style.display = 'block';
 
   const done = [];
-  for (let i=0; i<S.pendingFiles.length; i++) {
+  const total = S.pendingFiles.length;
+
+  for (let i = 0; i < total; i++) {
     const rawFile = S.pendingFiles[i];
-    txt.textContent = `${i+1}/${S.pendingFiles.length}`;
-    bar.style.width = `${(i/S.pendingFiles.length)*100}%`;
+    txt.textContent = `${i + 1}/${total}`;
+    bar.style.width = `${(i / total) * 100}%`;
     fl.textContent  = rawFile.name;
+
     try {
-      const f = await normalizeFileForUpload(rawFile);
-      if (f.name !== rawFile.name) {
-        fl.textContent = `${rawFile.name} → ${f.name}（已轉換）`;
+      // normalizeFileForUpload 回傳 File[]（PDF 多頁時會有多個）
+      const files = await normalizeFileForUpload(rawFile);
+
+      for (const f of files) {
+        if (files.length > 1 || f.name !== rawFile.name) {
+          fl.textContent = `${rawFile.name} → ${f.name}`;
+        }
+        const b64 = await toBase64(f);
+        const res = await callGAS({
+          action:   'uploadFile',
+          fileName: `${month}_${person}_${f.name}`,
+          mimeType: f.type,
+          base64:   b64,
+          person,
+          month,
+        });
+        if (!res.success) {
+          toast('❌ ' + f.name + ' 上傳失敗：' + (res.error || '未知錯誤'));
+          continue;
+        }
+        if (res.sheetOk === false) {
+          toast('⚠️ ' + f.name + ' 已上傳 Drive，但 Sheet 紀錄失敗：' + (res.sheetErr || ''));
+        }
+        done.push({
+          id:       res.fileId || 'sim_' + Date.now(),
+          name:     f.name,
+          size:     (f.size / 1024).toFixed(1) + ' KB',
+          time:     now(),
+          url:      res.fileUrl || '#',
+          mimeType: f.type,
+        });
       }
-      const b64 = await toBase64(f);
-      const res = await callGAS({
-        action:'uploadFile',
-        fileName:`${month}_${person}_${f.name}`,
-        mimeType: f.type,
-        base64: b64,
-        person,
-        month
-      });
-      if (!res.success) { toast('❌ ' + f.name + ' 上傳失敗：' + (res.error || '未知錯誤')); continue; }
-      if (res.sheetOk === false) {
-        toast('⚠️ ' + f.name + ' 已上傳 Drive，但 Sheet 紀錄失敗：' + (res.sheetErr || ''));
-      }
-      done.push({
-        id: res.fileId||'sim_'+Date.now(),
-        name: f.name,
-        size: (f.size/1024).toFixed(1)+' KB',
-        time: now(),
-        url: res.fileUrl||'#',
-        mimeType: f.type,
-        dataUrl: res.dataUrl||''
-      });
-    } catch(e) { toast('❌ '+rawFile.name+' 上傳失敗：' + e.message); }
+    } catch (e) {
+      toast('❌ ' + rawFile.name + ' 上傳失敗：' + e.message);
+    }
   }
 
   bar.style.width='100%'; fl.textContent='✅ 完成';
@@ -857,6 +869,10 @@ function toggleAllDrive() {
 
 function sendToOCR() {
   const sel = S.driveFiles.filter((_,i) => document.getElementById('dc-'+i)?.classList.contains('on'));
+  if (!sel.length) { toast('⚠️ 請先勾選檔案'); return; }
+
+  // ── 清空佇列再加入（避免重複堆疊）──
+  clearQueue();
   sel.forEach(f => addQueue(f));
 
   // ── 清空所有勾選 ──
@@ -865,7 +881,7 @@ function sendToOCR() {
   document.getElementById('btnSendOCR').disabled = true;
 
   nav('ocr');
-  toast(`加入 ${sel.length} 個至辨識佇列`);
+  toast(`已清空佇列並加入 ${sel.length} 個檔案`);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -910,7 +926,7 @@ function renderQueue() {
 
   c.innerHTML = S.ocrQueue.map((f,i) => `
     <div class="file-item" style="flex-wrap:wrap;gap:8px">
-      <div style="font-size:20px">${f.mimeType==='application/pdf'?'📄':'🖼️'}</div>
+      <div style="font-size:20px">🖼️</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
@@ -951,19 +967,16 @@ async function runOCR() {
     else if (qa === 'other')         { attribution = 'other';   attributionTarget = ''; }
 
     try {
-      let b64      = qf.dataUrl || '';
-      let mimeType = qf.mimeType || 'image/jpeg';
-
-      if (!b64 && qf.id && !qf.id.startsWith('sim_')) {
-        const fr = await callGAS({ action:'getFileBase64', fileId:qf.id });
-        b64      = fr.base64;
-        mimeType = fr.mimeType || mimeType;
+      // 從 Drive 取 base64（上傳時已統一轉 JPEG）
+      let b64 = '';
+      if (qf.id) {
+        const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
+        b64 = fr.base64 || '';
       }
 
       const res = await callGAS({
-        action:'ocrReceipt',
+        action: 'ocrReceipt',
         fileName: qf.name,
-        mimeType,
         base64: b64,
         fileId: qf.id,
         attribution,
@@ -1161,7 +1174,19 @@ function setCat(id, cat) {
 }
 
 function toggleRC(id)    { document.getElementById('rcb-'+id)?.classList.toggle('open'); }
-function delR(id)        { S.receipts=S.receipts.filter(r=>r.id!==id); document.getElementById('rc-'+id)?.remove(); updateStats(); }
+
+async function delR(id) {
+  const r = S.receipts.find(x => x.id === id);
+  if (!r) return;
+  const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
+  // 有 key 才回寫 Sheet 標記刪除；無 key 只移除前端
+  if (key) {
+    try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
+  }
+  S.receipts = S.receipts.filter(x => x.id !== id);
+  document.getElementById('rc-' + id)?.remove();
+  updateStats();
+}
 
 function setAttr(id, attr) {
   upR(id,'attribution',attr);
@@ -1532,33 +1557,79 @@ function calcAtt2(pid) {
 }
 
 // ════════════════════════════════════════════════════════════
-// STASH SELECTED — 回寫 OcrResults（歸屬類型、歸屬專案/部門、已確認）
+// STASH ALL — 全部回寫 OcrResults
 // ════════════════════════════════════════════════════════════
-async function doStashSelected() {
-  // 收集勾選中的 receipts
-  const selected = S.receipts.filter(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
-  if (!selected.length) { toast('⚠️ 請先勾選要暫存的憑證'); return; }
+async function doStashAll() {
+  if (!S.receipts.length) { toast('⚠️ 沒有可暫存的憑證'); return; }
 
-  const updates = selected.map(r => {
+  const updates = S.receipts.map(r => {
     let attribution = r.attribution || 'project';
     let attributionTarget = '';
     if (attribution === 'project') attributionTarget = r.projectId || '';
     else if (attribution === 'dept') attributionTarget = r.dept || '';
-
-    // key：有發票號碼用發票號碼，否則後端已用年月+序號，前端直接用 r.invoiceNo 或 r.id
-    const key = r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : (r.ocrKey || r.id);
+    const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     return { key, attribution, attributionTarget };
-  });
+  }).filter(u => u.key);
+
+  if (!updates.length) { toast('⚠️ 憑證缺少辨識 Key，請先執行 OCR'); return; }
 
   setBtnLoading('btnStash', true, '暫存中...');
-  const res = await callGAS({ action:'stashSelected', updates });
-  setBtnLoading('btnStash', false, '💾 暫存勾選');
+  const res = await callGAS({ action: 'stashSelected', updates });
+  setBtnLoading('btnStash', false, '💾 暫存');
 
   if (res.success) {
     toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
   } else {
     toast('❌ 暫存失敗：' + (res.error || '未知'));
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// LOAD OCR RESULTS FROM SHEET — 從 OcrResults 抓資料顯示
+// ════════════════════════════════════════════════════════════
+async function loadOcrResults() {
+  const btn = document.getElementById('btnLoadOcr');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 載入中...'; }
+  const res = await callGAS({ action: 'getOcrResults' });
+  if (btn) { btn.disabled = false; btn.innerHTML = '📥 從 Sheet 載入已確認紀錄'; }
+
+  if (!res.success) { toast('❌ 載入失敗：' + (res.error || '未知')); return; }
+  const rows = res.rows || [];
+  if (!rows.length) { toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）'); return; }
+
+  // 合併到 S.receipts（以 key 去重）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
+  let added = 0;
+  rows.forEach((row, idx) => {
+    if (existKeys.has(row.key)) return;
+    existKeys.add(row.key);
+    const id = 'sheet_' + row.key;
+    const rec = {
+      id,
+      source: row.fileName || '（Sheet）',
+      idx: 0,
+      status: 'done',
+      category: /停車|parking/i.test(row.category) ? 'parking' : 'other',
+      attribution: row.attribution || 'project',
+      projectId: row.attribution === 'project' ? (row.attributionTarget || '') : '',
+      dept: row.attribution === 'dept' ? (row.attributionTarget || '') : (S.user?.dept || ''),
+      vendor:    row.vendor    || '',
+      amount:    parseFloat(row.amount  || 0),
+      date:      row.date      || '',
+      invoiceNo: row.invoiceNo || '',
+      ocrKey:    row.key       || '',
+      notes:     row.notes     || '',
+      error:     null,
+      editData:  { startPoint:'', endPoint:'', km:'', reason:'', isRoundTrip:true }
+    };
+    S.receipts.push(rec);
+    added++;
+  });
+
+  renderOCRResults();
+  updateStats();
+  nav('ocr');
+  toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1587,44 +1658,89 @@ function toBase64(file) {
   });
 }
 
-// ── HEIC / 大圖轉換（Canvas 強制導出 JPEG）──
+// ── 上傳前統一轉 JPEG：支援 HEIC / PDF（多頁）/ 大圖壓縮 ──
 async function normalizeFileForUpload(file) {
-  const name    = file.name.toLowerCase();
-  const mime    = file.type || '';
+  const name = file.name.toLowerCase();
+  const mime = file.type || '';
+
+  // ── PDF：逐頁轉 JPEG，回傳 File 陣列 ──
+  if (mime === 'application/pdf' || name.endsWith('.pdf')) {
+    return await pdfToJpegFiles(file);
+  }
+
   const isHeic  = mime === 'image/heic' || mime === 'image/heif' ||
                   name.endsWith('.heic') || name.endsWith('.heif');
-  const isLarge = file.size > 2 * 1024 * 1024; // > 2MB
+  const isLarge = file.size > 2 * 1024 * 1024;
 
-  if (!isHeic && !isLarge) return file;
+  if (!isHeic && !isLarge) return [file];   // 普通圖片直接回傳（包在陣列）
 
-  // 方法一：heic2any（HEIC 專用，Android/桌面瀏覽器）
+  // ── HEIC：方法一 heic2any ──
   if (isHeic && typeof heic2any !== 'undefined') {
     try {
       const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
       const blob      = Array.isArray(converted) ? converted[0] : converted;
       const newName   = file.name.replace(/\.(heic|heif)$/i, '.jpg');
       toast('✅ HEIC 轉換完成：' + newName);
-      return new File([blob], newName, { type: 'image/jpeg' });
+      return [new File([blob], newName, { type: 'image/jpeg' })];
     } catch (e) {
       console.warn('[HEIC] heic2any 失敗，改用 Canvas：', e.message);
     }
   }
 
-  // 方法二：Canvas fallback（HEIC iOS Safari 原生解碼 / 大圖壓縮）
+  // ── Canvas fallback（HEIC iOS / 大圖壓縮）──
   try {
     const quality = isLarge ? 0.82 : 0.88;
     const blob    = await toJpegViaCanvas(file, quality);
     if (blob) {
       const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
-      if (isLarge) toast('✅ 大圖壓縮完成：' + ((blob.size/1024).toFixed(0)) + ' KB');
-      return new File([blob], newName, { type: 'image/jpeg' });
+      if (isLarge) toast('✅ 大圖壓縮完成：' + ((blob.size / 1024).toFixed(0)) + ' KB');
+      return [new File([blob], newName, { type: 'image/jpeg' })];
     }
   } catch (e) {
     console.warn('[Canvas] 轉換失敗：', e.message);
     toast('⚠️ ' + file.name + ' 無法轉換，以原格式上傳');
   }
 
-  return file;
+  return [file];
+}
+
+// ── PDF 逐頁轉 JPEG（pdf.js），回傳 File[] ──
+async function pdfToJpegFiles(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    toast('⚠️ pdf.js 未載入，PDF 以原格式上傳');
+    return [file];
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const baseName = file.name.replace(/\.pdf$/i, '');
+  const results  = [];
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const total       = pdf.numPages;
+    toast(`⏳ PDF ${total} 頁轉換中...`);
+
+    for (let p = 1; p <= total; p++) {
+      const page     = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2.0 }); // ~144 dpi，OCR 品質好
+      const canvas   = document.createElement('canvas');
+      canvas.width   = viewport.width;
+      canvas.height  = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+      const blob    = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+      const suffix  = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
+      const newName = baseName + suffix + '.jpg';
+      results.push(new File([blob], newName, { type: 'image/jpeg' }));
+    }
+    toast(`✅ PDF 轉換完成：${total} 頁`);
+  } catch (e) {
+    console.warn('[PDF] 轉換失敗：', e.message);
+    toast('⚠️ PDF 轉換失敗，以原格式上傳');
+    return [file];
+  }
+  return results;
 }
 
 function toJpegViaCanvas(file, quality = 0.88) {
