@@ -1148,7 +1148,7 @@ function rcHTML(r) {
         <div class="mono" style="font-size:16px;font-weight:700;color:var(--gold)">$${r.amount.toLocaleString()}</div>
         <div style="font-size:11px;color:var(--muted)">${r.invoiceNo||'—'}</div>
       </div>
-      <div style="color:var(--muted);font-size:12px">▼</div>
+      <div style="color:var(--muted);font-size:12px" class="rc-chev">▼</div>
     </div>
     <div class="rc-body" id="rcb-${r.id}">
       <div class="fg4" style="margin-bottom:12px">
@@ -1195,7 +1195,6 @@ function rcHTML(r) {
 
       <div style="display:flex;gap:8px">
         <button class="btn btn-danger btn-sm" onclick="delR('${r.id}')">🗑 刪除</button>
-        <button class="btn btn-ghost btn-sm" onclick="toggleRC('${r.id}')">收起</button>
       </div>
     </div>
   </div>`;
@@ -1218,7 +1217,14 @@ function setCat(id, cat) {
   updateStats();
 }
 
-function toggleRC(id)    { document.getElementById('rcb-'+id)?.classList.toggle('open'); }
+function toggleRC(id) {
+  const body = document.getElementById('rcb-'+id);
+  const rc   = document.getElementById('rc-'+id);
+  if (!body || !rc) return;
+  body.classList.toggle('open');
+  const chev = rc.querySelector('.rc-hd .rc-chev');
+  if (chev) chev.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
 
 async function delR(id) {
   const r = S.receipts.find(x => x.id === id);
