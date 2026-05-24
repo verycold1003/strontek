@@ -114,7 +114,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .rc{border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;margin-bottom:10px}
 .rc:hover{border-color:var(--border2)}
 .rc.sel{border-color:var(--accent)}
-.rc-hd{display:grid;grid-template-columns:28px 52px 1fr auto auto 16px;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;user-select:none}
+.rc-hd{display:grid;grid-template-columns:28px 52px 1fr auto auto auto 16px;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;user-select:none}
 .rc-thumb{width:50px;height:50px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0}
 .rc-thumb img{width:100%;height:100%;object-fit:cover}
 .rc-body{padding:16px;background:var(--surface2);border-top:1px solid var(--border);display:none}
@@ -216,7 +216,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     display:flex!important;flex-direction:column!important;gap:14px!important;
   }
   .fg2,.fg3,.fg4{grid-template-columns:1fr 1fr!important}
-  .rc-hd{grid-template-columns:24px 44px 1fr auto 16px!important;gap:8px}
+  .rc-hd{grid-template-columns:24px 44px 1fr auto auto 16px!important;gap:8px}
 }
 </style>
 </head>
@@ -419,6 +419,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div id="ocrDoneBar" style="display:none;margin-top:12px;gap:8px">
             <button class="btn btn-primary" onclick="nav('export')">📄 前往整理匯出 →</button>
             <button class="btn btn-gold" onclick="doStashAll()">💾 暫存</button>
+            <button class="btn btn-danger" onclick="delSelected()">🗑 刪除勾選</button>
           </div>
         </div>
 
@@ -1153,6 +1154,7 @@ function rcHTML(r) {
         <div class="mono" style="font-size:16px;font-weight:700;color:var(--gold)">$${r.amount.toLocaleString()}</div>
         <div style="font-size:11px;color:var(--muted)">${r.invoiceNo||'—'}</div>
       </div>
+      <button class="btn btn-danger btn-sm btn-icon" title="刪除" onclick="event.stopPropagation();delR('${r.id}')" style="padding:5px 8px;font-size:13px">🗑</button>
       <div style="color:var(--muted);font-size:12px" class="rc-chev">▼</div>
     </div>
     <div class="rc-body" id="rcb-${r.id}">
@@ -1197,10 +1199,6 @@ function rcHTML(r) {
       </div>
 
       <div style="margin-bottom:12px"><label class="lbl">備註</label><input class="inp" value="${r.notes}" onchange="upR('${r.id}','notes',this.value)"></div>
-
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-danger btn-sm" onclick="delR('${r.id}')">🗑 刪除</button>
-      </div>
     </div>
   </div>`;
 }
@@ -1235,13 +1233,37 @@ async function delR(id) {
   const r = S.receipts.find(x => x.id === id);
   if (!r) return;
   const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
-  // 有 key 才回寫 Sheet 標記刪除；無 key 只移除前端
   if (key) {
     try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
   }
   S.receipts = S.receipts.filter(x => x.id !== id);
   document.getElementById('rc-' + id)?.remove();
   updateStats();
+}
+
+async function delSelected() {
+  // 收集目前勾選的（chkbox 有 on class）
+  const selected = S.receipts.filter(r => {
+    const chk = document.getElementById('rck-' + r.id);
+    return chk && chk.classList.contains('on');
+  });
+  if (!selected.length) { toast('⚠️ 請先勾選要刪除的項目'); return; }
+
+  const confirmed = confirm(`確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步標記刪除 OcrResults，無法復原。`);
+  if (!confirmed) return;
+
+  let done = 0;
+  for (const r of selected) {
+    const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
+    if (key) {
+      try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
+    }
+    S.receipts = S.receipts.filter(x => x.id !== r.id);
+    document.getElementById('rc-' + r.id)?.remove();
+    done++;
+  }
+  updateStats();
+  toast(`🗑 已刪除 ${done} 筆`);
 }
 
 function setAttr(id, attr) {
@@ -1537,7 +1559,7 @@ function a2RowHTML(pid, i) {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 110px auto;gap:8px;align-items:end">
-      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" placeholder="新北市三重區"></div>
+      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="新北市三重區三民街272巷13號" placeholder="新北市三重區三民街272巷13號"></div>
       <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" placeholder="台北市仁愛帝寶"></div>
       <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" placeholder="0" oninput="calcAtt2('${pid}')"></div>
       <div><label class="lbl">查詢距離</label><button class="btn btn-outline btn-sm" onclick="queryMaps('${pid}',${i})">🗺 Maps</button></div>
