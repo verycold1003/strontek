@@ -984,6 +984,8 @@ async function runOCR() {
   document.getElementById('ocrProgCard').style.display='block';
   const bar=document.getElementById('ocrProgBar'), txt=document.getElementById('ocrProgTxt'), fl=document.getElementById('ocrProgFile');
 
+  _ocrCountBefore = S.receipts.length;
+
   for (let i=0; i<pending.length; i++) {
     const qf = pending[i];
     txt.textContent=`${i+1}/${pending.length}`; bar.style.width=`${(i/pending.length)*100}%`; fl.textContent=qf.name;
@@ -1059,13 +1061,14 @@ async function runOCR() {
   updateStats();
 
   // 若有重複發票號碼，啟動逐筆確認流程
+  const newCount = S.receipts.length - _ocrCountBefore;
   const dupItems = S.receipts.filter(r => r._isDuplicate);
   if (dupItems.length) {
     toast(`⚠️ 發現 ${dupItems.length} 筆重複發票號碼，請逐一確認`);
     startDupResolution(dupItems);
   } else {
     document.getElementById('ocrDoneBar').style.cssText='display:flex;margin-top:12px;gap:8px';
-    toast(`✅ 辨識完成：共 ${S.receipts.length} 張憑證`);
+    toast(`✅ 本次辨識完成：新增 ${newCount} 張憑證`);
   }
 }
 
@@ -1273,8 +1276,9 @@ function updateStats() {
 // ════════════════════════════════════════════════════════════
 // DUPLICATE INVOICE RESOLUTION
 // ════════════════════════════════════════════════════════════
-let _dupQueue   = [];   // 待處理的重複發票 receipt 陣列
-let _dupCurrent = null; // 目前正在處理的 receipt
+let _dupQueue      = [];   // 待處理的重複發票 receipt 陣列
+let _dupCurrent    = null; // 目前正在處理的 receipt
+let _ocrCountBefore = 0;  // runOCR 開始前的 receipts 數量
 
 function startDupResolution(dupItems) {
   _dupQueue   = [...dupItems];
@@ -1287,7 +1291,7 @@ function nextDup() {
     // 全部處理完
     closeModal('dupModal');
     document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
-    toast(`✅ 辨識完成：共 ${S.receipts.length} 張憑證`);
+    toast(`✅ 本次辨識完成：新增 ${S.receipts.length - _ocrCountBefore} 張憑證`);
     return;
   }
   _dupCurrent = _dupQueue.shift();
