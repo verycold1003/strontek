@@ -361,7 +361,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
                 <thead>
                   <tr>
                     <th><div class="chkbox" id="chkAll" onclick="toggleAllDrive()"></div></th>
-                    <th>檔名</th><th>日期</th>
+                    <th>檔名</th><th style="min-width:90px;white-space:nowrap">日期</th>
                   </tr>
                 </thead>
                 <tbody id="driveFileTbl"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">載入中...</td></tr></tbody>
@@ -877,7 +877,7 @@ function renderDriveFiles() {
     <tr>
       <td><div class="chkbox" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
       <td style="font-size:12px">${f.name}</td>
-      <td style="font-size:11px;color:var(--muted)">${f.date}</td>
+      <td style="font-size:11px;color:var(--muted);white-space:nowrap">${f.date}</td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">尚無紀錄</td></tr>';
 }
 
