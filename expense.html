@@ -420,8 +420,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="chkbox on" id="chkAllOcr" title="全選 / 全不選" onclick="toggleAllOcr()" style="flex-shrink:0"></div>
             <span style="font-size:12px;color:var(--muted);margin-right:4px">全選</span>
             <button class="btn btn-primary" onclick="nav('export')">📄 前往整理匯出 →</button>
-            <button class="btn btn-gold" onclick="doStashAll()">💾 暫存</button>
-            <button class="btn btn-danger" onclick="delSelected()">🗑 刪除勾選</button>
+            <button class="btn btn-gold" id="btnOcrStash" onclick="doStashAll()">💾 暫存</button>
+            <button class="btn btn-danger" id="btnDelSelected" onclick="delSelected()">🗑 刪除勾選</button>
           </div>
         </div>
 
@@ -465,7 +465,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <div class="frow"><label class="lbl">申請人確認</label>
                 <select class="inp" id="exp-person"><option value="">— 請選擇 —</option></select>
               </div>
-              <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month"></div>
+              <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month" onchange="syncOcrMonth(this.value)"></div>
+              <button class="btn btn-ghost btn-full" id="btnExpLoad" onclick="loadOcrResults(false, true)">📥 從 Sheet 載入</button>
               <button class="btn btn-primary btn-full" onclick="doExportAll()">✅ 全部匯出 PDF</button>
               <button class="btn btn-gold btn-full" id="btnStash" onclick="doStashAll()">💾 暫存</button>
               <button class="btn btn-ghost btn-full" onclick="refreshExport()">🔄 重新整理分群</button>
@@ -618,13 +619,29 @@ function handleLineCallback() {
   }
   window.history.replaceState({}, '', window.location.pathname);
   localStorage.removeItem('line_state');
+
+  // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
+  const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
+  const CALLBACK_TIMEOUT_MS = 30000;  // 30 秒 timeout
+  const btnLine = document.getElementById('btnLineLogin');
+  function restoreLineBtn() {
+    if (btnLine) { btnLine.disabled = false; btnLine.innerHTML = LINE_BTN_LABEL; }
+    document.getElementById('loginCallbackMsg').style.display = 'none';
+  }
+  if (btnLine) { btnLine.disabled = true; btnLine.innerHTML = '<div class="spin"></div> 驗證中...'; }
+  const callbackTimer = setTimeout(() => {
+    restoreLineBtn();
+    toast('⚠️ 登入逾時，請重試');
+  }, CALLBACK_TIMEOUT_MS);
+
   callGAS({ action: 'lineToken', code })
     .then(res => {
-      if (res.success)       finishLogin(res.person);
-      else if (res.needName) { S._pendingBind = { lineId: res.lineId, lineName: res.lineName, avatar: res.avatar }; showBindNameUI(); }
-      else                   toast('❌ LINE 登入失敗：' + (res.error || '未知'));
+      clearTimeout(callbackTimer);
+      if (res.success)       { restoreLineBtn(); finishLogin(res.person); }
+      else if (res.needName) { restoreLineBtn(); S._pendingBind = { lineId: res.lineId, lineName: res.lineName, avatar: res.avatar }; showBindNameUI(); }
+      else                   { restoreLineBtn(); toast('❌ LINE 登入失敗：' + (res.error || '未知')); }
     })
-    .catch(err => toast('❌ 登入過程發生錯誤：' + err.message));
+    .catch(err => { clearTimeout(callbackTimer); restoreLineBtn(); toast('❌ 登入過程發生錯誤：' + err.message); });
 }
 
 function finishLogin(person) {
@@ -1234,6 +1251,11 @@ function toggleRC(id) {
 async function delR(id) {
   const r = S.receipts.find(x => x.id === id);
   if (!r) return;
+
+  // loading：找到這張卡的刪除按鈕，顯示 spin
+  const delBtn = document.querySelector(`#rc-${id} .btn-danger`);
+  if (delBtn) { delBtn.disabled = true; delBtn.innerHTML = '<div class="spin"></div>'; }
+
   const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
   if (key) {
     try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
@@ -1254,6 +1276,9 @@ async function delSelected() {
   const confirmed = confirm(`確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步標記刪除 OcrResults，無法復原。`);
   if (!confirmed) return;
 
+  const btn = document.getElementById('btnDelSelected');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 刪除中...'; }
+
   let done = 0;
   for (const r of selected) {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
@@ -1264,6 +1289,8 @@ async function delSelected() {
     document.getElementById('rc-' + r.id)?.remove();
     done++;
   }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '🗑 刪除勾選'; }
   updateStats();
   syncAllOcrChk();
   toast(`🗑 已刪除 ${done} 筆`);
@@ -1550,6 +1577,16 @@ function att2Form(proj, otherR, parkR) {
   const rate      = getMileageRate(document.getElementById('exp-month').value || today().slice(0,7));
   const parkTotal = parkR.reduce((s,r)=>s+r.amount,0);
   att2Rows[proj.id] = 1;
+
+  // 從同專案 receipts 裡找已存的外勤資料（取第一筆有 fieldRows 的）
+  const savedRows = (() => {
+    for (const r of S.receipts.filter(x => x.projectId === proj.id)) {
+      if (r.fieldRows && r.fieldRows.length) return r.fieldRows;
+    }
+    return [];
+  })();
+  if (savedRows.length > 1) att2Rows[proj.id] = savedRows.length;
+
   return `<div class="att-form">
     <div class="att-title">📎 附件二 — 里程實報制</div>
     <div class="fg2" style="margin-bottom:12px">
@@ -1558,7 +1595,11 @@ function att2Form(proj, otherR, parkR) {
         <input type="number" class="inp" id="a2rate-${proj.id}" value="${rate}" oninput="calcAtt2('${proj.id}',${parkTotal})">
       </div>
     </div>
-    <div id="a2rows-${proj.id}">${a2RowHTML(proj.id, 0)}</div>
+    <div id="a2rows-${proj.id}">${
+      savedRows.length
+        ? savedRows.map((fr, i) => a2RowHTML(proj.id, i, fr)).join('')
+        : a2RowHTML(proj.id, 0)
+    }</div>
     <button class="btn btn-ghost btn-sm" onclick="addA2Row('${proj.id}',${parkTotal})" style="margin-bottom:12px">＋ 新增外勤記錄</button>
     <div style="font-size:12px;color:var(--muted);margin-bottom:6px">同專案停車費憑證（含入合計）：</div>
     ${parkR.map(r=>`<div class="info-row"><span>🅿️ ${r.vendor} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('')}
@@ -1570,23 +1611,30 @@ function att2Form(proj, otherR, parkR) {
   </div>`;
 }
 
-function a2RowHTML(pid, i) {
+function a2RowHTML(pid, i, prefill) {
+  const p = prefill || {};
+  const defStart = p.start  || '新北市三重區三民街272巷13號';
+  const defEnd   = p.end    || '';
+  const defDate  = p.date   || '';
+  const defRsn   = p.reason || '';
+  const defKm    = p.km     || '';
+  const isRound  = p.isRound !== undefined ? p.isRound : true;
   return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px">
     <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:8px">第 ${i+1} 筆外勤</div>
     <div class="fg3" style="margin-bottom:8px">
-      <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}"></div>
-      <div><label class="lbl">事由</label><input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由"></div>
+      <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
+      <div><label class="lbl">事由</label><input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由" value="${defRsn}"></div>
       <div><label class="lbl">來回 / 單程</label>
         <div class="tgl">
-          <button class="tgl-btn on" id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
-          <button class="tgl-btn" id="a2one-${pid}-${i}" onclick="setRound(this,'${pid}',${i},false)">單程</button>
+          <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
+          <button class="tgl-btn ${isRound?'':'on'}" id="a2one-${pid}-${i}" onclick="setRound(this,'${pid}',${i},false)">單程</button>
         </div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 110px auto;gap:8px;align-items:end">
-      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="新北市三重區三民街272巷13號" placeholder="新北市三重區三民街272巷13號"></div>
-      <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" placeholder="台北市仁愛帝寶"></div>
-      <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" placeholder="0" oninput="calcAtt2('${pid}')"></div>
+      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="新北市三重區三民街272巷13號"></div>
+      <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="台北市仁愛帝寶"></div>
+      <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0" oninput="calcAtt2('${pid}')"></div>
       <div><label class="lbl">查詢距離</label><button class="btn btn-outline btn-sm" onclick="queryMaps('${pid}',${i})">🗺 Maps</button></div>
     </div>
     <div id="a2km-result-${pid}-${i}" style="margin-top:6px"></div>
@@ -1659,7 +1707,10 @@ function nav(name) {
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  if (name==='export') refreshExport();
+  if (name==='export') {
+    if (S.receipts.length === 0) loadOcrResults(true, true);
+    else refreshExport();
+  }
   if (name==='ocr' && S.receipts.length === 0) loadOcrResults(true);
   // 手機版切頁後關閉 sidebar
   document.getElementById('mainSidebar')?.classList.remove('open');
@@ -1768,19 +1819,54 @@ async function doStashAll() {
   if (!S.receipts.length) { toast('⚠️ 沒有可暫存的憑證'); return; }
 
   const updates = S.receipts.map(r => {
-    let attribution = r.attribution || 'project';
+    const attribution = r.attribution || 'project';
     let attributionTarget = '';
     if (attribution === 'project') attributionTarget = r.projectId || '';
     else if (attribution === 'dept') attributionTarget = r.dept || '';
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
-    return { key, attribution, attributionTarget };
-  }).filter(u => u.key);
+    if (!key) return null;
+
+    // ── 讀取附件二外勤欄位（從 DOM 取得使用者填入值）──
+    const pid = r.projectId || '';
+    const rowCount = att2Rows[pid] || 0;
+    const fieldRows = [];
+    for (let i = 0; i < rowCount; i++) {
+      // 確認此外勤行確實屬於這張 receipt 所在的專案
+      const rowEl = document.getElementById(`a2r-${pid}-${i}`);
+      if (!rowEl) continue;
+      fieldRows.push({
+        date:    document.getElementById(`a2d-${pid}-${i}`)?.value    || '',
+        reason:  document.getElementById(`a2rsn-${pid}-${i}`)?.value  || '',
+        start:   document.getElementById(`a2s-${pid}-${i}`)?.value    || '',
+        end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
+        km:      document.getElementById(`a2km-${pid}-${i}`)?.value   || '',
+        isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
+      });
+    }
+
+    return {
+      key,
+      attribution,
+      attributionTarget,
+      // 可修改的憑證欄位
+      vendor:    r.vendor    || '',
+      amount:    r.amount    ?? '',
+      date:      r.date      || '',
+      invoiceNo: r.invoiceNo || '',
+      category:  r.category  || 'other',
+      notes:     r.notes     || '',
+      // 附件二外勤（JSON 字串存入一個欄位）
+      fieldRows: fieldRows.length ? JSON.stringify(fieldRows) : '',
+    };
+  }).filter(Boolean);
 
   if (!updates.length) { toast('⚠️ 憑證缺少辨識 Key，請先執行 OCR'); return; }
 
-  setBtnLoading('btnStash', true, '暫存中...');
+  setBtnLoading('btnStash',    true,  '暫存中...');
+  setBtnLoading('btnOcrStash', true,  '暫存中...');
   const res = await callGAS({ action: 'stashSelected', updates });
-  setBtnLoading('btnStash', false, '💾 暫存');
+  setBtnLoading('btnStash',    false, '💾 暫存');
+  setBtnLoading('btnOcrStash', false, '💾 暫存');
 
   if (res.success) {
     toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
@@ -1791,27 +1877,36 @@ async function doStashAll() {
 
 // ════════════════════════════════════════════════════════════
 // LOAD OCR RESULTS FROM SHEET
-//   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
-//   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
+//   auto=true       → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
+//   auto=false      → 手動載入（按鈕觸發，顯示完整回饋訊息）
+//   fromExport=true → 從整理匯出頁觸發，載入後 refreshExport 而非跳 OCR 頁
 // ════════════════════════════════════════════════════════════
-async function loadOcrResults(auto = false) {
-  const btn = document.getElementById('btnLoadOcr');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 載入中...'; }
+async function loadOcrResults(auto = false, fromExport = false) {
+  // 月份：fromExport 用 exp-month，其餘用 ocr-month
+  const monthEl = fromExport
+    ? document.getElementById('exp-month')
+    : document.getElementById('ocr-month');
+
+  // loading 狀態同步到對應按鈕
+  const btnOcr = document.getElementById('btnLoadOcr');
+  const btnExp = document.getElementById('btnExpLoad');
+  const activeBtn = fromExport ? btnExp : btnOcr;
+  if (activeBtn) { activeBtn.disabled = true; activeBtn.innerHTML = '<div class="spin"></div> 載入中...'; }
 
   let res;
   try {
     res = await callGAS({
       action:  'getOcrResults',
       lineId:  S.user?.lineId || '',
-      month:   document.getElementById('ocr-month')?.value || '',
+      month:   monthEl?.value || '',
     });
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '📥 從 Sheet 載入'; }
+    if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '📥 從 Sheet 載入'; }
     if (!auto) toast('❌ 載入失敗：' + e.message);
     return;
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = '📥 從 Sheet 載入'; }
+  if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '📥 從 Sheet 載入'; }
 
   if (!res.success) {
     if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
@@ -1821,6 +1916,7 @@ async function loadOcrResults(auto = false) {
   const rows = res.rows || [];
   if (!rows.length) {
     if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
+    if (fromExport) refreshExport();
     return;
   }
 
@@ -1848,24 +1944,37 @@ async function loadOcrResults(auto = false) {
       error:        null,
       _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
       editData:     { startPoint:'', endPoint:'', km:'', reason:'', isRoundTrip:true },
+      fieldRows:    (() => { try { return JSON.parse(row.fieldRows || '[]'); } catch(_){ return []; } })(),
     });
     added++;
   });
 
-  renderOCRResults();
   updateStats();
 
-  if (added > 0) {
-    setStep(3);
-    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+  if (fromExport) {
+    // 整理匯出頁：直接重繪分群，不跳頁、不碰 OCR 頁的 DOM
+    refreshExport();
+    if (!auto) toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
+    else if (added > 0) toast(`📥 已從 Sheet 載入 ${added} 筆`);
+  } else {
+    // OCR 頁邏輯（原行為不變）
+    renderOCRResults();
+    if (added > 0) {
+      setStep(3);
+      document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+    }
+    if (!auto) {
+      nav('ocr');
+      toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
+    } else if (added > 0) {
+      toast(`📥 已從 Sheet 載入 ${added} 筆歷史紀錄`);
+    }
   }
+}
 
-  if (!auto) {
-    nav('ocr');
-    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
-  } else if (added > 0) {
-    toast(`📥 已從 Sheet 載入 ${added} 筆歷史紀錄`);
-  }
+function syncOcrMonth(val) {
+  const el = document.getElementById('ocr-month');
+  if (el && val) el.value = val;
 }
 
 // ════════════════════════════════════════════════════════════
