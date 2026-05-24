@@ -392,7 +392,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="card-hd">
               📥 辨識佇列
               <span class="badge bd-blue" id="queueCnt">0 個</span>
-              <div style="margin-left:auto;display:flex;gap:8px">
+              <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                <input type="month" class="inp" id="ocr-month" style="width:130px;padding:5px 10px;font-size:12px">
                 <button class="btn btn-ghost btn-sm" id="btnLoadOcr" onclick="loadOcrResults()">📥 從 Sheet 載入</button>
                 <button class="btn btn-ghost btn-sm" onclick="clearQueue()">清空佇列</button>
                 <button class="btn btn-primary btn-sm" id="btnOCR" onclick="runOCR()" disabled>▶ 開始辨識</button>
@@ -554,8 +555,9 @@ function getMileageRate(yearMonth) {
 // ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   const ym = new Date().toISOString().slice(0,7);
-  document.getElementById('up-month').value  = ym;
-  document.getElementById('exp-month').value = ym;
+  document.getElementById('up-month').value   = ym;
+  document.getElementById('ocr-month').value  = ym;
+  document.getElementById('exp-month').value  = ym;
 
   const dz = document.getElementById('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
@@ -1009,6 +1011,7 @@ async function runOCR() {
         fileName: qf.name,
         base64: b64,
         fileId: qf.id,
+        lineId: S.user?.lineId || '',
         attribution,
         attributionTarget,
       });
@@ -1751,7 +1754,11 @@ async function loadOcrResults(auto = false) {
 
   let res;
   try {
-    res = await callGAS({ action: 'getOcrResults' });
+    res = await callGAS({
+      action:  'getOcrResults',
+      lineId:  S.user?.lineId || '',
+      month:   document.getElementById('ocr-month')?.value || '',
+    });
   } catch(e) {
     if (btn) { btn.disabled = false; btn.innerHTML = '📥 從 Sheet 載入'; }
     if (!auto) toast('❌ 載入失敗：' + e.message);
