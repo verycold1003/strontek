@@ -179,6 +179,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .login-wrap{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200;flex-direction:column}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:400px;text-align:center}
 .line-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#06C755;color:white;border:none;border-radius:10px;padding:14px 24px;font-size:15px;font-weight:700;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;transition:background .2s}
+.line-btn:disabled{cursor:default;opacity:.8}
 .line-btn:hover{background:#05a847}
 
 /* Modal */
@@ -1717,7 +1718,9 @@ function simpleList(rs) {
   return rs.map(r => `<div class="info-row"><span>${r.vendor} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('');
 }
 
-function toggleExpSec(secEl) {
+function toggleExpSec(el) {
+  const secEl = el.closest('.exp-sec');
+  if (!secEl) return;
   const bd = secEl.querySelector('.exp-sec-bd');
   if (!bd) return;
   bd.classList.toggle('open');
