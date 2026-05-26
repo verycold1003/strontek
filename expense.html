@@ -656,7 +656,6 @@ function handleLineCallback() {
   callGAS({ action: 'lineToken', code })
     .then(res => {
       clearTimeout(callbackTimer);
-      console.log('[LINE lineToken res]', JSON.stringify(res));
       if (res.success) {
         restoreLineBtn();
         finishLogin(res.person);
@@ -716,7 +715,7 @@ async function doBindName() {
   const res = await callGAS({ action: 'bindName', name, ...b });
   btn.disabled = false; btn.innerHTML = '🔗 比對並綁定帳號';
   if (res.success) { S._pendingBind = null; finishLogin(res.person); }
-  else { errEl.textContent = '❌ ' + (res.error || '比對失敗'); errEl.style.display = 'block'; }
+  else { errEl.textContent = '❌ 找不到符合的姓名，請確認輸入是否正確，或聯絡管理員新增帳號。'; errEl.style.display = 'block'; }
 }
 
 function renderUserBar() {
