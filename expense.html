@@ -656,9 +656,29 @@ function handleLineCallback() {
   callGAS({ action: 'lineToken', code })
     .then(res => {
       clearTimeout(callbackTimer);
-      if (res.success)       { restoreLineBtn(); finishLogin(res.person); }
-      else if (res.needName) { restoreLineBtn(); S._pendingBind = { lineId: res.lineId, lineName: res.lineName, avatar: res.avatar }; showBindNameUI(); }
-      else                   { restoreLineBtn(); toast('❌ LINE 登入失敗：' + (res.error || '未知')); }
+      console.log('[LINE lineToken res]', JSON.stringify(res));
+      if (res.success) {
+        restoreLineBtn();
+        finishLogin(res.person);
+      } else if (res.needName) {
+        restoreLineBtn();
+        if (!res.lineId) {
+          // GAS 回傳 needName 但沒帶 lineId → 舊版 GAS 尚未部署，提示重試
+          toast('⚠️ 伺服器回應不完整（缺少 lineId），請確認 GAS 已重新部署後再試');
+          return;
+        }
+        S._pendingBind = { lineId: res.lineId, lineName: res.lineName || '', avatar: res.avatar || '' };
+        showBindNameUI();
+      } else {
+        restoreLineBtn();
+        const msg = res.error || '未知';
+        // 常見原因提示
+        let hint = '';
+        if (msg.includes('redirect_uri') || msg.includes('invalid_request')) {
+          hint = '\n\n💡 可能原因：LINE Developer Console 的 Callback URL 與目前網址不符，請確認已加入：\n' + window.location.href.split('?')[0];
+        }
+        toast('❌ LINE 登入失敗：' + msg + hint);
+      }
     })
     .catch(err => { clearTimeout(callbackTimer); restoreLineBtn(); toast('❌ 登入過程發生錯誤：' + err.message); });
 }
@@ -2266,7 +2286,16 @@ function nav(name) {
     if (S.receipts.length === 0) loadOcrResults(true, true);
     else refreshExport();
   }
-  if (name==='ocr' && S.receipts.length === 0) loadOcrResults(true);
+  if (name==='ocr') {
+    if (S.receipts.length === 0) {
+      loadOcrResults(true);
+    } else {
+      renderOCRResults();
+      const doneBar = document.getElementById('ocrDoneBar');
+      if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:8px';
+      setStep(3);
+    }
+  }
   // 手機版切頁後關閉 sidebar
   document.getElementById('mainSidebar')?.classList.remove('open');
   document.getElementById('sidebarOverlay')?.classList.remove('open');
