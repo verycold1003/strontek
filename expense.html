@@ -1481,7 +1481,9 @@ function refreshExport() {
   const main  = document.getElementById('expMain');
 
   // 清除舊的 sec 和 group label（保留 expEmpty、expSelBar、expPrintBar）
-  main.querySelectorAll('.exp-sec, .att-group-label').forEach(e => e.remove());
+  main.querySelectorAll('.exp-sec, .att-group-label, #att2QuickBar').forEach(e => e.remove());
+  // 清空 pid 對應表，避免跨次殘留
+  Object.keys(att2PidMap).forEach(k => delete att2PidMap[k]);
 
   if (!S.receipts.length) {
     document.getElementById('expEmpty').style.display  = 'block';
@@ -1506,7 +1508,7 @@ function refreshExport() {
   // 分為三類：里程實報制（附件二）、月定額（附件三+四）、其他
   const att2Keys   = [];  // 非 quota 專案 + dept + other
   const quotaProjs = [];  // quota 專案 [{key, proj, parkR, otherR}]
-  const att4Keys   = [];  // quota 停車費（從 quotaProjs 衍生，依日期排序）
+  const att4Keys   = [];  // quota 停車費 + dept/other 停車費（依日期排序）
 
   Object.entries(groups).forEach(([key, rs]) => {
     const proj = key.startsWith('proj:') ? S.config.projects.find(p => p.id === key.slice(5)) : null;
@@ -1523,27 +1525,45 @@ function refreshExport() {
   // 月定額：依 proj.id 排序
   quotaProjs.sort((a, b) => (a.proj.id || '').localeCompare(b.proj.id || ''));
 
-  // 附件四的停車費：每個 quota 專案各一 sec
+  // 附件四：quota 專案停車費
   quotaProjs.forEach(({ key, proj, parkR }) => {
     if (parkR.length) att4Keys.push({ key, proj, parkR });
+  });
+
+  // 附件四：dept / other 群組的停車費（里程實報附件二群組中有停車費者）
+  att2Keys.forEach(key => {
+    const rs    = groups[key];
+    const proj  = key.startsWith('proj:') ? S.config.projects.find(p => p.id === key.slice(5)) : null;
+    // 里程實報專案的停車費配對在附件二內處理，不產生附件四
+    if (proj) return;
+    const parkR = rs.filter(r => r.category === 'parking')
+                    .sort((a, b) => a.date.localeCompare(b.date));
+    if (parkR.length) att4Keys.push({ key, proj: null, parkR });
   });
 
   const printBarRef = document.getElementById('expPrintBar');
 
   // ── 附件二群組 ────────────────────────────────────────────
+  // 同時收集已有 att2Form 的 key，供底部快速新增列排除
+  const att2ExistingKeys = new Set();
   if (att2Keys.length) {
-    const lbl = makeGroupLabel('📎 附件二 — 里程實報制（每專案一份 PDF）');
+    const lbl = makeGroupLabel('📎 附件二');
     main.insertBefore(lbl, printBarRef);
     att2Keys.forEach(key => {
+      att2ExistingKeys.add(key);
       const rs = groups[key];
       const sec = buildExpSec(key, rs, 'att2');
       main.insertBefore(sec, printBarRef);
     });
   }
 
+  // ── 附件二底部：快速新增外勤（無停車費憑證的群組）────────
+  const quickBar = buildAtt2QuickAdd(att2ExistingKeys);
+  if (quickBar) main.insertBefore(quickBar, printBarRef);
+
   // ── 附件三（合併所有月定額） ──────────────────────────────
   if (quotaProjs.length) {
-    const lbl = makeGroupLabel('📎 附件三 — 月定額制彙總（所有專案合併，每 16 筆一份 PDF）');
+    const lbl = makeGroupLabel('📎 附件三 — 月定額制彙總');
     main.insertBefore(lbl, printBarRef);
     const sec3 = buildExpSecAtt3(quotaProjs);
     main.insertBefore(sec3, printBarRef);
@@ -1551,7 +1571,7 @@ function refreshExport() {
 
   // ── 附件四（每月定額專案停車費一份 PDF） ─────────────────
   if (att4Keys.length) {
-    const lbl = makeGroupLabel('📎 附件四 — 停車費實報（每專案一份 PDF，依日期排序）');
+    const lbl = makeGroupLabel('📎 附件四');
     main.insertBefore(lbl, printBarRef);
     att4Keys.forEach(({ key, proj, parkR }) => {
       const sec = buildExpSec('att4:' + key, parkR, 'att4', proj);
@@ -1567,6 +1587,100 @@ function makeGroupLabel(text) {
   div.className = 'att-group-label';
   div.innerHTML = text;
   return div;
+}
+
+// ── 附件二底部快速新增外勤列 ─────────────────────────────────
+// 列出尚未有 att2Form 的里程實報專案 + 可顯示部門 + 其他
+function buildAtt2QuickAdd(existingKeys) {
+  // 收集可選項目
+  const options = [];
+
+  // 里程實報專案（生效中、非 quota、尚未在 att2Form 裡）
+  (S.config.projects || []).forEach(p => {
+    if (p.quota) return;
+    const key = 'proj:' + p.id;
+    if (!existingKeys.has(key)) {
+      options.push({ key, label: p.name });
+    }
+  });
+
+  // 可顯示部門（尚未在 att2Form 裡）
+  (S.config.departments || []).forEach(d => {
+    const key = 'dept:' + d;
+    if (!existingKeys.has(key)) {
+      options.push({ key, label: '🏢 ' + d });
+    }
+  });
+
+  // 其他（若 att2Form 裡還沒有 other）
+  if (!existingKeys.has('other')) {
+    options.push({ key: 'other', label: '📋 其他' });
+  }
+
+  if (!options.length) return null;
+
+  const div = document.createElement('div');
+  div.id = 'att2QuickBar';
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap';
+
+  const optHtml = options.map(o =>
+    `<option value="${o.key}">${o.label}</option>`
+  ).join('');
+
+  div.innerHTML = `
+    <span style="font-size:12px;color:var(--muted);white-space:nowrap">➕ 新增外勤記錄至：</span>
+    <select class="inp" id="att2QuickSel" style="flex:1;min-width:160px;max-width:280px;padding:6px 28px 6px 10px;font-size:13px">
+      <option value="">— 選擇群組 —</option>
+      ${optHtml}
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="doAtt2QuickAdd()" style="white-space:nowrap">＋ 新增外勤記錄</button>
+  `;
+  return div;
+}
+
+// 快速新增：建立新的 exp-sec 並插入附件二最後（附件三之前）
+function doAtt2QuickAdd() {
+  const sel = document.getElementById('att2QuickSel');
+  if (!sel || !sel.value) { toast('⚠️ 請先選擇群組'); return; }
+  const key = sel.value;
+
+  // 找插入位置：att2QuickBar 本身（新 sec 插在它前面）
+  const bar   = document.getElementById('att2QuickBar');
+  const main  = document.getElementById('expMain');
+  if (!bar || !main) return;
+
+  // 建立新 sec（無 receipts，att2Form 會給一筆空白外勤行）
+  let proj  = null;
+  let label = '';
+  if (key.startsWith('proj:')) {
+    const pid = key.slice(5);
+    proj  = S.config.projects.find(p => p.id === pid) || null;
+    label = proj ? proj.name : '（未知專案）';
+  } else if (key.startsWith('dept:')) {
+    label = '🏢 ' + key.slice(5);
+  } else {
+    label = '📋 其他';
+  }
+
+  const sec = buildExpSec(key, [], 'att2', proj || undefined);
+  // 展開 body
+  const bd = sec.querySelector('.exp-sec-bd');
+  if (bd) bd.classList.add('open');
+  const chev = sec.querySelector('.exp-sec-hd > span:last-child');
+  if (chev) chev.textContent = '▲';
+
+  main.insertBefore(sec, bar);
+
+  // 從下拉移除此選項
+  const opt = sel.querySelector(`option[value="${key}"]`);
+  if (opt) opt.remove();
+  // 若下拉只剩 placeholder，隱藏整列
+  if (sel.options.length <= 1) bar.style.display = 'none';
+
+  updatePrintBar();
+  toast(`✅ 已新增「${label}」外勤記錄`);
+  // 捲動到新建的 sec
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── 通用 exp-sec（附件二 / 附件四） ─────────────────────────
@@ -1599,11 +1713,13 @@ function buildExpSec(key, rs, attType, proj) {
 
   let bodyHtml = '';
   if (attType === 'att4') {
-    bodyHtml = att4Form(proj ? proj.id : key, rs);
+    // att4 的 pid：quota 專案用 proj.id；dept/other 用 sanitized key（與附件二 att2FormNoProj 一致）
+    const att4Pid = proj ? proj.id : (att2PidMap[key] || key.replace(/[^a-zA-Z0-9_-]/g, '_'));
+    bodyHtml = att4Form(att4Pid, rs);
   } else if (proj) {
     bodyHtml = att2Form(proj, otherR, parkR);
   } else {
-    bodyHtml = simpleList(rs);
+    bodyHtml = att2FormNoProj(key, rs);
   }
 
   div.innerHTML = `
@@ -1630,16 +1746,21 @@ function buildExpSecAtt3(quotaProjs) {
   div.dataset.secKey  = 'att3:quota';
   div.dataset.attType = 'att3';
 
-  const total    = quotaProjs.reduce((s, e) =>
-    s + [...e.parkR, ...e.otherR].reduce((a, r) => a + r.amount, 0), 0);
-  const projNames = quotaProjs.map(e => e.proj.name).join('、');
-  const pages    = Math.ceil(quotaProjs.length / 16) || 1;
-  const pageNote = pages > 1 ? `<span class="badge bd-muted">${pages} 份 PDF</span>` : '';
+  // 計算各合計
+  const subsidyTotal  = quotaProjs.reduce((s, e) => s + (e.proj.subsidy || 0), 0);
+  const invoiceTotal  = quotaProjs.reduce((s, e) => s + e.otherR.reduce((a, r) => a + r.amount, 0), 0);
+  const diffTotal     = invoiceTotal - subsidyTotal;
+  const diffColor     = diffTotal >= 0 ? 'var(--green)' : 'var(--red)';
 
-  let bodyHtml = '';
-  // 每個月定額專案的 otherR 顯示附件三 form（統一一個表單）
-  const allOtherRs = quotaProjs.flatMap(e => e.otherR);
-  bodyHtml += att3Form_multi(quotaProjs);
+  // 逐專案列
+  const projRows = quotaProjs.map(e => {
+    const inv = e.otherR.reduce((a, r) => a + r.amount, 0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="flex:1;font-weight:600">${e.proj.name}</span>
+      <span class="mono" style="color:var(--muted);min-width:110px;text-align:right">核定 $${(e.proj.subsidy||0).toLocaleString()}/月</span>
+      <span class="mono" style="min-width:100px;text-align:right">發票 $${inv.toLocaleString()}</span>
+    </div>`;
+  }).join('');
 
   div.innerHTML = `
     <div class="exp-sec-hd">
@@ -1648,14 +1769,25 @@ function buildExpSecAtt3(quotaProjs) {
         <span style="font-size:14px;font-weight:700;margin-right:8px;flex-shrink:0">月定額彙總</span>
         <span class="badge bd-purple">📎 附件三</span>
         <span class="badge bd-muted">${quotaProjs.length} 專案</span>
-        ${pageNote}
-        <span class="mono" style="font-size:13px;color:var(--gold);margin-left:6px">$${total.toLocaleString()}</span>
       </div>
       <span style="color:var(--muted);padding-left:12px;cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
     </div>
     <div class="exp-sec-bd">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">專案：${projNames}</div>
-      ${bodyHtml}
+      <div style="padding:4px 0">
+        ${projRows}
+        <div style="display:flex;justify-content:space-between;padding:10px 0 4px;font-size:13px;font-weight:700;border-top:2px solid var(--border2);margin-top:2px">
+          <span style="color:var(--muted)">核定補助合計</span>
+          <span class="mono">$${subsidyTotal.toLocaleString()}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;font-weight:700">
+          <span style="color:var(--muted)">當月油品發票合計</span>
+          <span class="mono">$${invoiceTotal.toLocaleString()}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:14px;font-weight:700;border-top:1px solid var(--border2);margin-top:6px;padding-top:8px">
+          <span>當月差額（發票 − 補助）</span>
+          <span class="mono" style="color:${diffColor}">$${diffTotal.toLocaleString()}</span>
+        </div>
+      </div>
     </div>`;
   return div;
 }
@@ -1665,6 +1797,11 @@ function att3Form_multi(quotaProjs) {
   const month = document.getElementById('exp-month').value || today().slice(0,7);
   const expPerson = document.getElementById('exp-person');
   const personName = expPerson?.options[expPerson.selectedIndex]?.text || '';
+  // 從 Persons 取部門/職稱
+  const pData = S.config.persons?.find(p => p.name === personName) || {};
+  const pDept = pData.dept || '';
+  const pTitle = pData.title || '';
+  const deptTitle = pDept + (pTitle ? '／' + pTitle : '');
 
   const rows = quotaProjs.map((e, i) => {
     const n = i + 1;
@@ -1690,7 +1827,7 @@ function att3Form_multi(quotaProjs) {
     <div class="att-title">📎 附件三 — 私車公用補助核定彙總表（專案月定額制）</div>
     <div class="fg2" style="margin-bottom:12px">
       <div><label class="lbl">員工姓名</label><input class="inp" value="${personName}" placeholder="員工姓名"></div>
-      <div><label class="lbl">部門／職稱</label><input class="inp" placeholder="部門 / 職稱"></div>
+      <div><label class="lbl">部門／職稱</label><input class="inp" value="${deptTitle}" placeholder="部門 / 職稱"></div>
     </div>
     <div style="overflow-x:auto">
       <table class="tbl" style="min-width:860px;font-size:12px">
@@ -1716,6 +1853,23 @@ function att3Form_multi(quotaProjs) {
 
 function simpleList(rs) {
   return rs.map(r => `<div class="info-row"><span>${r.vendor} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('');
+}
+
+// 附件二（無專案）- 給 dept / other 群組用，提供外勤記錄欄位
+function att2FormNoProj(key, rs) {
+  // pid：sanitize key，與附件四共用同一個 id 命名空間
+  const pid = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+  att2Rows[pid] = 1;
+  const parkR = rs.filter(r => r.category === 'parking');
+  // 記錄 key→pid 的對應，供附件四 buildExpSec 時使用
+  att2PidMap[key] = pid;
+
+  return `<div class="att-form">
+    <div class="att-title">📎 附件二 — 外勤記錄與停車費配對</div>
+    <div id="a2rows-${pid}">${a2RowHTML(pid, 0)}</div>
+    <button class="btn btn-ghost btn-sm" onclick="addA2Row('${pid}')" style="margin-top:4px;margin-bottom:4px">＋ 新增外勤記錄</button>
+    <script>setTimeout(()=>renderParkSelectors2('${pid}',${JSON.stringify(parkR.map(r=>({id:r.id,vendor:r.vendor,date:r.date,amount:r.amount})))}),0);</script>
+  </div>`;
 }
 
 function toggleExpSec(el) {
@@ -1817,14 +1971,13 @@ function recalcAtt3(pid, invTotal) {
   se('a3diff-'+pid, '$'+diff.toLocaleString());
 }
 
-const att2Rows = {};
+const att2Rows  = {};
+const att2PidMap = {};  // key → sanitized pid，供附件四查詢
 
 function att2Form(proj, otherR, parkR) {
-  const rate      = getMileageRate(document.getElementById('exp-month').value || today().slice(0,7));
-  const parkTotal = parkR.reduce((s,r)=>s+r.amount,0);
   att2Rows[proj.id] = 1;
 
-  // 從同專案 receipts 裡找已存的外勤資料（取第一筆有 fieldRows 的）
+  // 從同專案 receipts 裡找已存的外勤資料
   const savedRows = (() => {
     for (const r of S.receipts.filter(x => x.projectId === proj.id)) {
       if (r.fieldRows && r.fieldRows.length) return r.fieldRows;
@@ -1833,82 +1986,15 @@ function att2Form(proj, otherR, parkR) {
   })();
   if (savedRows.length > 1) att2Rows[proj.id] = savedRows.length;
 
-  const expPerson = document.getElementById('exp-person');
-  const personName = expPerson?.options[expPerson.selectedIndex]?.text || '';
-  const month2 = document.getElementById('exp-month').value || today().slice(0,7);
-
   return `<div class="att-form">
-    <div class="att-title">📎 附件二 — 私車公用補助申請單（里程實報制）</div>
-    <div class="fg4" style="margin-bottom:10px">
-      <div><label class="lbl">申請人</label><input class="inp" id="a2name-${proj.id}" value="${personName}" placeholder="申請人姓名"></div>
-      <div><label class="lbl">部門</label><input class="inp" id="a2deptname-${proj.id}" placeholder="部門"></div>
-      <div><label class="lbl">職稱</label><input class="inp" id="a2title-${proj.id}" placeholder="職稱"></div>
-      <div><label class="lbl">申請月份</label><input type="month" class="inp" id="a2month-${proj.id}" value="${month2}"></div>
-    </div>
-    <div class="fg3" style="margin-bottom:10px">
-      <div><label class="lbl">專案名稱／編號</label><input class="inp" id="a2projname-${proj.id}" value="${proj.name}" placeholder="專案名稱或編號"></div>
-      <div><label class="lbl">補助標準（元/公里）</label>
-        <input type="number" class="inp" id="a2rate-${proj.id}" value="${rate}" oninput="calcAtt2('${proj.id}',${parkTotal})">
-      </div>
-      <div>
-        <label class="lbl">歸屬類型</label>
-        <div style="display:flex;gap:12px;align-items:center;margin-top:4px;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-            <input type="radio" name="a2attr-${proj.id}" value="project" checked style="accent-color:var(--accent)"> 專案成本
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-            <input type="radio" name="a2attr-${proj.id}" value="dept" style="accent-color:var(--accent)"> 部門成本
-          </label>
-        </div>
-      </div>
-    </div>
+    <div class="att-title">📎 附件二 — 外勤記錄與停車費配對</div>
     <div id="a2rows-${proj.id}">${
       savedRows.length
         ? savedRows.map((fr, i) => a2RowHTML(proj.id, i, fr)).join('')
         : a2RowHTML(proj.id, 0)
     }</div>
-    <button class="btn btn-ghost btn-sm" onclick="addA2Row('${proj.id}',${parkTotal})" style="margin-bottom:12px">＋ 新增外勤記錄</button>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">同專案停車費憑證（含入合計）：</div>
-    ${parkR.map(r=>`<div class="info-row"><span>🅿️ ${r.vendor} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('')}
-    <div class="calc-box">
-      <div class="calc-row"><span>里程補助小計</span><span class="mono" id="a2sub-${proj.id}">$0</span></div>
-      <div class="calc-row"><span>停車費合計</span><span class="mono">$${parkTotal.toLocaleString()}</span></div>
-      <div class="calc-row calc-tot"><span>合計申請金額</span><span class="mono" id="a2tot-${proj.id}">$${parkTotal.toLocaleString()}</span></div>
-    </div>
-
-    <div style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">檢附文件：</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-          <div class="chkbox on" onclick="this.classList.toggle('on')"></div>發票（公司統編）
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-          <div class="chkbox" onclick="this.classList.toggle('on')"></div>停車費憑證（如有）
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-          <div class="chkbox on" onclick="this.classList.toggle('on')"></div>Google 路線截圖（或路線連結）
-        </label>
-      </div>
-    </div>
-
-    <div class="fg4" style="margin-top:12px">
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">申請人</div>
-        <input class="inp" style="padding:4px 8px;font-size:12px" placeholder="簽名">
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">部門主管</div>
-        <input class="inp" style="padding:4px 8px;font-size:12px" placeholder="簽名">
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">會計</div>
-        <input class="inp" style="padding:4px 8px;font-size:12px" placeholder="簽名">
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">出納／人資</div>
-        <input class="inp" style="padding:4px 8px;font-size:12px" placeholder="簽名">
-      </div>
-    </div>
+    <button class="btn btn-ghost btn-sm" onclick="addA2Row('${proj.id}')" style="margin-top:4px;margin-bottom:4px">＋ 新增外勤記錄</button>
+    <script>setTimeout(()=>renderParkSelectors('${proj.id}'),0);</script>
   </div>`;
 }
 
@@ -1920,11 +2006,15 @@ function a2RowHTML(pid, i, prefill) {
   const defRsn   = p.reason || '';
   const defKm    = p.km     || '';
   const isRound  = p.isRound !== undefined ? p.isRound : true;
-  return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px">
-    <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:8px">第 ${i+1} 筆外勤</div>
-    <div class="fg3" style="margin-bottom:8px">
+  return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px;padding:10px 12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:700;color:var(--muted)">第 ${i+1} 筆外勤</span>
+      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row('${pid}',${i})">✕ 移除</button>` : ''}
+    </div>
+    <div class="fg4" style="margin-bottom:8px">
       <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
       <div><label class="lbl">事由</label><input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由" value="${defRsn}"></div>
+      <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0"></div>
       <div><label class="lbl">來回 / 單程</label>
         <div class="tgl">
           <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
@@ -1932,20 +2022,104 @@ function a2RowHTML(pid, i, prefill) {
         </div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 110px auto;gap:8px;align-items:end">
-      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="新北市三重區三民街272巷13號"></div>
-      <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="台北市仁愛帝寶"></div>
-      <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0" oninput="calcAtt2('${pid}')"></div>
-      <div><label class="lbl">查詢距離</label><button class="btn btn-outline btn-sm" onclick="queryMaps('${pid}',${i})">🗺 Maps</button></div>
+    <div class="fg2" style="margin-bottom:8px">
+      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="起點地址"></div>
+      <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="終點地址"></div>
     </div>
-    <div id="a2km-result-${pid}-${i}" style="margin-top:6px"></div>
-    <div style="margin-top:8px"><label class="lbl">備註</label><input class="inp" id="a2note-${pid}-${i}" placeholder="備註說明"></div>
+    <div id="a2park-sel-${pid}-${i}"></div>
   </div>`;
 }
 
-function addA2Row(pid, parkTotal) {
+function addA2Row(pid) {
   const i = att2Rows[pid]++;
   document.getElementById('a2rows-'+pid)?.insertAdjacentHTML('beforeend', a2RowHTML(pid, i));
+  renderParkSelectors(pid);
+}
+
+function removeA2Row(pid, i) {
+  document.getElementById(`a2r-${pid}-${i}`)?.remove();
+  // att2Rows 不遞減（保持 index 不重複），renderParkSelectors 會跳過不存在的 DOM
+}
+
+// 渲染每個外勤行的停車費多選（同專案停車費，里程實報制）
+function renderParkSelectors(pid) {
+  const rowCount = att2Rows[pid] || 1;
+  const parkR = S.receipts.filter(r => r.category === 'parking' && r.projectId === pid);
+  for (let i = 0; i < rowCount; i++) {
+    const el = document.getElementById(`a2park-sel-${pid}-${i}`);
+    if (!el) continue;
+    if (!parkR.length) { el.innerHTML = ''; continue; }
+    el.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">🅿️ 此筆外勤關聯停車費（可多選）：</div>` +
+      parkR.map((r, ri) => `
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px">
+          <div class="chkbox" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},false)"></div>
+          🅿️ ${r.vendor} · ${r.date} · <span class="mono">$${r.amount.toLocaleString()}</span>
+        </label>`
+      ).join('');
+  }
+}
+
+// 給 dept/other 群組（傳入已序列化的 parkR），選取後即時連動附件四
+function renderParkSelectors2(pid, parkR) {
+  const rowCount = att2Rows[pid] || 1;
+  for (let i = 0; i < rowCount; i++) {
+    const el = document.getElementById(`a2park-sel-${pid}-${i}`);
+    if (!el) continue;
+    if (!parkR || !parkR.length) { el.innerHTML = ''; continue; }
+    el.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">🅿️ 此筆外勤關聯停車費（可多選，選取後從附件四移除）：</div>` +
+      parkR.map((r, ri) => `
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px">
+          <div class="chkbox" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},true)"></div>
+          🅿️ ${r.vendor} · ${r.date} · <span class="mono">$${r.amount.toLocaleString()}</span>
+        </label>`
+      ).join('');
+  }
+}
+
+// ── 停車費勾選：強制單選（同一筆停車費只能配對一個外勤）+ 附件四即時連動 ──
+// isAtt4=true  → dept/other 群組，需即時 hide/show 附件四對應列
+// isAtt4=false → 里程實報專案，不影響附件四
+function onParkToggle(pid, rowIdx, parkIdx, isAtt4) {
+  const thisChk = document.getElementById(`a2pk-${pid}-${rowIdx}-${parkIdx}`);
+  if (!thisChk) return;
+  const willBeOn = !thisChk.classList.contains('on');
+
+  // 若要勾選，先清除同 pid 其他外勤行對同一 parkIdx 的勾選（單選）
+  if (willBeOn) {
+    const rowCount = att2Rows[pid] || 1;
+    for (let oi = 0; oi < rowCount; oi++) {
+      if (oi === rowIdx) continue;
+      const other = document.getElementById(`a2pk-${pid}-${oi}-${parkIdx}`);
+      if (other && other.classList.contains('on')) {
+        other.classList.remove('on');
+      }
+    }
+  }
+
+  thisChk.classList.toggle('on', willBeOn);
+
+  // 附件四即時 hide/show
+  if (isAtt4) {
+    // 附件四的 pid 是群組 key（dept:xxx / other），和附件二的 pid 相同
+    const att4Row = document.getElementById(`a4row-${pid}-${parkIdx}`);
+    if (att4Row) {
+      att4Row.style.display = willBeOn ? 'none' : 'flex';
+    }
+    // 更新附件四空白提示
+    syncAtt4Empty(pid);
+  }
+
+  calcAtt2(pid);
+}
+
+// 檢查附件四是否所有列都已配對，顯示提示文字
+function syncAtt4Empty(pid) {
+  const list  = document.getElementById(`a4list-${pid}`);
+  const empty = document.getElementById(`a4empty-${pid}`);
+  if (!list || !empty) return;
+  const rows  = list.querySelectorAll('.info-row');
+  const allHidden = rows.length > 0 && [...rows].every(r => r.style.display === 'none');
+  empty.style.display = allHidden ? 'block' : 'none';
 }
 
 function setRound(btn, pid, i, isRound) {
@@ -1955,125 +2129,26 @@ function setRound(btn, pid, i, isRound) {
 }
 
 function att4Form(pid, rs) {
-  const month = document.getElementById('exp-month').value || today().slice(0,7);
-  const expPerson = document.getElementById('exp-person');
-  const personName = expPerson?.options[expPerson.selectedIndex]?.text || '';
-  const proj = S.config.projects.find(p => p.id === pid) || {};
-  const total = rs.reduce((s,r)=>s+r.amount,0);
-
-  const rows = rs.map((r,i) => `
-    <tr>
-      <td style="text-align:center;color:var(--muted);font-size:12px">${i+1}</td>
-      <td><input type="date" class="inp" style="padding:5px 8px;font-size:12px" value="${r.date}" id="a4d-${pid}-${i}"></td>
-      <td><input class="inp" style="padding:5px 8px;font-size:12px" placeholder="停車事由（與公務關聯）" id="a4rsn-${pid}-${i}"></td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select class="inp" style="padding:5px 8px;font-size:12px;flex:1" id="a4type-${pid}-${i}">
-            <option>電子發票</option><option>統一發票</option><option>收據</option><option>停車收費單</option>
-          </select>
-          <input class="inp" style="padding:5px 8px;font-size:12px;width:110px" placeholder="憑證號碼" id="a4inv-${pid}-${i}" value="${r.invoiceNo||''}">
-        </div>
-      </td>
-      <td><input type="number" class="inp" style="padding:5px 8px;font-size:12px;text-align:right" value="${r.amount}" id="a4amt-${pid}-${i}"></td>
-    </tr>`).join('');
-
-  // Pad to at least 5 rows
-  const emptyCount = Math.max(0, 5 - rs.length);
-  const emptyRows = Array.from({length: emptyCount}, (_,j) => `
-    <tr>
-      <td style="text-align:center;color:var(--muted);font-size:12px">${rs.length+j+1}</td>
-      <td><input type="date" class="inp" style="padding:5px 8px;font-size:12px"></td>
-      <td><input class="inp" style="padding:5px 8px;font-size:12px" placeholder="停車事由（與公務關聯）"></td>
-      <td>
-        <div style="display:flex;gap:6px">
-          <select class="inp" style="padding:5px 8px;font-size:12px;flex:1"><option>電子發票</option><option>統一發票</option><option>收據</option><option>停車收費單</option></select>
-          <input class="inp" style="padding:5px 8px;font-size:12px;width:110px" placeholder="憑證號碼">
-        </div>
-      </td>
-      <td><input type="number" class="inp" style="padding:5px 8px;font-size:12px;text-align:right" placeholder="0"></td>
-    </tr>`).join('');
-
-  return `<div class="att-form" style="margin-top:10px">
-    <div class="att-title">📎 附件四 — 私車公用停車費補助申請單（停車費實報實銷）</div>
-    <div class="fg4" style="margin-bottom:12px">
-      <div><label class="lbl">申請月份</label><input type="month" class="inp" id="a4month-${pid}" value="${month}"></div>
-      <div><label class="lbl">員工姓名</label><input class="inp" id="a4name-${pid}" value="${personName}" placeholder="員工姓名"></div>
-      <div><label class="lbl">部門／職稱</label><input class="inp" id="a4dept-${pid}" placeholder="部門 / 職稱"></div>
-      <div><label class="lbl">專案代碼／名稱</label><input class="inp" id="a4proj-${pid}" value="${proj.name||''}" placeholder="專案代碼 / 名稱"></div>
-    </div>
-    <div class="fg2" style="margin-bottom:12px;align-items:center">
-      <div>
-        <label class="lbl">成本歸屬（專案）</label>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer">
-            <input type="radio" name="a4attr-${pid}" value="yes" checked style="accent-color:var(--accent)"> 是（歸屬專案）
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer">
-            <input type="radio" name="a4attr-${pid}" value="no" style="accent-color:var(--accent)"> 否（歸屬負責部門）
-          </label>
-        </div>
+  const rows = rs.map((r, i) => `
+    <div class="info-row" id="a4row-${pid}-${i}" style="align-items:center;gap:12px;display:flex;flex-wrap:wrap">
+      <div style="flex-shrink:0;min-width:200px">
+        <span style="font-size:11px;color:var(--muted)">${r.date || '—'}</span>
+        <span style="font-size:13px;font-weight:600;margin-left:8px">${r.vendor}</span>
+        <span class="mono" style="font-size:12px;color:var(--gold);margin-left:8px">$${r.amount.toLocaleString()}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:6px">${r.invoiceNo || ''}</span>
       </div>
-    </div>
-
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">停車費明細（請逐筆填寫；同月可多筆）：</div>
-    <div style="overflow-x:auto">
-      <table class="tbl" style="min-width:680px">
-        <thead>
-          <tr>
-            <th style="width:36px">序號</th>
-            <th style="width:140px">停車日期</th>
-            <th>停車事由（與公務關聯）</th>
-            <th style="width:220px">憑證類型 / 號碼</th>
-            <th style="width:100px;text-align:right">金額（元）</th>
-          </tr>
-        </thead>
-        <tbody>${rows}${emptyRows}</tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3"></td>
-            <td style="font-weight:700;font-size:13px;padding:10px 12px">合計</td>
-            <td style="text-align:right;font-weight:700;color:var(--gold)" class="mono">$${total.toLocaleString()}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">檢附文件：</div>
-      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-          <div class="chkbox on" onclick="this.classList.toggle('on')"></div>
-          停車費發票／收據（須為合法憑證並開立公司統一編號）
-        </label>
-        <div style="display:flex;align-items:center;gap:6px;font-size:13px">
-          <div class="chkbox" onclick="this.classList.toggle('on')"></div>
-          <span>其他：</span><input class="inp" style="width:160px;padding:4px 8px;font-size:12px" placeholder="說明">
-        </div>
+      <div style="flex:1;min-width:180px">
+        <input class="inp" id="a4rsn-${pid}-${i}" placeholder="停車事由（與公務關聯）" style="font-size:12px;padding:5px 10px"
+               value="${(r.notes && r.notes.trim()) ? r.notes.trim() : ''}">
       </div>
-    </div>
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap" id="a4paired-${pid}-${i}" style="display:none"></div>
+    </div>`).join('');
 
-    <div style="margin-top:10px;padding:10px 12px;background:rgba(79,142,247,.05);border:1px solid rgba(79,142,247,.15);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
-      <strong style="color:var(--text)">申請人聲明：</strong>本人確認上述停車費均為執行公司專案公務所生，未重複請領，且已檢附合法憑證，如有不實，願負相關責任並同意公司追回款項。
-    </div>
-
-    <div class="fg3" style="margin-top:12px">
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">申請人</div>
-        <input class="inp" style="padding:5px 8px;font-size:12px;margin-bottom:6px" placeholder="簽名">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--muted)">日期</span><input type="date" class="inp" style="padding:4px 8px;font-size:12px"></div>
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">部門主管核准</div>
-        <input class="inp" style="padding:5px 8px;font-size:12px;margin-bottom:6px" placeholder="簽名">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--muted)">日期</span><input type="date" class="inp" style="padding:4px 8px;font-size:12px"></div>
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">財會審核／核銷</div>
-        <input class="inp" style="padding:5px 8px;font-size:12px;margin-bottom:6px" placeholder="簽名">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--muted)">日期</span><input type="date" class="inp" style="padding:4px 8px;font-size:12px"></div>
-      </div>
-    </div>
-    <div style="margin-top:8px;font-size:11px;color:var(--muted)">備註：本表適用「專案月定額制」或「里程實報制」之停車費實報實銷，申請/憑證期限依財會公告之每月結帳截止日辦理。</div>
+  return `<div class="att-form">
+    <div class="att-title">📎 附件四 — 停車事由補充</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">請為每筆停車費填寫與公務關聯的停車事由；已在附件二配對的項目會自動隱藏</div>
+    <div id="a4list-${pid}">${rows}</div>
+    <div id="a4empty-${pid}" style="display:none;font-size:12px;color:var(--green);padding:8px 0">✅ 所有停車費已在附件二外勤記錄中配對</div>
   </div>`;
 }
 
@@ -2097,7 +2172,9 @@ async function _doExport(secKeys) {
   const month  = document.getElementById('exp-month').value;
   if (!person) { toast('⚠️ 請選擇申請人'); return; }
 
-  // ── 從 DOM 讀即時外勤欄位 ───────────────────────────────
+  const mRate = getMileageRate(month);
+
+  // ── 從 DOM 讀附件二外勤欄位 ──────────────────────────────
   const projFieldRowsMap = {};
   Object.keys(att2Rows).forEach(pid => {
     const rowCount = att2Rows[pid] || 0;
@@ -2112,16 +2189,42 @@ async function _doExport(secKeys) {
         end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
         km:      parseFloat(document.getElementById(`a2km-${pid}-${i}`)?.value) || 0,
         isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
-        rate:    parseFloat(document.getElementById('a2rate-'+pid)?.value) || getMileageRate(month),
+        rate:    mRate,
       });
     }
     if (rows.length) projFieldRowsMap[pid] = rows;
   });
 
-  const receiptsWithFieldRows = S.receipts.map(r => ({
-    ...r,
-    liveFieldRows: r.projectId ? (projFieldRowsMap[r.projectId] || r.fieldRows || []) : [],
-  }));
+  // ── 從 DOM 讀附件四停車事由 ──────────────────────────────
+  // key: att4 sec 的 pid，value: [{ receiptIdx, reason }]
+  const att4ReasonMap = {};  // pid → { ri: reason }
+  document.querySelectorAll('[id^="a4rsn-"]').forEach(el => {
+    const parts = el.id.replace('a4rsn-', '').split('-');
+    // id 格式: a4rsn-{pid}-{i}，pid 本身可能含 '-'，取最後一段為 i
+    const ri  = parseInt(parts[parts.length - 1]);
+    const pid = parts.slice(0, parts.length - 1).join('-');
+    if (!att4ReasonMap[pid]) att4ReasonMap[pid] = {};
+    att4ReasonMap[pid][ri] = el.value || '';
+  });
+
+  // ── 組裝 receipts，注入外勤 & 停車事由 ──────────────────
+  const receiptsWithFieldRows = S.receipts.map(r => {
+    const base = { ...r, liveFieldRows: r.projectId ? (projFieldRowsMap[r.projectId] || r.fieldRows || []) : [] };
+    // 附件四：為停車費注入 liveNotes（停車事由）
+    if (r.category === 'parking' && r.projectId) {
+      const pid = r.projectId;
+      const reasons = att4ReasonMap[pid];
+      if (reasons) {
+        // 找這張停車費在該 pid 的 parkR 排序中的 index
+        const parkR = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
+        const ri = parkR.findIndex(x => x.id === r.id);
+        if (ri >= 0 && reasons[ri] !== undefined) {
+          base.liveNotes = reasons[ri];
+        }
+      }
+    }
+    return base;
+  });
 
   // ── 過濾：若有指定 secKeys，只傳對應的 receipts ─────────
   let receiptsToExport = receiptsWithFieldRows;
@@ -2280,9 +2383,28 @@ function calcAtt2(pid) {
     kmSub += km * (isR ? 2 : 1) * rate;
   }
   kmSub = Math.round(kmSub);
-  const parkTotal = S.receipts.filter(r=>r.category==='parking'&&r.projectId===pid).reduce((s,r)=>s+r.amount,0);
+
+  // 停車費：加總各外勤行勾選的停車費
+  const parkR = S.receipts.filter(r => r.category === 'parking' && r.projectId === pid);
+  const rowCount = att2Rows[pid] || 1;
+  const checkedParkIds = new Set();
+  for (let i = 0; i < rowCount; i++) {
+    parkR.forEach((r, ri) => {
+      if (document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')) {
+        checkedParkIds.add(ri);
+      }
+    });
+  }
+  const parkTotal = parkR.filter((_, ri) => checkedParkIds.has(ri)).reduce((s,r)=>s+r.amount,0);
+
   se('a2sub-'+pid, '$'+kmSub.toLocaleString());
   se('a2tot-'+pid, '$'+(kmSub+parkTotal).toLocaleString());
+  // 更新停車費顯示
+  const pd = document.getElementById('a2park-total-display-'+pid);
+  if (pd && checkedParkIds.size > 0) {
+    pd.textContent = `已選 ${checkedParkIds.size} 筆，合計 $${parkTotal.toLocaleString()}`;
+    pd.style.color = 'var(--green)';
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2317,6 +2439,16 @@ async function doStashAll() {
       });
     }
 
+    // ── 讀取附件四停車事由（停車費 receipt）──
+    let liveNotes = r.notes || '';
+    if (r.category === 'parking' && r.projectId) {
+      const pid = r.projectId;
+      const parkR = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
+      const ri = parkR.findIndex(x => x.id === r.id);
+      const reasonEl = ri >= 0 ? document.getElementById(`a4rsn-${pid}-${ri}`) : null;
+      if (reasonEl && reasonEl.value.trim()) liveNotes = reasonEl.value.trim();
+    }
+
     return {
       key,
       attribution,
@@ -2327,7 +2459,7 @@ async function doStashAll() {
       date:      r.date      || '',
       invoiceNo: r.invoiceNo || '',
       category:  r.category  || 'other',
-      notes:     r.notes     || '',
+      notes:     liveNotes,
       // 附件二外勤（JSON 字串存入一個欄位）
       fieldRows: fieldRows.length ? JSON.stringify(fieldRows) : '',
     };
