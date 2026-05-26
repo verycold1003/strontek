@@ -170,6 +170,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .maps-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:11px;text-decoration:none;padding:3px 8px;border-radius:5px;background:rgba(79,142,247,.1)}
 .maps-link:hover{background:rgba(79,142,247,.2)}
 .km-result{display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.1);color:var(--green);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-top:6px}
+.map-preview{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);display:none}
+.map-preview.show{display:block}
+.map-preview img{width:100%;display:block;max-height:180px;object-fit:cover}
 
 /* Toast */
 .toast{position:fixed;top:68px;right:20px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
@@ -502,17 +505,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div><!-- /mainArea -->
 </div><!-- /appShell -->
 
-<!-- MAPS MODAL -->
-<div class="modal-wrap" id="mapsModal">
-  <div class="modal-box" style="max-width:480px">
-    <div style="font-size:17px;font-weight:700;margin-bottom:16px">🗺 Google Maps 距離查詢</div>
-    <div id="mapsModalBody"></div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('mapsModal')">關閉</button>
-      <button class="btn btn-primary" style="flex:2" id="btnApplyKm" onclick="applyKm()">套用此公里數</button>
-    </div>
-  </div>
-</div>
 
 <!-- DUPLICATE INVOICE MODAL -->
 <div class="modal-wrap" id="dupModal">
@@ -551,8 +543,6 @@ const S = {
   ocrQueue: [],
   receipts: [],
 };
-
-let mapsCtx = { pid:'', rowIdx:0, km:0, origin:'', dest:'' };
 
 // ════════════════════════════════════════════════════════════
 // MOBILE MENU
@@ -2006,19 +1996,24 @@ function a2RowHTML(pid, i, prefill) {
   const defRsn   = p.reason || '';
   const defKm    = p.km     || '';
   const isRound  = p.isRound !== undefined ? p.isRound : true;
+  const hasMap   = !!(p.mapUrl);
   return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px;padding:10px 12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:11px;font-weight:700;color:var(--muted)">第 ${i+1} 筆外勤</span>
-      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row('${pid}',${i})">✕ 移除</button>` : ''}
+      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row(\'${pid}\',${i})">✕ 移除</button>` : \'\'}
     </div>
     <div class="fg4" style="margin-bottom:8px">
       <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
       <div><label class="lbl">事由</label><input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由" value="${defRsn}"></div>
-      <div><label class="lbl">公里數</label><input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0"></div>
+      <div><label class="lbl">公里數（單程）</label>
+        <input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0"
+               style="background:rgba(255,255,255,.04);cursor:default" readonly
+               title="由 Maps 查詢後自動填入">
+      </div>
       <div><label class="lbl">來回 / 單程</label>
         <div class="tgl">
-          <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
-          <button class="tgl-btn ${isRound?'':'on'}" id="a2one-${pid}-${i}" onclick="setRound(this,'${pid}',${i},false)">單程</button>
+          <button class="tgl-btn ${isRound?\'on\':\'\'}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,\'${pid}\',${i},true)">來回</button>
+          <button class="tgl-btn ${isRound?\'\':\'on\'}" id="a2one-${pid}-${i}" onclick="setRound(this,\'${pid}\',${i},false)">單程</button>
         </div>
       </div>
     </div>
@@ -2026,6 +2021,14 @@ function a2RowHTML(pid, i, prefill) {
       <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="起點地址"></div>
       <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="終點地址"></div>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <button class="btn btn-ghost btn-sm" id="a2mapbtn-${pid}-${i}" onclick="queryMaps(\'${pid}\',${i})">🗺 查詢最短距離</button>
+      <div id="a2km-result-${pid}-${i}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div class="map-preview ${hasMap?\'show\':\'\'}" id="a2map-prev-${pid}-${i}">
+      <img id="a2map-img-${pid}-${i}" src="${p.mapUrl||\'\'}" alt="路線地圖">
+    </div>
+    <input type="hidden" id="a2map-url-${pid}-${i}" value="${p.mapUrl||\'\'}" data-mapurl>
     <div id="a2park-sel-${pid}-${i}"></div>
   </div>`;
 }
@@ -2108,6 +2111,7 @@ function onParkToggle(pid, rowIdx, parkIdx, isAtt4) {
     // 更新附件四空白提示
     syncAtt4Empty(pid);
   }
+
 }
 
 // 檢查附件四是否所有列都已配對，顯示提示文字
@@ -2187,6 +2191,7 @@ async function _doExport(secKeys) {
         km:      parseFloat(document.getElementById(`a2km-${pid}-${i}`)?.value) || 0,
         isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
         rate:    mRate,
+        mapUrl:  document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
       });
     }
     if (rows.length) projFieldRowsMap[pid] = rows;
@@ -2302,106 +2307,61 @@ function setStep(n) {
 }
 
 // ════════════════════════════════════════════════════════════
-// GOOGLE MAPS
+// GOOGLE MAPS — 查詢最短距離 + 靜態地圖截圖
+// GAS 回傳：{ km, distText, duration, staticMapUrl }
+// staticMapUrl 由 GAS 用 server-side API Key 組成，前端直接顯示；
+// 匯出時把 staticMapUrl 傳回 GAS，GAS 再 UrlFetchApp 抓圖插入 Doc。
 // ════════════════════════════════════════════════════════════
 async function queryMaps(pid, i) {
   const origin = document.getElementById(`a2s-${pid}-${i}`)?.value?.trim();
   const dest   = document.getElementById(`a2e-${pid}-${i}`)?.value?.trim();
   if (!origin || !dest) { toast('⚠️ 請填入起點和終點'); return; }
 
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ 查詢中';
+  const btn = document.getElementById(`a2mapbtn-${pid}-${i}`);
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> 查詢中';
 
-  let km = 0, durationText = '', distText = '';
   try {
-    const res = await callGAS({ action:'getDistance', origin, dest });
-    if (res.success) {
-      km           = res.km;
-      durationText = res.duration;
-      distText     = res.distText;
-    } else { throw new Error('GAS 連線失敗，請確認網路或聯絡管理員'); }
+    const res = await callGAS({ action: 'getDistance', origin, dest });
+    if (!res.success) throw new Error(res.error || 'GAS 查詢失敗');
 
-    mapsCtx = { pid, i, km, origin, dest };
+    const { km, distText, duration, staticMapUrl } = res;
 
-    const res_el = document.getElementById(`a2km-result-${pid}-${i}`);
-    if (res_el) res_el.innerHTML = `<span class="km-result">📍 ${distText} · ⏱ ${durationText} · <strong>${km} km</strong></span>
-      <button class="btn btn-green btn-sm" style="margin-left:8px" onclick="applyKmInline('${pid}',${i},${km})">套用</button>`;
+    // ── 填入唯讀公里數欄位 ──────────────────────────────────
+    const kmEl = document.getElementById(`a2km-${pid}-${i}`);
+    if (kmEl) kmEl.value = km;
 
-    showMapsModal(origin, dest, km, distText, durationText, pid, i);
+    // ── 結果 chip ──────────────────────────────────────────
+    const resEl = document.getElementById(`a2km-result-${pid}-${i}`);
+    if (resEl) {
+      resEl.innerHTML =
+        `<span class="km-result">📍 ${distText} · ⏱ ${duration} · <strong>${km} km</strong></span>` +
+        `<a href="https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}"` +
+        ` target="_blank" class="maps-link">↗ Maps</a>`;
+    }
+
+    // ── 靜態地圖預覽 ───────────────────────────────────────
+    if (staticMapUrl) {
+      const imgEl  = document.getElementById(`a2map-img-${pid}-${i}`);
+      const prevEl = document.getElementById(`a2map-prev-${pid}-${i}`);
+      const urlEl  = document.getElementById(`a2map-url-${pid}-${i}`);
+      if (imgEl)  imgEl.src = staticMapUrl;
+      if (prevEl) prevEl.classList.add('show');
+      if (urlEl)  urlEl.value = staticMapUrl;   // 匯出時由 _doExport 讀取
+    }
+
+    toast(`✅ 最短距離：${distText}（${km} km）`);
   } catch(e) {
     toast('❌ Maps 查詢失敗：' + e.message);
   }
-  btn.disabled = false; btn.textContent = '🗺 Maps';
+
+  btn.disabled = false;
+  btn.innerHTML = '🗺 查詢最短距離';
 }
 
-function showMapsModal(origin, dest, km, dist, dur, pid, i) {
-  const isRound = document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on');
-  const rate    = parseFloat(document.getElementById('a2rate-'+pid)?.value) || getMileageRate();
-  const totalKm = km * (isRound ? 2 : 1);
-  const subsidy = Math.round(totalKm * rate);
-
-  document.getElementById('mapsModalBody').innerHTML = `
-    <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="info-row"><span>起點</span><span style="font-weight:600">${origin}</span></div>
-      <div class="info-row"><span>終點</span><span style="font-weight:600">${dest}</span></div>
-      <div class="info-row"><span>單程距離</span><span class="mono" style="color:var(--green);font-weight:700">${dist} (${km} km)</span></div>
-      <div class="info-row"><span>預估時間</span><span>${dur}</span></div>
-    </div>
-    <div class="calc-box">
-      <div class="calc-row"><span>單程公里數</span><span class="mono">${km} km</span></div>
-      <div class="calc-row"><span>${isRound?'來回 ×2':'單程 ×1'}</span><span class="mono">${totalKm} km</span></div>
-      <div class="calc-row"><span>補助標準</span><span class="mono">${rate} 元/km</span></div>
-      <div class="calc-row calc-tot"><span>里程補助</span><span class="mono">$${subsidy.toLocaleString()}</span></div>
-    </div>
-    <div style="margin-top:12px">
-      <a href="https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}" target="_blank" class="maps-link" style="display:inline-flex">
-        🗺 在 Google Maps 中開啟路線
-      </a>
-    </div>`;
-
-  mapsCtx = { pid, i, km };
-  openModal('mapsModal');
-}
-
-function applyKm() { applyKmInline(mapsCtx.pid, mapsCtx.i, mapsCtx.km); closeModal('mapsModal'); }
-
-function applyKmInline(pid, i, km) {
-  const el = document.getElementById(`a2km-${pid}-${i}`);
-  if (el) { el.value = km; calcAtt2(pid); }
-  toast(`✅ 已套用 ${km} km`);
-}
-
-function calcAtt2(pid) {
-  const rate = parseFloat(document.getElementById('a2rate-'+pid)?.value) || getMileageRate();
-  let kmSub = 0;
-  for (let i=0; i<(att2Rows[pid]||1); i++) {
-    const km  = parseFloat(document.getElementById(`a2km-${pid}-${i}`)?.value) || 0;
-    const isR = document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on');
-    kmSub += km * (isR ? 2 : 1) * rate;
-  }
-  kmSub = Math.round(kmSub);
-
-  // 停車費：加總各外勤行勾選的停車費
-  const parkR = S.receipts.filter(r => r.category === 'parking' && r.projectId === pid);
-  const rowCount = att2Rows[pid] || 1;
-  const checkedParkIds = new Set();
-  for (let i = 0; i < rowCount; i++) {
-    parkR.forEach((r, ri) => {
-      if (document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')) {
-        checkedParkIds.add(ri);
-      }
-    });
-  }
-  const parkTotal = parkR.filter((_, ri) => checkedParkIds.has(ri)).reduce((s,r)=>s+r.amount,0);
-
-  se('a2sub-'+pid, '$'+kmSub.toLocaleString());
-  se('a2tot-'+pid, '$'+(kmSub+parkTotal).toLocaleString());
-  // 更新停車費顯示
-  const pd = document.getElementById('a2park-total-display-'+pid);
-  if (pd && checkedParkIds.size > 0) {
-    pd.textContent = `已選 ${checkedParkIds.size} 筆，合計 $${parkTotal.toLocaleString()}`;
-    pd.style.color = 'var(--green)';
-  }
+function setRound(btn, pid, i, isRound) {
+  document.getElementById(`a2rnd-${pid}-${i}`).classList.toggle('on', isRound);
+  document.getElementById(`a2one-${pid}-${i}`).classList.toggle('on', !isRound);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2433,6 +2393,7 @@ async function doStashAll() {
         end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
         km:      document.getElementById(`a2km-${pid}-${i}`)?.value   || '',
         isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
+        mapUrl:  document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
       });
     }
 
