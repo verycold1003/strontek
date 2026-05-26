@@ -333,11 +333,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="card-hd">
               ✅ 已上傳至雲端
               <span class="badge bd-green" id="uploadedCnt">0 個</span>
-              <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="nav('ocr')">前往辨識 →</button>
             </div>
             <div class="card-bd" style="padding:0">
               <table class="tbl">
-                <thead><tr><th>檔名</th><th>大小</th><th>時間</th><th>Drive</th><th></th></tr></thead>
+                <thead><tr><th>檔名</th><th>大小</th><th>時間</th><th>Drive</th></tr></thead>
                 <tbody id="uploadedTbl"></tbody>
               </table>
             </div>
@@ -364,6 +363,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="card-hd">
               📋 雲端憑證紀錄
               <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadDriveFiles()">🔄</button>
+            </div>
+            <div id="uploadDoneHint" style="display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(var(--accent-rgb,.4,.8,1),.08);border-bottom:1px solid var(--border);font-size:12px;color:var(--accent)">
+              ✅ 上傳完成，請勾選檔案後點「辨識勾選項目」
             </div>
             <div style="max-height:280px;overflow-y:auto">
               <table class="tbl">
@@ -914,19 +916,24 @@ function renderUploadedList(files) {
   document.getElementById('uploadedTbl').innerHTML = files.map((f,i) =>
     `<tr><td style="font-size:12px">${f.name}</td><td class="mono" style="font-size:11px">${f.size}</td>
      <td style="font-size:11px;color:var(--muted)">${f.time}</td>
-     <td><a href="${f.url}" target="_blank" style="color:var(--accent);font-size:12px">開啟↗</a></td>
-     <td><button class="btn btn-green btn-sm" onclick='addQueue(${JSON.stringify(f)})'>+ 辨識</button></td></tr>`
+     <td><a href="${f.url}" target="_blank" style="color:var(--accent);font-size:12px">開啟↗</a></td></tr>`
   ).join('');
+  // 提示使用者從雲端憑證紀錄勾選送辨識
+  const hint = document.getElementById('uploadDoneHint');
+  if (hint) hint.style.display = 'flex';
 }
 
 // ════════════════════════════════════════════════════════════
 // DRIVE FILES
 // ════════════════════════════════════════════════════════════
 async function loadDriveFiles() {
+  // 優先讀上傳頁的申請人/月份，fallback 到整理匯出頁
+  const person = document.getElementById('up-person')?.value
+              || document.getElementById('exp-person')?.value || '';
+  const month  = document.getElementById('up-month')?.value
+              || document.getElementById('exp-month')?.value  || '';
   toast('⏳ 載入雲端憑證中…');
   try {
-    const person = document.getElementById('exp-person')?.value || '';
-    const month  = document.getElementById('exp-month')?.value  || '';
     const res = await callGAS({ action:'listFiles', person, month });
     S.driveFiles = res.files || [];
     toast(S.driveFiles.length ? `📂 找到 ${S.driveFiles.length} 個檔案` : '📂 此月份無憑證紀錄');
@@ -1717,8 +1724,9 @@ function buildExpSec(key, rs, attType, proj) {
       const pid = key.replace('att4:','').slice(5);
       proj  = S.config.projects.find(p => p.id === pid);
       label = proj ? proj.name : '（未選專案）';
-    } else if (key.startsWith('dept:')) {
-      label = '🏢 ' + key.slice(5);
+    } else if (key.startsWith('dept:') || key.startsWith('att4:dept:')) {
+      const deptName = key.replace('att4:','').slice(5);
+      label = '🏢 ' + deptName;
     } else { label = '📋 其他'; }
   } else {
     label = proj.name;
