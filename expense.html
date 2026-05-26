@@ -488,7 +488,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <div class="card-hd">📤 匯出</div>
             <div class="card-bd" style="display:flex;flex-direction:column;gap:10px">
               <div class="frow"><label class="lbl">申請人確認</label>
-                <select class="inp" id="exp-person"><option value="">— 請選擇 —</option></select>
+                <select class="inp" id="exp-person" onchange="loadDriveFiles()"><option value="">— 請選擇 —</option></select>
               </div>
               <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month" onchange="syncOcrMonth(this.value)"></div>
               <button class="btn btn-ghost btn-full" id="btnExpLoad" onclick="loadOcrResults(false, true)">📥 從 Sheet 載入</button>
@@ -924,7 +924,9 @@ function renderUploadedList(files) {
 // ════════════════════════════════════════════════════════════
 async function loadDriveFiles() {
   try {
-    const res = await callGAS({ action:'listFiles' });
+    const person = document.getElementById('exp-person')?.value || '';
+    const month  = document.getElementById('exp-month')?.value  || '';
+    const res = await callGAS({ action:'listFiles', person, month });
     S.driveFiles = res.files || [];
   } catch { }
   renderDriveFiles();
@@ -2111,6 +2113,8 @@ function att4Form(pid, rs) {
 // ════════════════════════════════════════════════════════════
 // EXPORT ACTION
 // ════════════════════════════════════════════════════════════
+// 已產生 PDF 清單 — 支援歷史紀錄 + 本次新產生合併顯示
+// S.exportHistory = [{ attachment, time, pdfUrl }, ...]（由 loadExportHistory 填入）
 // 只匯出勾選的 sec
 function renderPdfResultList(urls, labels) {
   const card = document.getElementById('pdfResultCard');
@@ -2118,25 +2122,67 @@ function renderPdfResultList(urls, labels) {
   const tbl  = document.getElementById('pdfResultTbl');
   if (!card || !tbl) return;
 
-  const exportTime = new Date().toLocaleString('zh-TW', { hour12: false });
-  const rows = urls.map((u, i) => {
-    const label = (labels && labels[i]) ? labels[i] : `PDF ${i + 1}`;
+  // ── 本次新產生（urls 有值時）─────────────────────────────
+  if (urls && urls.length) {
+    const _now = new Date();
+    const exportDate = _now.toLocaleDateString('zh-TW');
+    const exportHms  = _now.toLocaleTimeString('zh-TW', { hour12: false });
+    // 更新或新增到 S.exportHistory（依 label 去重，新的蓋舊的）
+    urls.forEach((u, i) => {
+      const label = (labels && labels[i]) ? labels[i] : `PDF ${i + 1}`;
+      const existing = (S.exportHistory || []).findIndex(h => h.attachment === label);
+      const entry = { attachment: label, time: `${exportDate}\n${exportHms}`, pdfUrl: u, isNew: true };
+      if (existing >= 0) S.exportHistory[existing] = entry;
+      else { S.exportHistory = S.exportHistory || []; S.exportHistory.unshift(entry); }
+    });
+  }
+
+  const history = S.exportHistory || [];
+  if (!history.length) { card.style.display = 'none'; return; }
+
+  const rowsHtml = history.map(h => {
+    const [datePart, timePart] = (h.time || '').split('\n');
+    const timeHtml = timePart
+      ? `${datePart}<br>${timePart}`
+      : (h.time || '').replace(' ', '<br>');
+    const badge = h.isNew
+      ? `<span style="font-size:9px;background:var(--green);color:#fff;border-radius:4px;padding:1px 5px;margin-left:6px">NEW</span>`
+      : '';
     return `<tr>
-      <td style="font-size:13px;padding:10px 14px">${label}</td>
-      <td style="padding:10px 14px;font-size:11px;color:var(--muted);white-space:nowrap">${exportTime}</td>
-      <td style="padding:10px 14px">
-        <a href="${u}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none">開啟↗</a>
+      <td style="font-size:12px;padding:8px 14px">${h.attachment}${badge}</td>
+      <td style="padding:8px 14px;font-size:11px;color:var(--muted);line-height:1.6">${exportDate}<br>${exportHms}</td>
+      <td style="padding:8px 14px">
+        <a href="${h.pdfUrl}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none">開啟↗</a>
       </td>
     </tr>`;
   }).join('');
 
   tbl.innerHTML = `<thead><tr>
-    <th>檔案</th><th>匯出時間</th><th></th>
-  </tr></thead>` + (rows || '<tr><td colspan="3" style="color:var(--muted);padding:14px">無結果</td></tr>');
-  cnt.textContent = `共 ${urls.length} 份`;
+    <th>附件</th><th>匯出時間</th><th></th>
+  </tr></thead>` + rowsHtml;
+  cnt.textContent = `共 ${history.length} 份`;
   card.style.display = 'block';
-  // 捲動到清單位置
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (urls && urls.length) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 從 Sheet 載入此人此月的歷史紀錄，填入 S.exportHistory 並顯示卡片
+async function loadExportHistory() {
+  const person = document.getElementById('exp-person')?.value || '';
+  const month  = document.getElementById('exp-month')?.value  || '';
+  S.exportHistory = [];
+  if (!person || !month) { renderPdfResultList(); return; }
+  try {
+    const res = await callGAS({ action: 'getHistory', person, month });
+    if (res.success && res.rows && res.rows.length) {
+      S.exportHistory = res.rows.map(r => ({
+        attachment: r.attachment || r.project || '',
+        time:       r.time || '',
+        pdfUrl:     r.pdfUrl || '',
+        isNew:      false,
+      }));
+    }
+  } catch(e) { /* 靜默失敗 */ }
+  renderPdfResultList();
 }
 
 async function doExportSelected() {
@@ -2566,6 +2612,7 @@ async function loadOcrResults(auto = false, fromExport = false) {
 function syncOcrMonth(val) {
   const el = document.getElementById('ocr-month');
   if (el && val) el.value = val;
+  loadDriveFiles(); // 月份變更時重新載入雲端憑證清單
 }
 
 // ════════════════════════════════════════════════════════════
