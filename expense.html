@@ -62,7 +62,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-primary{background:var(--accent);color:white}.btn-primary:hover:not(:disabled){background:#6ba0f9}
 .btn-ghost{background:rgba(255,255,255,.06);color:var(--text)}.btn-ghost:hover{background:rgba(255,255,255,.1)}
-.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
 .btn-danger{background:rgba(248,113,113,.15);color:var(--red)}
 .btn-green{background:rgba(52,211,153,.15);color:var(--green)}
 .btn-gold{background:rgba(245,166,35,.15);color:var(--gold)}
@@ -80,7 +79,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .bd-blue{background:rgba(79,142,247,.15);color:var(--accent)}
 .bd-green{background:rgba(52,211,153,.15);color:var(--green)}
 .bd-red{background:rgba(248,113,113,.15);color:var(--red)}
-.bd-amber{background:rgba(251,191,36,.15);color:var(--amber)}
 .bd-orange{background:rgba(251,146,60,.15);color:var(--parking)}
 .bd-purple{background:rgba(124,92,252,.15);color:var(--accent2)}
 .bd-muted{background:rgba(107,118,153,.15);color:var(--muted)}
@@ -1801,69 +1799,6 @@ function buildExpSecAtt3(quotaProjs) {
   return div;
 }
 
-// ── 附件三多專案 form（逐專案列） ───────────────────────────
-function att3Form_multi(quotaProjs) {
-  const month = document.getElementById('exp-month').value || today().slice(0,7);
-  const expPerson = document.getElementById('exp-person');
-  const personName = expPerson?.options[expPerson.selectedIndex]?.text || '';
-  // 從 Persons 取部門/職稱
-  const pData = S.config.persons?.find(p => p.name === personName) || {};
-  const pDept = pData.dept || '';
-  const pTitle = pData.title || '';
-  const deptTitle = pDept + (pTitle ? '／' + pTitle : '');
-
-  const rows = quotaProjs.map((e, i) => {
-    const n = i + 1;
-    const total   = e.otherR.reduce((s, r) => s + r.amount, 0);
-    const subsidy = e.proj.subsidy || 0;
-    const diff    = total - subsidy;
-    return `
-    <tr>
-      <td style="text-align:center;color:var(--muted);font-size:12px">${n}</td>
-      <td><input type="month" class="inp" style="padding:4px 8px;font-size:12px" value="${month}"></td>
-      <td style="font-size:13px;font-weight:600">${e.proj.name}</td>
-      <td><input type="number" class="inp" style="padding:4px 8px;font-size:12px;text-align:right" value="${subsidy}" id="a3sub-${e.proj.id}"></td>
-      <td><input type="date" class="inp" style="padding:4px 8px;font-size:12px" value="${e.proj.effectDate||''}" id="a3start-${e.proj.id}"></td>
-      <td><input type="date" class="inp" style="padding:4px 8px;font-size:12px" value="${e.proj.closeDate||''}" id="a3end-${e.proj.id}"></td>
-      <td class="mono" style="text-align:right;font-size:13px">$${total.toLocaleString()}</td>
-      <td class="mono" style="text-align:right;font-size:13px;color:${diff>=0?'var(--green)':'var(--red)'}">$${diff.toLocaleString()}</td>
-      <td><input class="inp" style="padding:4px 8px;font-size:12px" placeholder="備註"></td>
-      <td style="text-align:center"><div class="sec-ck" onclick="this.classList.toggle('on')" title="已入帳"></div></td>
-    </tr>`;
-  }).join('');
-
-  return `<div class="att-form">
-    <div class="att-title">📎 附件三 — 私車公用補助核定彙總表（專案月定額制）</div>
-    <div class="fg2" style="margin-bottom:12px">
-      <div><label class="lbl">員工姓名</label><input class="inp" value="${personName}" placeholder="員工姓名"></div>
-      <div><label class="lbl">部門／職稱</label><input class="inp" value="${deptTitle}" placeholder="部門 / 職稱"></div>
-    </div>
-    <div style="overflow-x:auto">
-      <table class="tbl" style="min-width:860px;font-size:12px">
-        <thead>
-          <tr>
-            <th style="width:36px">序號</th>
-            <th style="width:120px">月份</th>
-            <th>專案代碼／名稱</th>
-            <th style="width:100px;text-align:right">核定補助(元/月)</th>
-            <th style="width:120px">生效日</th>
-            <th style="width:120px">終止日(結案)</th>
-            <th style="width:100px;text-align:right">發票金額(當月)</th>
-            <th style="width:100px;text-align:right">差額(發票-補助)</th>
-            <th>主管核准／備註</th>
-            <th style="width:52px">已入帳</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  </div>`;
-}
-
-function simpleList(rs) {
-  return rs.map(r => `<div class="info-row"><span>${r.vendor} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('');
-}
-
 // 附件二（無專案）- 給 dept / other 群組用，提供外勤記錄欄位
 function att2FormNoProj(key, rs) {
   // pid：sanitize key，與附件四共用同一個 id 命名空間
@@ -1927,58 +1862,6 @@ function updatePrintBar() {
     allCk.classList.toggle('on', allOn);
     allCk.textContent = allOn ? '✓' : '';
   }
-}
-
-function att3Form(proj, rs) {
-  const month = document.getElementById('exp-month').value || today().slice(0,7);
-  const expPerson = document.getElementById('exp-person');
-  const personName = expPerson?.options[expPerson.selectedIndex]?.text || '';
-  const total = rs.reduce((s,r)=>s+r.amount,0);
-  const diff  = total - (proj.subsidy||0);
-  return `<div class="att-form">
-    <div class="att-title">📎 附件三 — 私車公用補助核定彙總表（專案月定額制）</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.7">
-      ※同一員工可同時有多專案，專案結案後次月停用，員工每月需檢附公司統編油品發票（總額≧當月補助總額）。<br>
-      ※交通補助(月定額)依核定表併薪發放。<br>
-      ※申請/憑證期限依財會公告之每月結帳截止日辦理。
-    </div>
-    <div class="fg3" style="margin-bottom:10px">
-      <div><label class="lbl">月份</label><input type="month" class="inp" id="a3month-${proj.id}" value="${month}"></div>
-      <div><label class="lbl">員工姓名</label><input class="inp" id="a3name-${proj.id}" value="${personName}" placeholder="員工姓名"></div>
-      <div><label class="lbl">部門／職稱</label><input class="inp" id="a3dept-${proj.id}" placeholder="部門 / 職稱"></div>
-    </div>
-    <div class="fg3" style="margin-bottom:10px">
-      <div><label class="lbl">專案代碼／名稱</label><input class="inp" id="a3proj-${proj.id}" value="${proj.name}" placeholder="專案代碼 / 名稱"></div>
-      <div><label class="lbl">核定補助（元／月）</label><input type="number" class="inp" value="${proj.subsidy}" id="a3sub-${proj.id}" oninput="recalcAtt3('${proj.id}',${total})"></div>
-      <div class="fg2" style="gap:8px">
-        <div><label class="lbl">生效日</label><input type="date" class="inp" id="a3start-${proj.id}"></div>
-        <div><label class="lbl">終止日（結案）</label><input type="date" class="inp" id="a3end-${proj.id}"></div>
-      </div>
-    </div>
-    <div style="margin-bottom:8px;font-size:12px;color:var(--muted);font-weight:600">費用憑證明細（當月）：</div>
-    ${rs.map(r=>`<div class="info-row"><span>${r.vendor} · ${r.invoiceNo||'—'} · ${r.date}</span><span class="mono">$${r.amount.toLocaleString()}</span></div>`).join('')}
-    <div class="calc-box" id="a3calc-${proj.id}">
-      <div class="calc-row"><span>發票金額合計（當月）</span><span class="mono" id="a3inv-${proj.id}">$${total.toLocaleString()}</span></div>
-      <div class="calc-row"><span>核定補助</span><span class="mono" id="a3sval-${proj.id}">－$${(proj.subsidy||0).toLocaleString()}</span></div>
-      <div class="calc-row calc-tot"><span>差額（發票 − 補助）</span><span class="mono" id="a3diff-${proj.id}" style="color:${diff>=0?'var(--green)':'var(--red)'}">$${diff.toLocaleString()}</span></div>
-    </div>
-    <div style="margin-top:12px">
-      <div class="fg2">
-        <div><label class="lbl">主管核准／備註</label><input class="inp" id="a3remark-${proj.id}" placeholder="主管核准意見或備註"></div>
-        <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:1px">
-          <label class="lbl" style="margin:0;white-space:nowrap">已入帳</label>
-          <div class="chkbox" id="a3ck-${proj.id}" onclick="this.classList.toggle('on')" title="已入帳確認"></div>
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function recalcAtt3(pid, invTotal) {
-  const sub  = parseFloat(document.getElementById('a3sub-'+pid)?.value)||0;
-  const diff = invTotal - sub;
-  se('a3sval-'+pid, '－$'+sub.toLocaleString());
-  se('a3diff-'+pid, '$'+diff.toLocaleString());
 }
 
 const att2Rows    = {};
@@ -2411,10 +2294,7 @@ async function queryMaps(pid, i) {
 
 
 // ════════════════════════════════════════════════════════════
-// STASH ALL — 全部回寫 OcrResults
-// ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// STASH THEN NAVIGATE TO EXPORT
+// STASH
 // ════════════════════════════════════════════════════════════
 async function stashThenExport() {
   const btn = document.getElementById('btnGoExport');
