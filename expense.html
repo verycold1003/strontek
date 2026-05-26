@@ -430,7 +430,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div id="ocrDoneBar" style="display:none;margin-top:12px;gap:8px;align-items:center">
             <div class="chkbox on" id="chkAllOcr" title="全選 / 全不選" onclick="toggleAllOcr()" style="flex-shrink:0"></div>
             <span style="font-size:12px;color:var(--muted);margin-right:4px">全選</span>
-            <button class="btn btn-primary" onclick="nav('export')">📄 前往整理匯出 →</button>
+            <button class="btn btn-primary" id="btnGoExport" onclick="stashThenExport()">📄 前往整理匯出 →</button>
             <button class="btn btn-gold" id="btnOcrStash" onclick="doStashAll()">💾 暫存</button>
             <button class="btn btn-danger" id="btnDelSelected" onclick="delSelected()">🗑 刪除勾選</button>
           </div>
@@ -466,6 +466,16 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </div>
           <!-- 附件區塊由 refreshExport() 填入 -->
 
+          <!-- PDF 產生結果清單 -->
+          <div id="pdfResultCard" style="display:none;margin-bottom:10px">
+            <div class="card">
+              <div class="card-hd">📄 已產生 PDF <span id="pdfResultCnt" style="font-size:12px;color:var(--muted);font-weight:400"></span></div>
+              <div class="card-bd" style="padding:0">
+                <table class="tbl" id="pdfResultTbl"></table>
+              </div>
+            </div>
+          </div>
+
           <!-- 底部列印列 -->
           <div class="print-bar" id="expPrintBar" style="display:none">
             <span class="print-bar-info" id="expPrintInfo">已勾選 0 份</span>
@@ -493,7 +503,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               </div>
               <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month" onchange="syncOcrMonth(this.value)"></div>
               <button class="btn btn-ghost btn-full" id="btnExpLoad" onclick="loadOcrResults(false, true)">📥 從 Sheet 載入</button>
-              <button class="btn btn-primary btn-full" onclick="doExportAll()">✅ 全部匯出 PDF</button>
               <button class="btn btn-gold btn-full" id="btnStash" onclick="doStashAll()">💾 暫存</button>
               <button class="btn btn-ghost btn-full" onclick="refreshExport()">🔄 重新整理分群</button>
             </div>
@@ -1030,7 +1039,7 @@ async function runOCR() {
     let attribution = 'project', attributionTarget = '';
     if (qa.startsWith('proj:'))      { attribution = 'project'; attributionTarget = qa.slice(5); }
     else if (qa.startsWith('dept:')) { attribution = 'dept';    attributionTarget = qa.slice(5); }
-    else if (qa === 'other')         { attribution = 'other';   attributionTarget = ''; }
+    else if (qa === 'other')         { attribution = 'other';   attributionTarget = '其他'; }
 
     try {
       let b64 = '';
@@ -1974,7 +1983,7 @@ function recalcAtt3(pid, invTotal) {
 
 const att2Rows    = {};
 const att2PidMap  = {};  // key → sanitized pid，供附件四查詢
-const att2ParkData = {}; // pid → parkR array for renderParkSelectors2  // key → sanitized pid，供附件四查詢
+const att2ParkData = {}; // pid → parkR array for renderParkSelectors2
 
 function att2Form(proj, otherR, parkR) {
   att2Rows[proj.id] = 1;
@@ -2168,6 +2177,31 @@ function att4Form(pid, rs) {
 // EXPORT ACTION
 // ════════════════════════════════════════════════════════════
 // 只匯出勾選的 sec
+function renderPdfResultList(urls) {
+  const card = document.getElementById('pdfResultCard');
+  const cnt  = document.getElementById('pdfResultCnt');
+  const tbl  = document.getElementById('pdfResultTbl');
+  if (!card || !tbl) return;
+
+  // 從 URL 推斷檔名（Drive URL 無法直接取檔名，用序號代替）
+  const rows = urls.map((u, i) => {
+    // 嘗試從 URL 最後一段抓 id，顯示為「PDF 1」、「PDF 2」…
+    const label = `PDF ${i + 1}`;
+    return `<tr>
+      <td style="font-size:13px;padding:10px 14px">${label}</td>
+      <td style="padding:10px 14px">
+        <a href="${u}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none">開啟↗</a>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbl.innerHTML = rows || '<tr><td style="color:var(--muted);padding:14px">無結果</td></tr>';
+  cnt.textContent = `共 ${urls.length} 份`;
+  card.style.display = 'block';
+  // 捲動到清單位置
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 async function doExportSelected() {
   const selected = [...document.querySelectorAll('.exp-sec')]
     .filter(s => s.querySelector('.sec-ck')?.classList.contains('on'));
@@ -2274,6 +2308,10 @@ async function _doExport(secKeys) {
     if (!receiptsToExport.length) { toast('⚠️ 無可匯出的憑證'); return; }
   }
 
+  // ── 先暫存，再匯出 ──────────────────────────────────────
+  toast('⏳ 暫存中...');
+  try { await doStashAll(); } catch(_) { /* doStashAll 自行處理 toast，不阻斷 */ }
+
   toast(`⏳ 產生 PDF 中（${receiptsToExport.length} 筆）...`);
   try {
     const res = await callGAS({
@@ -2282,8 +2320,9 @@ async function _doExport(secKeys) {
       projects: S.config.projects
     });
     if (res.success) {
-      toast(`✅ PDF 已產生！共 ${(res.urls||[]).length} 份`);
-      (res.urls||[]).forEach(u => window.open(u,'_blank'));
+      const urls = res.urls || [];
+      toast(`✅ PDF 已產生！共 ${urls.length} 份`);
+      renderPdfResultList(urls);
     } else { toast('❌ ' + res.error); }
   } catch(e) { toast('❌ ' + e.message); }
 }
@@ -2370,14 +2409,25 @@ async function queryMaps(pid, i) {
   btn.innerHTML = '🗺 查詢最短距離';
 }
 
-function setRound(btn, pid, i, isRound) {
-  document.getElementById(`a2rnd-${pid}-${i}`).classList.toggle('on', isRound);
-  document.getElementById(`a2one-${pid}-${i}`).classList.toggle('on', !isRound);
-}
 
 // ════════════════════════════════════════════════════════════
 // STASH ALL — 全部回寫 OcrResults
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// STASH THEN NAVIGATE TO EXPORT
+// ════════════════════════════════════════════════════════════
+async function stashThenExport() {
+  const btn = document.getElementById('btnGoExport');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 暫存中...'; }
+  try {
+    await doStashAll();
+  } catch(e) {
+    // doStashAll handles its own toasts; just continue navigating
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '📄 前往整理匯出 →'; }
+  nav('export');
+}
+
 async function doStashAll() {
   if (!S.receipts.length) { toast('⚠️ 沒有可暫存的憑證'); return; }
 
@@ -2386,6 +2436,7 @@ async function doStashAll() {
     let attributionTarget = '';
     if (attribution === 'project') attributionTarget = r.projectId || '';
     else if (attribution === 'dept') attributionTarget = r.dept || '';
+    else if (attribution === 'other') attributionTarget = '其他';
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
 
