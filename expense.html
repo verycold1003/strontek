@@ -2011,7 +2011,7 @@ function a2RowHTML(pid, i, prefill) {
   return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px;padding:10px 12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:11px;font-weight:700;color:var(--muted)">第 ${i+1} 筆外勤</span>
-      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row(\'${pid}\',${i})">✕ 移除</button>` : \'\'}
+      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row('${pid}',${i})">✕ 移除</button>` : ''}
     </div>
     <div class="fg4" style="margin-bottom:8px">
       <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
@@ -2023,8 +2023,8 @@ function a2RowHTML(pid, i, prefill) {
       </div>
       <div><label class="lbl">來回 / 單程</label>
         <div class="tgl">
-          <button class="tgl-btn ${isRound?\'on\':\'\'}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,\'${pid}\',${i},true)">來回</button>
-          <button class="tgl-btn ${isRound?\'\':\'on\'}" id="a2one-${pid}-${i}" onclick="setRound(this,\'${pid}\',${i},false)">單程</button>
+          <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
+          <button class="tgl-btn ${isRound?'':'on'}" id="a2one-${pid}-${i}" onclick="setRound(this,'${pid}',${i},false)">單程</button>
         </div>
       </div>
     </div>
@@ -2033,13 +2033,13 @@ function a2RowHTML(pid, i, prefill) {
       <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="終點地址"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <button class="btn btn-ghost btn-sm" id="a2mapbtn-${pid}-${i}" onclick="queryMaps(\'${pid}\',${i})">🗺 查詢最短距離</button>
+      <button class="btn btn-ghost btn-sm" id="a2mapbtn-${pid}-${i}" onclick="queryMaps('${pid}',${i})">🗺 查詢最短距離</button>
       <div id="a2km-result-${pid}-${i}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
     </div>
-    <div class="map-preview ${hasMap?\'show\':\'\'}" id="a2map-prev-${pid}-${i}">
-      <img id="a2map-img-${pid}-${i}" src="${p.mapUrl||\'\'}" alt="路線地圖">
+    <div class="map-preview ${hasMap?'show':''}" id="a2map-prev-${pid}-${i}">
+      <img id="a2map-img-${pid}-${i}" src="${p.mapUrl||''}" alt="路線地圖">
     </div>
-    <input type="hidden" id="a2map-url-${pid}-${i}" value="${p.mapUrl||\'\'}" data-mapurl>
+    <input type="hidden" id="a2map-url-${pid}-${i}" value="${p.mapUrl||''}" data-mapurl>
     <div id="a2park-sel-${pid}-${i}"></div>
   </div>`;
 }
