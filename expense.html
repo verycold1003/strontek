@@ -1896,7 +1896,8 @@ function a2RowHTML(pid, i, prefill) {
   const defStart = p.start  || '新北市三重區三民街272巷13號';
   const defEnd   = p.end    || '';
   const defDate  = p.date   || '';
-  const defRsn   = p.reason || '';
+  const defRsn    = p.reason || '';
+  const defRemark = p.remark || '';
   const defKm    = p.km     || '';
   const isRound  = p.isRound !== undefined ? p.isRound : true;
   const hasMap   = !!(p.mapUrl);
@@ -1924,13 +1925,22 @@ function a2RowHTML(pid, i, prefill) {
       <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="起點地址"></div>
       <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="終點地址"></div>
     </div>
+    <div style="margin-bottom:8px">
+      <label class="lbl">備註</label>
+      <input class="inp" id="a2rem-${pid}-${i}" placeholder="補充說明（會填入 PDF 備註欄）" value="${defRemark}">
+    </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <button class="btn btn-ghost btn-sm" id="a2mapbtn-${pid}-${i}" onclick="queryMaps('${pid}',${i})">🗺 查詢最短距離</button>
       <div id="a2km-result-${pid}-${i}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
     </div>
-    <div class="map-preview ${hasMap?'show':''}" id="a2map-prev-${pid}-${i}">
-      <img id="a2map-img-${pid}-${i}" src="${p.mapUrl||''}" alt="路線地圖">
-    </div>
+    <div class="map-preview ${hasMap?'show':''}" id="a2map-prev-${pid}-${i}">${hasMap
+      ? `<a href="${p.mapUrl}" target="_blank"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;
+                 padding:14px;background:rgba(79,142,247,.07);color:var(--accent);
+                 font-size:13px;font-weight:600;text-decoration:none;border-radius:8px">
+          🗺 在 Google Maps 開啟路線↗
+        </a>`
+      : ''}</div>
     <input type="hidden" id="a2map-url-${pid}-${i}" value="${p.mapUrl||''}" data-mapurl>
     <div id="a2park-sel-${pid}-${i}"></div>
   </div>`;
@@ -1951,17 +1961,29 @@ function removeA2Row(pid, i) {
 function renderParkSelectors(pid) {
   const rowCount = att2Rows[pid] || 1;
   const parkR = S.receipts.filter(r => r.category === 'parking' && r.projectId === pid);
+
+  // 從已存的 fieldRows 讀取每行的 pairedParkIdx
+  const savedRows = (() => {
+    for (const r of S.receipts.filter(x => x.projectId === pid)) {
+      if (r.fieldRows && r.fieldRows.length) return r.fieldRows;
+    }
+    return [];
+  })();
+
   for (let i = 0; i < rowCount; i++) {
     const el = document.getElementById(`a2park-sel-${pid}-${i}`);
     if (!el) continue;
     if (!parkR.length) { el.innerHTML = ''; continue; }
+    const savedPaired = savedRows[i]?.pairedParkIdx ?? null;
     el.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">🅿️ 此筆外勤關聯停車費（可多選）：</div>` +
-      parkR.map((r, ri) => `
+      parkR.map((r, ri) => {
+        const isChecked = savedPaired === ri;
+        return `
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px">
-          <div class="chkbox" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},false)"></div>
+          <div class="chkbox${isChecked ? ' on' : ''}" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},false)"></div>
           🅿️ ${r.vendor} · ${r.date} · <span class="mono">$${r.amount.toLocaleString()}</span>
-        </label>`
-      ).join('');
+        </label>`;
+      }).join('');
   }
 }
 
@@ -2117,9 +2139,17 @@ async function _doExport(secKeys) {
         start:   document.getElementById(`a2s-${pid}-${i}`)?.value    || '',
         end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
         km:      parseFloat(document.getElementById(`a2km-${pid}-${i}`)?.value) || 0,
-        isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
-        rate:    mRate,
-        mapUrl:  document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
+        isRound:       document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
+        rate:          mRate,
+        mapUrl:        document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
+        remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value || '',
+        pairedParkIdx: (() => {
+          const parkR_all = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
+          const idx = parkR_all.findIndex((_, ri) =>
+            document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')
+          );
+          return idx >= 0 ? idx : null;
+        })(),
       });
     }
     if (rows.length) projFieldRowsMap[pid] = rows;
@@ -2241,9 +2271,7 @@ function setStep(n) {
 
 // ════════════════════════════════════════════════════════════
 // GOOGLE MAPS — 查詢最短距離 + 靜態地圖截圖
-// GAS 回傳：{ km, distText, duration, staticMapUrl }
-// staticMapUrl 由 GAS 用 server-side API Key 組成，前端直接顯示；
-// 匯出時把 staticMapUrl 傳回 GAS，GAS 再 UrlFetchApp 抓圖插入 Doc。
+// GAS 回傳：{ km, distText, duration }
 // ════════════════════════════════════════════════════════════
 async function queryMaps(pid, i) {
   const origin = document.getElementById(`a2s-${pid}-${i}`)?.value?.trim();
@@ -2258,7 +2286,7 @@ async function queryMaps(pid, i) {
     const res = await callGAS({ action: 'getDistance', origin, dest });
     if (!res.success) throw new Error(res.error || 'GAS 查詢失敗');
 
-    const { km, distText, duration, staticMapUrl } = res;
+    const { km, distText, duration } = res;
 
     // ── 填入唯讀公里數欄位 ──────────────────────────────────
     const kmEl = document.getElementById(`a2km-${pid}-${i}`);
@@ -2273,15 +2301,20 @@ async function queryMaps(pid, i) {
         ` target="_blank" class="maps-link">↗ Maps</a>`;
     }
 
-    // ── 靜態地圖預覽 ───────────────────────────────────────
-    if (staticMapUrl) {
-      const imgEl  = document.getElementById(`a2map-img-${pid}-${i}`);
-      const prevEl = document.getElementById(`a2map-prev-${pid}-${i}`);
-      const urlEl  = document.getElementById(`a2map-url-${pid}-${i}`);
-      if (imgEl)  imgEl.src = staticMapUrl;
-      if (prevEl) prevEl.classList.add('show');
-      if (urlEl)  urlEl.value = staticMapUrl;   // 匯出時由 _doExport 讀取
+    // ── 靜態地圖預覽（用連結取代圖片，避免 API key 外漏 & 破圖）────
+    const mapsLink = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}`;
+    const prevEl = document.getElementById(`a2map-prev-${pid}-${i}`);
+    const urlEl  = document.getElementById(`a2map-url-${pid}-${i}`);
+    if (prevEl) {
+      prevEl.classList.add('show');
+      prevEl.innerHTML = `<a href="${mapsLink}" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;
+               padding:14px;background:rgba(79,142,247,.07);color:var(--accent);
+               font-size:13px;font-weight:600;text-decoration:none;border-radius:8px">
+        🗺 在 Google Maps 開啟路線↗
+      </a>`;
     }
+    if (urlEl) urlEl.value = mapsLink;   // 匯出時供 GAS 參考
 
     toast(`✅ 最短距離：${distText}（${km} km）`);
   } catch(e) {
@@ -2328,6 +2361,11 @@ async function doStashAll() {
       // 確認此外勤行確實屬於這張 receipt 所在的專案
       const rowEl = document.getElementById(`a2r-${pid}-${i}`);
       if (!rowEl) continue;
+      // 讀取此外勤行勾選的停車費索引（單選，最多一個）
+      const parkR_all = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
+      const pairedParkIdx = parkR_all.findIndex((_, ri) =>
+        document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')
+      );
       fieldRows.push({
         date:    document.getElementById(`a2d-${pid}-${i}`)?.value    || '',
         reason:  document.getElementById(`a2rsn-${pid}-${i}`)?.value  || '',
@@ -2336,6 +2374,8 @@ async function doStashAll() {
         km:      document.getElementById(`a2km-${pid}-${i}`)?.value   || '',
         isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
         mapUrl:  document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
+        remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value || '',
+        pairedParkIdx: pairedParkIdx >= 0 ? pairedParkIdx : null,
       });
     }
 
