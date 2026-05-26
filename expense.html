@@ -2175,12 +2175,11 @@ async function _doExport(secKeys) {
         rate:          mRate,
         mapUrl:        document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
         remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value || '',
-        pairedParkIdx: (() => {
+        pairedParkIdxArr: (() => {
           const parkR_all = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
-          const idx = parkR_all.findIndex((_, ri) =>
-            document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')
-          );
-          return idx >= 0 ? idx : null;
+          return parkR_all
+            .map((_, ri) => ri)
+            .filter(ri => document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on'));
         })(),
       });
     }
