@@ -133,7 +133,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 /* Attachment form */
 .att-form{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
-.att-title{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.att-title{font-size:13px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
 
 /* Calc box */
 .calc-box{background:rgba(79,142,247,.07);border:1px solid rgba(79,142,247,.18);border-radius:8px;padding:12px;margin-top:10px}
@@ -293,6 +293,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <input type="month" class="inp" id="global-month" style="font-size:14px;padding:7px 10px"
              onchange="onGlobalMonthChange(this.value)">
     </div>
+
+    <div class="nav-item" data-page="project" onclick="nav('project')">🗂 <span>新增專案</span></div>
 
     <div style="margin-top:auto;padding:12px 16px">
       <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="syncStatus">尚未同步</div>
@@ -480,6 +482,107 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
 
+    <!-- PAGE: PROJECT (新增專案) -->
+    <div class="page" id="page-project">
+      <div class="pg-title">🗂 新增專案</div>
+      <div class="pg-sub">新增生效中專案供申請人選用；下方列表支援編輯與刪除</div>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+
+        <!-- 新增專案 card -->
+        <div class="card">
+          <div class="card-hd">➕ 新增專案</div>
+          <div class="card-bd">
+            <div class="fg2" style="margin-bottom:14px">
+              <div>
+                <label class="lbl">專案 ID（代碼）</label>
+                <input class="inp" id="np-id" placeholder="例：P2024001"
+                  onchange="npAutoFill()">
+              </div>
+              <div>
+                <label class="lbl">專案名稱</label>
+                <input class="inp" id="np-name" placeholder="例：台南廠區外勤補助">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:14px">
+              <div>
+                <label class="lbl">隸屬部門</label>
+                <select class="inp" id="np-dept">
+                  <option value="">— 選擇部門 —</option>
+                </select>
+              </div>
+              <div>
+                <label class="lbl">採月定額</label>
+                <div class="tgl" style="width:180px" id="tgl-np-quota">
+                  <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
+                  <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
+                </div>
+                <input type="hidden" id="np-quota" value="true">
+              </div>
+            </div>
+            <div class="fg2" style="margin-bottom:14px">
+              <div>
+                <label class="lbl">核定補助（月定額時填寫）</label>
+                <input type="number" class="inp" id="np-subsidy" placeholder="0"
+                  min="0" step="100">
+              </div>
+              <div></div>
+            </div>
+            <div class="fg2" style="margin-bottom:14px">
+              <div>
+                <label class="lbl">生效日</label>
+                <input type="date" class="inp" id="np-effect">
+              </div>
+              <div>
+                <label class="lbl">結案日（可空白）</label>
+                <input type="date" class="inp" id="np-close">
+              </div>
+            </div>
+            <!-- 按鈕：left bottom -->
+            <div style="margin-top:4px">
+              <button class="btn btn-primary" id="btnAddProj" onclick="doAddProject()">
+                ＋ 新增
+              </button>
+              <span id="npMsg" style="font-size:14px;margin-left:12px"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 專案列表 card -->
+        <div class="card">
+          <div class="card-hd">
+            📋 專案列表
+            <span class="badge bd-muted" id="projListCnt" style="margin-left:6px"></span>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto"
+              onclick="loadProjectList(true)" title="重新載入">🔄</button>
+            <span id="projListSyncDone" style="font-size:13px;color:var(--green);
+              font-weight:700;display:none;margin-left:6px">✅ 同步完成</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>專案 ID</th>
+                  <th>名稱</th>
+                  <th>部門</th>
+                  <th>類型</th>
+                  <th>核定補助</th>
+                  <th>生效日</th>
+                  <th>結案日</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="projListTbl">
+                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">
+                  點 🔄 載入專案列表
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /mainArea -->
 </div><!-- /appShell -->
 
@@ -507,7 +610,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbx3cQMDpX8k_RyAdEd2X3Ro6juWzIKe-2g1XYAp-zEO9p6im-30FmpV0qpeaJHtAMJO/exec'
 };
 
 // ════════════════════════════════════════════════════════════
@@ -738,9 +841,10 @@ async function loadConfig() {
 }
 
 function populateSelects() {
-  // 上傳頁：申請人從 S.user 自動帶入（hidden input 留著供 doUpload 使用）
-  const upHidden = document.getElementById('up-person');
-  if (upHidden && S.user) upHidden.value = S.user.name;
+  // 若新增專案頁已開啟，同步部門下拉
+  if (document.getElementById('page-project')?.classList.contains('active')) {
+    populateNpDept();
+  }
 }
 
 // 全域月份變更：同步到各頁
@@ -810,10 +914,11 @@ function removePending(i) {
 }
 
 async function doUpload() {
-  const person = document.getElementById('up-person').value || S.user?.name || '';
+  const person = S.user?.name || '';
   const month  = document.getElementById('global-month').value;
   if (!S.pendingFiles.length) { toast('⚠️ 請先選擇檔案'); return; }
-  if (!person) { toast('⚠️ 請選擇申請人'); return; }
+  if (!person) { toast('⚠️ 尚未登入，請先以 LINE 登入'); return; }
+  if (!month)  { toast('⚠️ 請選擇申請月份'); return; }
 
   setBtnLoading('btnUpload', true, '上傳中...');
   const progCard = document.getElementById('upProgCard');
@@ -1252,7 +1357,7 @@ function rcHTML(r) {
 
     <!-- Header -->
     <div class="rc-hd" onclick="toggleRC('${r.id}')" style="
-      display:grid;grid-template-columns:28px 1fr auto auto auto;
+      display:grid;grid-template-columns:28px 1fr auto auto auto auto;
       gap:10px;align-items:center;padding:12px 14px;cursor:pointer;
       background:var(--surface2)">
       <div class="chkbox on" id="rck-${r.id}"
@@ -1266,6 +1371,8 @@ function rcHTML(r) {
       </div>
       <div class="mono" style="font-size:17px;font-weight:800;color:var(--gold)">$${r.amount.toLocaleString()}</div>
       <div style="font-size:12px;color:var(--muted)">${r.invoiceNo || '—'}</div>
+      <button class="btn btn-danger btn-sm btn-icon" title="刪除此筆"
+        onclick="event.stopPropagation();delR('${r.id}')" style="padding:6px 9px">🗑</button>
       <div class="rc-chev" style="color:var(--muted);font-size:13px">▼</div>
     </div>
 
@@ -1557,17 +1664,12 @@ function toggleRC(id) {
 async function delR(id) {
   const r = S.receipts.find(x => x.id === id);
   if (!r) return;
-
-  // loading：找到這張卡的刪除按鈕，顯示 spin
-  const delBtn = document.querySelector(`#rc-${id} .btn-danger`);
-  if (delBtn) { delBtn.disabled = true; delBtn.innerHTML = '<div class="spin"></div>'; }
-
   const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
   if (key) {
-    try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
+    try { await callGAS({ action: 'deleteOcrResult', key }); } catch(e) { /* 靜默 */ }
   }
   S.receipts = S.receipts.filter(x => x.id !== id);
-  document.getElementById('rc-' + id)?.remove();
+  renderOCRResults();
   updateStats();
   syncAllOcrChk();
 }
@@ -1579,7 +1681,9 @@ async function delSelected() {
   });
   if (!selected.length) { toast('⚠️ 請先勾選要刪除的項目'); return; }
 
-  const confirmed = confirm(`確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步標記刪除 OcrResults，無法復原。`);
+  const confirmed = await showConfirm(
+    `確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步標記刪除 OcrResults，無法復原。`
+  );
   if (!confirmed) return;
 
   const btn = document.getElementById('btnDelSelected');
@@ -1589,14 +1693,14 @@ async function delSelected() {
   for (const r of selected) {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
     if (key) {
-      try { await callGAS({ action: 'deleteOcrResult', key }); } catch (e) { /* 靜默 */ }
+      try { await callGAS({ action: 'deleteOcrResult', key }); } catch(e) { /* 靜默 */ }
     }
     S.receipts = S.receipts.filter(x => x.id !== r.id);
-    document.getElementById('rc-' + r.id)?.remove();
     done++;
   }
 
   if (btn) { btn.disabled = false; btn.innerHTML = '🗑 刪除勾選'; }
+  renderOCRResults();
   updateStats();
   syncAllOcrChk();
   toast(`🗑 已刪除 ${done} 筆`);
@@ -2105,8 +2209,7 @@ function updatePrintBar() {
 }
 
 const att2Rows    = {};
-const att2PidMap  = {};  // key → sanitized pid，供附件四查詢
-const att2ParkData = {}; // pid → parkR array for renderParkSelectors2
+// att2PidMap / att2ParkData 已移除（停車費配對邏輯不再需要）
 
 function att2Form(proj, otherR, parkR) {
   att2Rows[proj.id] = 1;
@@ -2228,47 +2331,16 @@ async function loadExportHistory(showToast) {
   } catch(e) { if (showToast) toast('❌ 載入失敗'); }
 }
 
-// 本次匯出完成後呼叫
+// 本次匯出完成後呼叫：toast 提示並更新匯出紀錄頁
 function renderPdfResultList(urls, labels) {
-  const _now = new Date();
-  const dateStr = _now.toLocaleDateString('zh-TW');
-  const timeStr = _now.toLocaleTimeString('zh-TW', { hour12: false });
-  const items = urls.map((url, i) => ({
-    label:  (labels && labels[i]) ? labels[i] : `PDF ${i + 1}`,
-    url,
-    timeD:  dateStr,
-    timeH:  timeStr,
-    isHist: false,
-  }));
-  _renderPdfTable(items, true /*scroll*/);
-}
-
-// 共用渲染：items = [{label, url, timeD, timeH, isHist}]
-function _renderPdfTable(items, scroll) {
-  const card = document.getElementById('pdfResultCard');
-  const cnt  = document.getElementById('pdfResultCnt');
-  const tbl  = document.getElementById('pdfResultTbl');
-  if (!card || !tbl) return;
-
-  const rows = items.map(it => {
-    const badge = it.isHist
-      ? `<span style="font-size:10px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:6px;opacity:.7">歷史</span>`
-      : `<span style="font-size:10px;background:var(--green,#4caf50);color:#fff;border-radius:3px;padding:1px 5px;margin-left:6px">新產生</span>`;
-    return `<tr style="${it.isHist ? 'opacity:.82' : ''}">
-      <td style="font-size:13px;padding:10px 14px">${it.label}${badge}</td>
-      <td style="padding:10px 14px;font-size:11px;color:var(--muted);line-height:1.6">${it.timeD}<br>${it.timeH}</td>
-      <td style="padding:10px 14px">
-        <a href="${it.url}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none">開啟↗</a>
-      </td>
-    </tr>`;
-  }).join('');
-
-  tbl.innerHTML = `<thead><tr>
-    <th>檔案</th><th>匯出時間</th><th></th>
-  </tr></thead>` + (rows || '<tr><td colspan="3" style="color:var(--muted);padding:14px">無結果</td></tr>');
-  cnt.textContent = `共 ${items.length} 份`;
-  card.style.display = 'block';
-  if (scroll) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (!urls || !urls.length) return;
+  toast(`✅ 已產生 ${urls.length} 份 PDF，請至「匯出紀錄」查看`);
+  // 重新載入匯出紀錄（含新產生的項目）
+  loadExportHistory(false);
+  // 若目前在 export 頁，自動跳到匯出紀錄頁
+  if (document.getElementById('page-export')?.classList.contains('active')) {
+    setTimeout(() => nav('history'), 800);
+  }
 }
 
 async function doExportSelected() {
@@ -2392,9 +2464,280 @@ function nav(name) {
   if (name==='history') {
     loadExportHistory(false);
   }
+  if (name==='project') {
+    populateNpDept();
+    loadProjectList(false);
+  }
   // 手機版切頁後關閉 sidebar
   document.getElementById('mainSidebar')?.classList.remove('open');
   document.getElementById('sidebarOverlay')?.classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════
+// D. 新增專案頁
+// ════════════════════════════════════════════════════════════
+
+// 填充部門下拉（從 S.config.departments）
+function populateNpDept() {
+  const sel = document.getElementById('np-dept');
+  if (!sel) return;
+  const depts = S.config.departments || [];
+  sel.innerHTML = '<option value="">— 選擇部門 —</option>' +
+    depts.map(d => `<option value="${d.code}">${d.code} ${d.name}</option>`).join('');
+}
+
+// 月定額 toggle
+function setNpQuota(isQuota) {
+  document.getElementById('np-quota').value = isQuota ? 'true' : 'false';
+  const tgl = document.getElementById('tgl-np-quota');
+  if (tgl) {
+    tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+      b.classList.toggle('on', i === (isQuota ? 0 : 1)));
+  }
+  // 里程實報時核定補助 disable
+  const sub = document.getElementById('np-subsidy');
+  if (sub) {
+    sub.disabled = !isQuota;
+    if (!isQuota) sub.value = '';
+  }
+}
+
+// 自動填充（目前僅作 placeholder）
+function npAutoFill() {}
+
+// 新增專案
+async function doAddProject() {
+  const id       = document.getElementById('np-id')?.value.trim();
+  const name     = document.getElementById('np-name')?.value.trim();
+  const deptCode = document.getElementById('np-dept')?.value;
+  const quota    = document.getElementById('np-quota')?.value === 'true';
+  const subsidy  = parseFloat(document.getElementById('np-subsidy')?.value) || 0;
+  const effect   = document.getElementById('np-effect')?.value;
+  const close    = document.getElementById('np-close')?.value;
+  const msg      = document.getElementById('npMsg');
+
+  if (!id || !name || !effect) {
+    if (msg) { msg.textContent = '⚠️ 請填寫專案 ID、名稱、生效日'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+
+  const btn = document.getElementById('btnAddProj');
+  if (btn) { btn.disabled = true; btn.textContent = '新增中...'; }
+  if (msg) msg.textContent = '';
+
+  try {
+    const res = await callGAS({
+      action: 'addProject',
+      id, name, quota, subsidy,
+      effectDate: effect,
+      closeDate:  close || '',
+      deptCode:   deptCode || '',
+      addedBy:    S.user?.name || '',
+    });
+    if (res.success) {
+      if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
+      // 清空表單
+      ['np-id','np-name','np-subsidy','np-effect','np-close'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('np-dept').value = '';
+      setNpQuota(true);
+      setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+      // 重新載入列表
+      loadProjectList(true);
+      // 更新 config 中的 projects
+      loadConfig();
+    } else {
+      if (msg) { msg.textContent = '❌ ' + (res.error || '新增失敗'); msg.style.color = 'var(--red)'; }
+    }
+  } catch(e) {
+    if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '＋ 新增'; }
+}
+
+// 載入專案列表
+async function loadProjectList(showToast) {
+  const tbody   = document.getElementById('projListTbl');
+  const syncEl  = document.getElementById('projListSyncDone');
+  const cntEl   = document.getElementById('projListCnt');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">載入中...</td></tr>';
+
+  try {
+    const res = await callGAS({ action: 'getProjects' });
+    const rows = res.rows || [];
+    if (cntEl) cntEl.textContent = rows.length + ' 筆';
+    renderProjectList(rows);
+    if (syncEl) { syncEl.style.display='inline'; setTimeout(()=>syncEl.style.display='none',2500); }
+    if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
+  } catch(e) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--red);padding:20px">❌ 載入失敗</td></tr>';
+    if (showToast) toast('❌ 載入失敗');
+  }
+}
+
+// 渲染專案列表（newest first，已由 GAS 排序）
+function renderProjectList(rows) {
+  const tbody = document.getElementById('projListTbl');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((p, i) => {
+    const quoteBadge = p.quota
+      ? '<span class="badge bd-blue">月定額</span>'
+      : '<span class="badge bd-muted">里程實報</span>';
+    const newTag = p._isNew
+      ? '<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>'
+      : '';
+    return `<tr id="prow-${i}">
+      <td style="font-weight:800;font-family:monospace">${p.id}${newTag}</td>
+      <td style="font-weight:700">${p.name}</td>
+      <td style="font-size:13px;color:var(--muted)">${p.deptCode||'—'}</td>
+      <td>${quoteBadge}</td>
+      <td class="mono" style="color:var(--gold)">${p.quota && p.subsidy ? '$'+p.subsidy.toLocaleString() : '—'}</td>
+      <td style="font-size:13px;color:var(--muted)">${p.effectDate||'—'}</td>
+      <td style="font-size:13px;color:var(--muted)">${p.closeDate||'—'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="doEditProject(${i})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="doDeleteProject('${p.id}','${esc(p.name)}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  // 存入 state 供 edit 讀取
+  S._projList = rows;
+}
+
+// 編輯：inline 展開編輯列
+function doEditProject(i) {
+  const p   = (S._projList || [])[i];
+  if (!p) return;
+  const tr  = document.getElementById('prow-'+i);
+  if (!tr) return;
+
+  // 若已是編輯模式，關閉
+  const next = tr.nextElementSibling;
+  if (next?.id === 'prow-edit-'+i) { next.remove(); return; }
+
+  const deptOpts = (S.config.departments || []).map(d =>
+    `<option value="${d.code}" ${d.code===p.deptCode?'selected':''}>${d.code} ${d.name}</option>`
+  ).join('');
+
+  const editTr = document.createElement('tr');
+  editTr.id = 'prow-edit-'+i;
+  editTr.style.background = 'rgba(37,99,235,.04)';
+  editTr.innerHTML = `<td colspan="8" style="padding:14px 16px">
+    <div class="fg4" style="margin-bottom:10px">
+      <div><label class="lbl">名稱</label>
+        <input class="inp" id="ep-name-${i}" value="${esc(p.name)}"></div>
+      <div><label class="lbl">隸屬部門</label>
+        <select class="inp" id="ep-dept-${i}">
+          <option value="">—</option>${deptOpts}
+        </select></div>
+      <div><label class="lbl">類型</label>
+        <div class="tgl" id="tgl-ep-quota-${i}">
+          <button class="tgl-btn ${p.quota?'on':''}"  onclick="setEpQuota(${i},true)">月定額</button>
+          <button class="tgl-btn ${p.quota?'':'on'}" onclick="setEpQuota(${i},false)">里程實報</button>
+        </div>
+        <input type="hidden" id="ep-quota-${i}" value="${p.quota?'true':'false'}"></div>
+      <div><label class="lbl">核定補助</label>
+        <input type="number" class="inp" id="ep-subsidy-${i}" value="${p.subsidy||''}"
+          ${p.quota?'':'disabled'}></div>
+    </div>
+    <div class="fg2" style="margin-bottom:10px">
+      <div><label class="lbl">生效日</label>
+        <input type="date" class="inp" id="ep-effect-${i}" value="${p.effectDate||''}"></div>
+      <div><label class="lbl">結案日</label>
+        <input type="date" class="inp" id="ep-close-${i}" value="${p.closeDate||''}"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="doSaveProject('${p.id}',${i})">💾 儲存</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('prow-edit-${i}')?.remove()">取消</button>
+      <span id="ep-msg-${i}" style="font-size:13px;margin-left:6px"></span>
+    </div>
+  </td>`;
+  tr.after(editTr);
+}
+
+function setEpQuota(i, isQuota) {
+  document.getElementById(`ep-quota-${i}`).value = isQuota ? 'true' : 'false';
+  const tgl = document.getElementById(`tgl-ep-quota-${i}`);
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
+    b.classList.toggle('on', j === (isQuota ? 0 : 1)));
+  const sub = document.getElementById(`ep-subsidy-${i}`);
+  if (sub) { sub.disabled = !isQuota; if (!isQuota) sub.value = ''; }
+}
+
+async function doSaveProject(id, i) {
+  const quota    = document.getElementById(`ep-quota-${i}`)?.value === 'true';
+  const payload  = {
+    action:     'updateProject',
+    id,
+    name:       document.getElementById(`ep-name-${i}`)?.value.trim()    || '',
+    deptCode:   document.getElementById(`ep-dept-${i}`)?.value            || '',
+    quota,
+    subsidy:    parseFloat(document.getElementById(`ep-subsidy-${i}`)?.value) || 0,
+    effectDate: document.getElementById(`ep-effect-${i}`)?.value          || '',
+    closeDate:  document.getElementById(`ep-close-${i}`)?.value           || '',
+  };
+  const msg = document.getElementById(`ep-msg-${i}`);
+  try {
+    const res = await callGAS(payload);
+    if (res.success) {
+      if (msg) { msg.textContent = '✅ 已儲存'; msg.style.color='var(--green)'; }
+      setTimeout(() => loadProjectList(false), 800);
+      loadConfig();
+    } else {
+      if (msg) { msg.textContent = '❌ ' + res.error; msg.style.color='var(--red)'; }
+    }
+  } catch(e) {
+    if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color='var(--red)'; }
+  }
+}
+
+async function doDeleteProject(id, name) {
+  // 確認 dialog
+  const confirmed = await showConfirm(
+    `確定刪除專案「${name}」（${id}）？\n刪除後無法復原，請確認已無申請人在使用此專案。`
+  );
+  if (!confirmed) return;
+  try {
+    const res = await callGAS({ action: 'deleteProject', id });
+    if (res.success) {
+      toast('✅ 已刪除專案：' + name);
+      loadProjectList(false);
+      loadConfig();
+    } else {
+      toast('❌ ' + (res.error || '刪除失敗'));
+    }
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+// 通用確認 dialog（Promise 版）
+function showConfirm(msg) {
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-wrap';
+    wrap.style.cssText = 'display:flex;z-index:9999';
+    wrap.innerHTML = `
+      <div class="modal-box" style="max-width:420px">
+        <div style="font-size:16px;font-weight:800;margin-bottom:12px">⚠️ 確認刪除</div>
+        <div style="font-size:15px;color:var(--text);margin-bottom:20px;white-space:pre-wrap">${msg}</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-danger" id="cfmOk" style="flex:1">確定刪除</button>
+          <button class="btn btn-ghost"  id="cfmNo" style="flex:1">取消</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector('#cfmOk').onclick = () => { wrap.remove(); resolve(true);  };
+    wrap.querySelector('#cfmNo').onclick = () => { wrap.remove(); resolve(false); };
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2417,51 +2760,28 @@ async function queryMaps(pid, i) {
   const dest   = document.getElementById(`a2e-${pid}-${i}`)?.value?.trim();
   if (!origin || !dest) { toast('⚠️ 請填入起點和終點'); return; }
 
-  const btn = document.getElementById(`a2mapbtn-${pid}-${i}`);
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spin"></div> 查詢中';
+  const resEl = document.getElementById(`a2km-result-${pid}-${i}`);
+  const kmEl  = document.getElementById(`a2km-${pid}-${i}`);
+  if (resEl) resEl.textContent = '查詢中...';
 
   try {
     const res = await callGAS({ action: 'getDistance', origin, dest });
     if (!res.success) throw new Error(res.error || 'GAS 查詢失敗');
 
     const { km, distText, duration } = res;
-
-    // ── 填入唯讀公里數欄位 ──────────────────────────────────
-    const kmEl = document.getElementById(`a2km-${pid}-${i}`);
     if (kmEl) kmEl.value = km;
 
-    // ── 結果 chip ──────────────────────────────────────────
-    const resEl = document.getElementById(`a2km-result-${pid}-${i}`);
+    const mapsLink = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}`;
     if (resEl) {
       resEl.innerHTML =
-        `<span class="km-result">📍 ${distText} · ⏱ ${duration} · <strong>${km} km</strong></span>` +
-        `<a href="https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}"` +
-        ` target="_blank" class="maps-link">↗ Maps</a>`;
+        `<span style="font-size:13px;font-weight:700">📍 ${distText}（${km} km）· ⏱ ${duration}</span>` +
+        `&nbsp;<a href="${mapsLink}" target="_blank" style="color:var(--accent);font-size:13px">↗ Maps</a>`;
     }
-
-    // ── 靜態地圖預覽（用連結取代圖片，避免 API key 外漏 & 破圖）────
-    const mapsLink = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}`;
-    const prevEl = document.getElementById(`a2map-prev-${pid}-${i}`);
-    const urlEl  = document.getElementById(`a2map-url-${pid}-${i}`);
-    if (prevEl) {
-      prevEl.classList.add('show');
-      prevEl.innerHTML = `<a href="${mapsLink}" target="_blank"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;
-               padding:14px;background:rgba(79,142,247,.07);color:var(--accent);
-               font-size:13px;font-weight:600;text-decoration:none;border-radius:8px">
-        🗺 在 Google Maps 開啟路線↗
-      </a>`;
-    }
-    if (urlEl) urlEl.value = mapsLink;   // 匯出時供 GAS 參考
-
     toast(`✅ 最短距離：${distText}（${km} km）`);
   } catch(e) {
+    if (resEl) resEl.textContent = '查詢失敗';
     toast('❌ Maps 查詢失敗：' + e.message);
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '🗺 查詢最短距離';
 }
 
 
