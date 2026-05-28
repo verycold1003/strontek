@@ -8,25 +8,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0f1117; --surface:#181c27; --surface2:#1e2333;
-  --border:#2a3045; --border2:#343d58;
-  --text:#e8ecf4; --muted:#6b7699;
-  --accent:#4f8ef7; --accent2:#7c5cfc;
-  --gold:#f5a623; --green:#34d399; --red:#f87171; --amber:#fbbf24;
-  --parking:#fb923c;
+  --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
+  --border:#d0d7e8; --border2:#b8c2d8;
+  --text:#1a2236; --muted:#5a6a8a;
+  --accent:#2563eb; --accent2:#7c3aed;
+  --gold:#b45309; --green:#15803d; --red:#dc2626; --amber:#d97706;
+  --parking:#c2410c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.6}
 .mono{font-family:'IBM Plex Mono',monospace}
 ::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-track{background:var(--surface2)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
 /* Layout */
 .shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
-.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column}
+.topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.sidebar{background:var(--surface);border-right:2px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;box-shadow:2px 0 8px rgba(0,0,0,.04)}
 .main-area{overflow-y:auto;padding:24px;background:var(--bg)}
 
 /* Logo */
@@ -34,39 +34,39 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .logo span{color:var(--gold)}
 
 /* Nav */
-.nav-sec{padding:8px 16px 4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
-.nav-item:hover{color:var(--text);background:rgba(79,142,247,.06)}
-.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(79,142,247,.1);font-weight:600}
-.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:10px;padding:1px 6px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
+.nav-sec{padding:8px 16px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:15px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{color:var(--text);background:rgba(37,99,235,.06)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(37,99,235,.08);font-weight:700}
+.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
 
 /* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.card-hd{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700}
-.card-bd{padding:18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-hd{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;background:var(--surface2)}
+.card-bd{padding:20px}
 
 /* Forms */
-.lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-.inp{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s}
-.inp:focus{border-color:var(--accent)}
-.inp:disabled{opacity:.5;cursor:not-allowed}
-select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%236b7699' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;-webkit-appearance:none;padding-right:28px}
+.lbl{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.inp{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:7px;padding:9px 13px;color:var(--text);font-size:15px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.inp:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)}
+select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%235a6a8a' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;-webkit-appearance:none;padding-right:28px;background-color:var(--surface)}
 .frow{margin-bottom:12px}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .fg4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-primary{background:var(--accent);color:white}.btn-primary:hover:not(:disabled){background:#6ba0f9}
-.btn-ghost{background:rgba(255,255,255,.06);color:var(--text)}.btn-ghost:hover{background:rgba(255,255,255,.1)}
-.btn-danger{background:rgba(248,113,113,.15);color:var(--red)}
-.btn-green{background:rgba(52,211,153,.15);color:var(--green)}
-.btn-gold{background:rgba(245,166,35,.15);color:var(--gold)}
-.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
-.btn-icon{padding:7px;border-radius:7px}
+.btn-primary{background:var(--accent);color:white;box-shadow:0 2px 6px rgba(37,99,235,.25)}.btn-primary:hover:not(:disabled){background:#1d4ed8}
+.btn-ghost{background:rgba(0,0,0,.06);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:rgba(0,0,0,.1)}
+.btn-danger{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.btn-green{background:rgba(21,128,61,.1);color:var(--green);border:1px solid rgba(21,128,61,.2)}
+.btn-gold{background:rgba(180,83,9,.1);color:var(--gold);border:1px solid rgba(180,83,9,.2)}
+.btn-sm{padding:6px 12px;font-size:13px;border-radius:6px}
+.btn-icon{padding:8px;border-radius:7px}
 .btn-full{width:100%}
 
 /* Toggles */
@@ -75,26 +75,26 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .tgl-btn.on{background:var(--accent);color:white}
 
 /* Badges */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
-.bd-blue{background:rgba(79,142,247,.15);color:var(--accent)}
-.bd-green{background:rgba(52,211,153,.15);color:var(--green)}
-.bd-red{background:rgba(248,113,113,.15);color:var(--red)}
-.bd-orange{background:rgba(251,146,60,.15);color:var(--parking)}
-.bd-purple{background:rgba(124,92,252,.15);color:var(--accent2)}
-.bd-muted{background:rgba(107,118,153,.15);color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.bd-blue{background:rgba(37,99,235,.12);color:#1e40af}
+.bd-green{background:rgba(21,128,61,.12);color:#14532d}
+.bd-red{background:rgba(220,38,38,.12);color:#991b1b}
+.bd-orange{background:rgba(194,65,12,.12);color:#9a3412}
+.bd-purple{background:rgba(124,58,237,.12);color:#5b21b6}
+.bd-muted{background:rgba(90,106,138,.12);color:var(--muted)}
 
 /* Table */
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)}
-.tbl td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.tbl th{padding:11px 14px;text-align:left;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border);background:var(--surface2)}
+.tbl td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl tr:hover td{background:rgba(37,99,235,.04)}
 
 /* Pages */
 .page{display:none}
 .page.active{display:block}
-.pg-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px}
-.pg-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.pg-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.pg-sub{font-size:14px;color:var(--muted);margin-bottom:22px}
 
 /* Drop zone */
 .dz{border:2px dashed var(--border2);border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(79,142,247,.02)}
@@ -219,13 +219,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   .topbar .logo{font-size:15px}
   #tbUser > div:last-child > #uDeptTitle{display:none}
   .main-area{padding:14px}
-  #page-upload > div[style*="grid-template-columns:1fr 340px"],
-  #page-ocr > div[style*="grid-template-columns:1fr 280px"],
-  #page-export > div[style*="grid-template-columns:1fr 280px"]{
-    display:flex!important;flex-direction:column!important;gap:14px!important;
-  }
+  /* right panel 已移除，無需 override */
   .fg2,.fg3,.fg4{grid-template-columns:1fr 1fr!important}
-  .rc-hd{grid-template-columns:24px 44px 1fr auto auto 16px!important;gap:8px}
+  .rc-hd{grid-template-columns:24px 1fr auto auto 16px!important;gap:8px}
 }
 </style>
 </head>
@@ -288,9 +284,22 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="nav-sec">作業流程</div>
     <div class="nav-item active" data-page="upload" onclick="nav('upload')">📤 <span>上傳憑證</span> <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
     <div class="nav-item" data-page="ocr" onclick="nav('ocr')">🤖 <span>OCR 辨識</span> <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
-    <div class="nav-item" data-page="export" onclick="nav('export')">📄 <span>整理匯出</span></div>
-    <div style="margin-top:auto;padding:16px;font-size:10px;color:var(--muted);line-height:1.8">
-      <div id="syncStatus">尚未同步</div>
+    <div class="nav-item" data-page="export" onclick="nav('export')">📄 <span>匯出 PDF</span></div>
+    <div class="nav-item" data-page="history" onclick="nav('history')">📋 <span>匯出紀錄</span></div>
+
+    <!-- 申請月份：作業流程與上傳憑證中間 -->
+    <div style="padding:10px 16px 4px">
+      <label class="lbl" style="margin-bottom:4px">申請月份</label>
+      <input type="month" class="inp" id="global-month" style="font-size:14px;padding:7px 10px"
+             onchange="onGlobalMonthChange(this.value)">
+    </div>
+
+    <div style="margin-top:auto;padding:12px 16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="syncStatus">尚未同步</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="syncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
+        <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
+      </div>
     </div>
   </div>
 
@@ -302,85 +311,58 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="pg-title">📤 上傳憑證</div>
       <div class="pg-sub">批次上傳照片至 Google Drive；每張照片可包含多張電子發票</div>
 
-      <div style="display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start">
-        <div>
-          <div class="card" style="margin-bottom:16px">
-            <div class="card-hd">📁 選擇檔案</div>
-            <div class="card-bd">
-              <input type="file" id="fileInput" multiple accept="image/*,application/pdf" style="display:none"
-                     onchange="onFilePick(this.files); this.value='';">
-              <div class="dz" id="dz" onclick="const fi=document.getElementById('fileInput'); fi.value=''; fi.click();">
-                <div style="font-size:38px;margin-bottom:10px">🖼️</div>
-                <div style="font-size:15px;font-weight:700">點擊或拖曳照片 / PDF</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:6px">每張照片可包含多張發票或油單<br>支援 JPG · PNG · WEBP · HEIC<br>PDF 自動逐頁轉 JPEG 再上傳</div>
-              </div>
-              <div id="fileList" style="margin-top:12px"></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card">
+          <div class="card-hd">📁 選擇檔案</div>
+          <div class="card-bd">
+            <input type="file" id="fileInput" multiple accept="image/*,application/pdf" style="display:none"
+                   onchange="onFilePick(this.files); this.value='';">
+            <div class="dz" id="dz" onclick="const fi=document.getElementById('fileInput'); fi.value=''; fi.click();">
+              <div style="font-size:38px;margin-bottom:10px">🖼️</div>
+              <div style="font-size:17px;font-weight:700">點擊或拖曳照片 / PDF</div>
+              <div style="font-size:14px;color:var(--muted);margin-top:6px">每張照片可包含多張發票或油單<br>支援 JPG · PNG · WEBP · HEIC<br>PDF 自動逐頁轉 JPEG 再上傳</div>
             </div>
-          </div>
-
-          <div class="card" id="upProgCard" style="display:none;margin-bottom:16px">
-            <div class="card-bd">
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span style="font-size:13px;font-weight:600">☁️ 上傳至 Google Drive</span>
-                <span class="mono" style="font-size:12px;color:var(--muted)" id="upProgTxt">0/0</span>
-              </div>
-              <div class="prog"><div class="prog-fill" id="upProgBar" style="width:0%"></div></div>
-              <div id="upProgFile" style="font-size:11px;color:var(--muted);margin-top:6px">—</div>
-            </div>
-          </div>
-
-          <div class="card" id="uploadedCard" style="display:none">
-            <div class="card-hd">
-              ✅ 已上傳至雲端
-              <span class="badge bd-green" id="uploadedCnt">0 個</span>
-            </div>
-            <div class="card-bd" style="padding:0">
-              <table class="tbl">
-                <thead><tr><th>檔名</th><th>大小</th><th>時間</th><th>Drive</th></tr></thead>
-                <tbody id="uploadedTbl"></tbody>
-              </table>
+            <div id="fileList" style="margin-top:12px"></div>
+            <!-- 上傳按鈕 left bottom -->
+            <div style="margin-top:14px">
+              <button class="btn btn-primary" id="btnUpload" onclick="doUpload()" disabled>☁️ 上傳至 Drive</button>
             </div>
           </div>
         </div>
 
-        <!-- Right panel -->
-        <div>
-          <div class="card" style="margin-bottom:16px">
-            <div class="card-hd">⚙️ 上傳設定</div>
-            <div class="card-bd">
-              <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="up-month"></div>
-              <div class="frow"><label class="lbl">申請人</label>
-                <div class="inp" id="up-person-display" style="background:rgba(255,255,255,.04);color:var(--muted);cursor:default;user-select:none;display:flex;align-items:center;gap:8px">
-                  <span id="up-person-name" style="color:var(--text);font-weight:600">—</span>
-                </div>
-                <input type="hidden" id="up-person" value="">
-              </div>
-              <button class="btn btn-primary btn-full" id="btnUpload" onclick="doUpload()" disabled>☁️ 上傳至 Drive</button>
+        <div class="card" id="upProgCard" style="display:none">
+          <div class="card-bd">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:700">☁️ 上傳至 Google Drive</span>
+              <span class="mono" style="font-size:13px;color:var(--muted)" id="upProgTxt">0/0</span>
             </div>
+            <div class="prog"><div class="prog-fill" id="upProgBar" style="width:0%"></div></div>
+            <div id="upProgFile" style="font-size:13px;color:var(--muted);margin-top:6px">—</div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card-hd">
-              📋 雲端憑證紀錄
-              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadDriveFiles()">🔄</button>
-            </div>
-            <div id="uploadDoneHint" style="display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(var(--accent-rgb,.4,.8,1),.08);border-bottom:1px solid var(--border);font-size:12px;color:var(--accent)">
-              ✅ 上傳完成，請勾選檔案後點「辨識勾選項目」
-            </div>
-            <div style="max-height:280px;overflow-y:auto">
-              <table class="tbl">
-                <thead>
-                  <tr>
-                    <th><div class="chkbox" id="chkAll" onclick="toggleAllDrive()"></div></th>
-                    <th>檔名</th><th style="min-width:90px;white-space:nowrap">日期</th>
-                  </tr>
-                </thead>
-                <tbody id="driveFileTbl"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">載入中...</td></tr></tbody>
-              </table>
-            </div>
-            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px">
-              <button class="btn btn-primary btn-sm" id="btnSendOCR" onclick="sendToOCR()" disabled>辨識勾選項目 →</button>
-            </div>
+        <div class="card" id="uploadedCard" style="display:none">
+          <div class="card-hd">
+            ✅ 已上傳至雲端
+            <span class="badge bd-green" id="uploadedCnt">0 個</span>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadDriveFiles()" title="重新載入雲端紀錄">🔄</button>
+          </div>
+          <div id="uploadDoneHint" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:rgba(37,99,235,.06);border-bottom:1px solid var(--border);font-size:14px;color:var(--accent)">
+            ✅ 上傳完成，請勾選檔案後點「辨識勾選項目」
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th><div class="chkbox" id="chkAll" onclick="toggleAllDrive()"></div></th>
+                  <th>檔名</th><th style="min-width:90px;white-space:nowrap">日期</th><th>Drive</th>
+                </tr>
+              </thead>
+              <tbody id="driveFileTbl"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr></tbody>
+            </table>
+          </div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" id="btnSendOCR" onclick="sendToOCR()" disabled>辨識勾選項目 →</button>
           </div>
         </div>
       </div>
@@ -389,7 +371,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <!-- PAGE: OCR -->
     <div class="page" id="page-ocr">
       <div class="pg-title">🤖 OCR 辨識</div>
-      <div class="pg-sub">Gemini AI 逐一辨識每張照片，每張可辨識出多張發票。完成後可調整歸屬專案與費用類別</div>
+      <div class="pg-sub">Gemini AI 逐一辨識每張照片，每張可辨識出多張發票。完成後依類別整理憑證</div>
 
       <div class="steps">
         <div class="step active" id="st1"><div class="step-n">1</div><span>加入佇列</span></div>
@@ -397,53 +379,55 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <div class="step" id="st3"><div class="step-n">3</div><span>確認結果</span></div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start">
-        <div>
-          <div class="card" style="margin-bottom:16px">
-            <div class="card-hd">
-              📥 辨識佇列
-              <span class="badge bd-blue" id="queueCnt">0 個</span>
-              <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-                <input type="month" class="inp" id="ocr-month" style="width:130px;padding:5px 10px;font-size:12px">
-                <button class="btn btn-ghost btn-sm" id="btnLoadOcr" onclick="loadOcrResults()">📥 從 Sheet 載入</button>
-                <button class="btn btn-ghost btn-sm" onclick="clearQueue()">清空佇列</button>
-                <button class="btn btn-primary btn-sm" id="btnOCR" onclick="runOCR()" disabled>▶ 開始辨識</button>
-              </div>
-            </div>
-            <div class="card-bd" id="queueList">
-              <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">從上傳頁面勾選雲端檔案，或直接拖曳照片到此</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="card-hd">
+            📥 辨識佇列
+            <span class="badge bd-blue" id="queueCnt">0 個</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <button class="btn btn-ghost btn-sm" id="btnLoadOcr" onclick="loadOcrResults()" title="從 Sheet 載入">🔄</button>
+              <span id="syncDoneOcr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
             </div>
           </div>
-
-          <div class="card" id="ocrProgCard" style="display:none;margin-bottom:16px">
-            <div class="card-bd">
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span style="font-size:13px;font-weight:600">🤖 Gemini 辨識中...</span>
-                <span class="mono" style="font-size:12px;color:var(--muted)" id="ocrProgTxt">0/0</span>
-              </div>
-              <div class="prog"><div class="prog-fill" id="ocrProgBar" style="width:0%"></div></div>
-              <div id="ocrProgFile" style="font-size:11px;color:var(--muted);margin-top:6px">—</div>
-            </div>
+          <div class="card-bd" id="queueList">
+            <div style="text-align:center;color:var(--muted);padding:20px;font-size:15px">從上傳頁面勾選雲端檔案，或直接拖曳照片到此</div>
           </div>
-
-          <div id="ocrResults"></div>
-          <div id="ocrDoneBar" style="display:none;margin-top:12px;gap:8px;align-items:center">
-            <div class="chkbox on" id="chkAllOcr" title="全選 / 全不選" onclick="toggleAllOcr()" style="flex-shrink:0"></div>
-            <span style="font-size:12px;color:var(--muted);margin-right:4px">全選</span>
-            <button class="btn btn-primary" id="btnGoExport" onclick="stashThenExport()">📄 前往整理匯出 →</button>
-            <button class="btn btn-gold" id="btnOcrStash" onclick="doStashAll()">💾 暫存</button>
-            <button class="btn btn-danger" id="btnDelSelected" onclick="delSelected()">🗑 刪除勾選</button>
+          <!-- 按鈕：left bottom -->
+          <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px">
+            <button class="btn btn-primary" id="btnOCR" onclick="runOCR()" disabled>▶ 開始辨識</button>
+            <button class="btn btn-ghost" onclick="clearQueue()">清空佇列</button>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-hd">📊 辨識統計</div>
-          <div class="card-bd" style="padding:0">
-            <div class="sum-row"><span>已辨識張數</span><span class="mono" id="s-count">0</span></div>
-            <div class="sum-row"><span>🅿️ 停車費</span><span class="mono" id="s-park">$0</span></div>
-            <div class="sum-row"><span>📄 其他費用</span><span class="mono" id="s-other">$0</span></div>
-            <div class="sum-row"><span style="font-weight:700;color:var(--gold)">合計</span><span class="mono" style="color:var(--gold)" id="s-total">$0</span></div>
+        <div class="card" id="ocrProgCard" style="display:none">
+          <div class="card-bd">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:700">🤖 Gemini 辨識中...</span>
+              <span class="mono" style="font-size:13px;color:var(--muted)" id="ocrProgTxt">0/0</span>
+            </div>
+            <div class="prog"><div class="prog-fill" id="ocrProgBar" style="width:0%"></div></div>
+            <div id="ocrProgFile" style="font-size:13px;color:var(--muted);margin-top:6px">—</div>
           </div>
+        </div>
+
+        <!-- 統計：佇列與結果中間 -->
+        <div id="ocrStatBar" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;display:none">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:14px;color:var(--muted)">已辨識 <strong id="s-count" style="color:var(--text)">0</strong> 張</span>
+            <span style="font-size:14px;color:var(--muted)">⛽ 油資 <strong id="s-fuel" style="color:var(--text)">$0</strong></span>
+            <span style="font-size:14px;color:var(--muted)">🅿️ 停車費 <strong id="s-park" style="color:var(--text)">$0</strong></span>
+            <span style="font-size:14px;color:var(--muted)">📄 其他 <strong id="s-other" style="color:var(--text)">$0</strong></span>
+            <span style="font-size:15px;font-weight:800;color:var(--gold);margin-left:auto">合計 <span id="s-total">$0</span></span>
+          </div>
+        </div>
+
+        <div id="ocrResults"></div>
+
+        <div id="ocrDoneBar" style="display:none;gap:10px;align-items:center;flex-wrap:wrap">
+          <div class="chkbox on" id="chkAllOcr" title="全選 / 全不選" onclick="toggleAllOcr()" style="flex-shrink:0"></div>
+          <span style="font-size:14px;color:var(--muted);margin-right:4px">全選</span>
+          <button class="btn btn-primary" id="btnGoExport" onclick="stashThenExport()">📄 匯出 Pdf →</button>
+          <button class="btn btn-danger" id="btnDelSelected" onclick="delSelected()">🗑 刪除勾選</button>
         </div>
       </div>
     </div>
@@ -453,59 +437,45 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="pg-title">📄 整理與匯出</div>
       <div class="pg-sub">依專案自動分組憑證，填寫附件欄位後匯出 PDF 至 Drive</div>
 
-      <div style="display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start">
-        <div id="expMain">
-          <div style="text-align:center;color:var(--muted);padding:60px;font-size:13px" id="expEmpty">
-            請先完成 OCR 辨識，結果將自動分群顯示於此
-          </div>
-          <!-- 全選列（有資料時顯示） -->
-          <div id="expSelBar" style="display:none;align-items:center;gap:10px;margin-bottom:12px">
-            <div class="sec-ck on" id="expSelAll" onclick="toggleAllSec()" title="全選／全不選">✓</div>
-            <span style="font-size:12px;color:var(--muted)">全選</span>
-            <span id="expSelCount" style="font-size:12px;color:var(--accent);font-weight:700"></span>
-          </div>
-          <!-- 附件區塊由 refreshExport() 填入 -->
+      <div id="expMain">
+        <div style="text-align:center;color:var(--muted);padding:60px;font-size:15px" id="expEmpty">
+          請先完成 OCR 辨識，結果將自動分群顯示於此
+        </div>
+        <!-- 全選列（有資料時顯示） -->
+        <div id="expSelBar" style="display:none;align-items:center;gap:10px;margin-bottom:12px">
+          <div class="sec-ck on" id="expSelAll" onclick="toggleAllSec()" title="全選／全不選">✓</div>
+          <span style="font-size:14px;color:var(--muted)">全選</span>
+          <span id="expSelCount" style="font-size:14px;color:var(--accent);font-weight:700"></span>
+        </div>
+        <!-- 附件區塊由 refreshExport() 填入 -->
 
-          <!-- 底部列印列 -->
-          <div class="print-bar" id="expPrintBar" style="display:none">
-            <span class="print-bar-info" id="expPrintInfo">已勾選 0 份</span>
-            <button class="btn btn-ghost" onclick="toggleAllSec()">☐ 全選／全不選</button>
-            <button class="btn btn-gold" onclick="doExportSelected()">🖨 列印勾選項目</button>
-            <button class="btn btn-gold" id="btnStashBar" onclick="doStashAll()">💾 暫存</button>
-            <button class="btn btn-primary" onclick="doExportAll()">✅ 全部匯出 PDF</button>
+        <!-- 底部列印列 -->
+        <div class="print-bar" id="expPrintBar" style="display:none">
+          <span class="print-bar-info" id="expPrintInfo">已勾選 0 份</span>
+          <button class="btn btn-ghost" onclick="toggleAllSec()">☐ 全選／全不選</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="btnExportSel" onclick="doExportSelected()">📄 匯出 Pdf →</button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div>
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-hd">📊 本次統計</div>
-            <div class="card-bd" style="padding:0">
-              <div class="sum-row"><span>憑證總數</span><span class="mono" id="es-cnt">0</span></div>
-              <div class="sum-row"><span>🅿️ 停車費</span><span class="mono" id="es-park">$0</span></div>
-              <div class="sum-row"><span>📄 其他費用</span><span class="mono" id="es-other">$0</span></div>
-              <div class="sum-row"><span class="sum-amt">總申請</span><span class="mono sum-amt" id="es-total">$0</span></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-hd">📤 匯出</div>
-            <div class="card-bd" style="display:flex;flex-direction:column;gap:10px">
-              <div class="frow"><label class="lbl">申請人確認</label>
-                <select class="inp" id="exp-person" onchange="loadDriveFiles();loadExportHistory()"><option value="">— 請選擇 —</option></select>
-              </div>
-              <div class="frow"><label class="lbl">申請月份</label><input type="month" class="inp" id="exp-month" onchange="syncOcrMonth(this.value)"></div>
-              <button class="btn btn-ghost btn-full" id="btnExpLoad" onclick="loadOcrResults(false, true)">📥 從 Sheet 載入</button>
-              <button class="btn btn-ghost btn-full" onclick="refreshExport()">🔄 重新整理分群</button>
-              <!-- PDF 產生結果清單 -->
-              <div id="pdfResultCard" style="display:none;margin-top:4px">
-                <div class="card">
-                  <div class="card-hd" style="font-size:12px">📄 已產生 PDF <span id="pdfResultCnt" style="font-size:12px;color:var(--muted);font-weight:400"></span></div>
-                  <div class="card-bd" style="padding:0">
-                    <table class="tbl" id="pdfResultTbl"></table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- PAGE: HISTORY (匯出紀錄) -->
+    <div class="page" id="page-history">
+      <div class="pg-title">📋 匯出紀錄</div>
+      <div class="pg-sub">本月已產生的 PDF 附件清單</div>
+      <div class="card">
+        <div class="card-hd">
+          📄 已產生 PDF
+          <span class="badge bd-muted" id="histCnt" style="margin-left:6px"></span>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadExportHistory(true)" title="重新從 ExportHistory 載入">🔄</button>
+          <span id="histSyncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none;margin-left:6px">✅ 同步完成</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl" id="histTbl">
+            <thead><tr><th>附件</th><th>匯出時間</th><th>專案</th><th></th></tr></thead>
+            <tbody id="histTblBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px">點 🔄 載入此月紀錄</td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -537,7 +507,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbx3cQMDpX8k_RyAdEd2X3Ro6juWzIKe-2g1XYAp-zEO9p6im-30FmpV0qpeaJHtAMJO/exec'
 };
 
 // ════════════════════════════════════════════════════════════
@@ -545,7 +515,7 @@ const CFG = {
 // ════════════════════════════════════════════════════════════
 const S = {
   user: null,
-  config: { persons:[], departments:[], projects:[], mileageRates:[], userDept:'' },
+  config: { persons:[], departments:[], projects:[], mileageRates:[], userDept:'', userDeptCode:'' },
   pendingFiles: [],
   driveFiles: [],
   ocrQueue: [],
@@ -580,9 +550,7 @@ function getMileageRate(yearMonth) {
 // ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   const ym = new Date().toISOString().slice(0,7);
-  document.getElementById('up-month').value   = ym;
-  document.getElementById('ocr-month').value  = ym;
-  document.getElementById('exp-month').value  = ym;
+  document.getElementById('global-month').value = ym;
 
   const dz = document.getElementById('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
@@ -749,12 +717,15 @@ async function loadConfig() {
     const res = await callGAS({ action:'getConfig', lineId: S.user?.lineId || '' });
     if (res.success) {
       S.config = res.data;
+      S.config.userDeptCode = res.data.userDeptCode || '';
       // 部門 fallback：Departments 無資料時，用 Persons 裡的部門
       if (!S.config.departments || !S.config.departments.length) {
         const fallbackDept = res.data.userDept || S.user?.dept || '';
-        S.config.departments = fallbackDept ? [fallbackDept] : [];
+        S.config.departments = fallbackDept ? [{ code: fallbackDept, name: fallbackDept }] : [];
       }
       log('✅ 同步完成 ' + now());
+      const syncDone = document.getElementById('syncDone');
+      if (syncDone) { syncDone.style.display = 'inline'; setTimeout(() => syncDone.style.display='none', 3000); }
     } else {
       throw new Error(res.error);
     }
@@ -763,26 +734,24 @@ async function loadConfig() {
   }
   if (S.user) renderUserBar();
   populateSelects();
-  loadDriveFiles(); // 人/月欄位填好後才載入，確保過濾正確
+  loadDriveFiles();
 }
 
 function populateSelects() {
-  const ps = S.config.persons;
+  // 上傳頁：申請人從 S.user 自動帶入（hidden input 留著供 doUpload 使用）
+  const upHidden = document.getElementById('up-person');
+  if (upHidden && S.user) upHidden.value = S.user.name;
+}
 
-  const upHidden  = document.getElementById('up-person');
-  const upDisplay = document.getElementById('up-person-name');
-  if (upHidden && upDisplay && S.user) {
-    upHidden.value = S.user.name;
-    const p = ps.find(x => x.name === S.user.name);
-    upDisplay.textContent = p ? `${p.name}（${p.dept}）` : S.user.name;
-  }
+// 全域月份變更：同步到各頁
+function onGlobalMonthChange(val) {
+  loadDriveFiles();
+  loadExportHistory(false);
+}
 
-  const expPerson = document.getElementById('exp-person');
-  if (expPerson) {
-    const cur = expPerson.value;
-    expPerson.innerHTML = '<option value="">— 請選擇 —</option>' +
-      ps.map(p => `<option value="${p.name}" ${p.name === (S.user?.name||cur) ? 'selected' : ''}>${p.name}（${p.dept}）</option>`).join('');
-  }
+// 🔄 重新從 Sheet 載入所有資料
+function doReloadAll() {
+  loadConfig();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -841,8 +810,8 @@ function removePending(i) {
 }
 
 async function doUpload() {
-  const person = document.getElementById('up-person').value;
-  const month  = document.getElementById('up-month').value;
+  const person = document.getElementById('up-person').value || S.user?.name || '';
+  const month  = document.getElementById('global-month').value;
   if (!S.pendingFiles.length) { toast('⚠️ 請先選擇檔案'); return; }
   if (!person) { toast('⚠️ 請選擇申請人'); return; }
 
@@ -911,27 +880,19 @@ async function doUpload() {
 }
 
 function renderUploadedList(files) {
-  document.getElementById('uploadedCard').style.display='block';
-  document.getElementById('uploadedCnt').textContent=files.length+' 個';
-  document.getElementById('uploadedTbl').innerHTML = files.map((f,i) =>
-    `<tr><td style="font-size:12px">${f.name}</td><td class="mono" style="font-size:11px">${f.size}</td>
-     <td style="font-size:11px;color:var(--muted)">${f.time}</td>
-     <td><a href="${f.url}" target="_blank" style="color:var(--accent);font-size:12px">開啟↗</a></td></tr>`
-  ).join('');
-  // 提示使用者從雲端憑證紀錄勾選送辨識
+  // 上傳完成後顯示提示，實際清單由 loadDriveFiles → renderDriveFiles 渲染
   const hint = document.getElementById('uploadDoneHint');
   if (hint) hint.style.display = 'flex';
+  // 將本次新上傳標記為「新產生」，供 renderDriveFiles 識別
+  S._newUploadedNames = new Set(files.map(f => f.name));
 }
 
 // ════════════════════════════════════════════════════════════
 // DRIVE FILES
 // ════════════════════════════════════════════════════════════
 async function loadDriveFiles() {
-  // 優先讀上傳頁的申請人/月份，fallback 到整理匯出頁
-  const person = document.getElementById('up-person')?.value
-              || document.getElementById('exp-person')?.value || '';
-  const month  = document.getElementById('up-month')?.value
-              || document.getElementById('exp-month')?.value  || '';
+  const person = S.user?.name || '';
+  const month  = document.getElementById('global-month')?.value || '';
   toast('⏳ 載入雲端憑證中…');
   try {
     const res = await callGAS({ action:'listFiles', person, month });
@@ -944,17 +905,33 @@ async function loadDriveFiles() {
 }
 
 function renderDriveFiles() {
-  document.getElementById('driveFileTbl').innerHTML = S.driveFiles.map((f,i) => `
-    <tr>
-      <td><div class="chkbox" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
-      <td style="font-size:12px">${f.name}</td>
-      <td style="font-size:11px;color:var(--muted);white-space:nowrap">${f.date}</td>
-    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">尚無紀錄</td></tr>';
+  const newNames = S._newUploadedNames || new Set();
+  const sorted   = [...S.driveFiles].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  S._driveFilesSorted = sorted;
+
+  document.getElementById('driveFileTbl').innerHTML = sorted.map((f, i) => {
+    const isNew  = newNames.has(f.name);
+    const newTag = isNew
+      ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">新產生</span>`
+      : '';
+    return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
+      <td style="width:36px"><div class="chkbox" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
+      <td style="font-size:14px">${f.name}${newTag}</td>
+      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
+      <td><a href="${f.url||'#'}" target="_blank" style="color:var(--accent);font-size:13px;font-weight:700">↗</a></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">尚無紀錄</td></tr>';
+
+  if (S.driveFiles.length) {
+    document.getElementById('uploadedCard').style.display = 'block';
+    document.getElementById('uploadedCnt').textContent = S.driveFiles.length + ' 個';
+  }
 }
 
 function toggleDriveChk(i) {
   document.getElementById('dc-'+i)?.classList.toggle('on');
-  const any = S.driveFiles.some((_,j) => document.getElementById('dc-'+j)?.classList.contains('on'));
+  const files = S._driveFilesSorted || S.driveFiles;
+  const any = files.some((_,j) => document.getElementById('dc-'+j)?.classList.contains('on'));
   document.getElementById('btnSendOCR').disabled = !any;
 }
 
@@ -962,7 +939,8 @@ function toggleAllDrive() {
   const box     = document.getElementById('chkAll');
   box.classList.toggle('on');
   const checked = box.classList.contains('on');
-  S.driveFiles.forEach((_,i) => {
+  const files   = S._driveFilesSorted || S.driveFiles;
+  files.forEach((_,i) => {
     const b = document.getElementById('dc-'+i);
     if (b) { if(checked) b.classList.add('on'); else b.classList.remove('on'); }
   });
@@ -970,16 +948,15 @@ function toggleAllDrive() {
 }
 
 function sendToOCR() {
-  const sel = S.driveFiles.filter((_,i) => document.getElementById('dc-'+i)?.classList.contains('on'));
+  const files = S._driveFilesSorted || S.driveFiles;
+  const sel   = files.filter((_,i) => document.getElementById('dc-'+i)?.classList.contains('on'));
   if (!sel.length) { toast('⚠️ 請先勾選檔案'); return; }
 
-  // ── 清空佇列再加入（避免重複堆疊）──
   clearQueue();
   sel.forEach(f => addQueue(f));
 
-  // ── 清空所有勾選 ──
   document.getElementById('chkAll')?.classList.remove('on');
-  S.driveFiles.forEach((_,i) => document.getElementById('dc-'+i)?.classList.remove('on'));
+  files.forEach((_,i) => document.getElementById('dc-'+i)?.classList.remove('on'));
   document.getElementById('btnSendOCR').disabled = true;
 
   nav('ocr');
@@ -1002,42 +979,19 @@ function setQueueAttribution(i, val) {
 }
 
 function renderQueue() {
-  document.getElementById('queueCnt').textContent = S.ocrQueue.length+' 個';
+  document.getElementById('queueCnt').textContent = S.ocrQueue.length + ' 個';
   const c = document.getElementById('queueList');
   if (!S.ocrQueue.length) {
-    c.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">佇列為空</div>'; return;
+    c.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:15px">佇列為空</div>';
+    return;
   }
-  // 歸屬類型選項：專案清單 + 部門清單 + 其他
-  function qAttrOpts(f) {
-    let opts = `<option value="project">🗂 專案</option>`;
-    if (S.config.projects.length) {
-      S.config.projects.forEach(p => {
-        const sel = f.qAttribution === 'proj:' + p.id ? 'selected' : '';
-        opts += `<option value="proj:${p.id}" ${sel}>${p.name}</option>`;
-      });
-    }
-    if (S.config.departments.length) {
-      S.config.departments.forEach(d => {
-        const sel = f.qAttribution === 'dept:' + d ? 'selected' : '';
-        opts += `<option value="dept:${d}" ${sel}>🏢 ${d}</option>`;
-      });
-    }
-    opts += `<option value="other" ${f.qAttribution==='other'?'selected':''}>📋 其他</option>`;
-    return opts;
-  }
-
-  c.innerHTML = S.ocrQueue.map((f,i) => `
-    <div class="file-item" style="flex-wrap:wrap;gap:8px">
-      <div style="font-size:20px">🖼️</div>
+  c.innerHTML = S.ocrQueue.map((f, i) => `
+    <div class="file-item" style="gap:10px">
+      <div style="font-size:22px">🖼️</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
+        <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
-          f.status==='done'?'✅ 完成':f.status==='error'?'❌ 失敗':'⏳ 待辨識'}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;min-width:0">
-        <label class="lbl" style="margin:0;white-space:nowrap">此檔歸屬</label>
-        <select class="inp" style="min-width:130px;padding:4px 24px 4px 8px;font-size:12px"
-          onchange="setQueueAttribution(${i},this.value)">${qAttrOpts(f)}</select>
+          f.status==='done' ? '✅ 完成' : f.status==='error' ? '❌ 失敗' : '⏳ 待辨識'}</span>
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeQueue(${i})">✕</button>
     </div>`).join('');
@@ -1089,7 +1043,7 @@ async function runOCR() {
       items.forEach((item, idx) => {
         const id = `${qf.id}_${idx}`;
         if (!S.receipts.find(r => r.id===id)) {
-          const rec = mkReceipt(id, qf, item, idx);
+          const rec = mkReceipt(id, qf, item, idx, true);
           // 套用佇列指定的歸屬
           rec.attribution = attribution;
           if (attribution === 'project') rec.projectId = attributionTarget;
@@ -1145,149 +1099,450 @@ async function runOCR() {
   }
 }
 
-function mkReceipt(id, qf, item, idx) {
+function mkReceipt(id, qf, item, idx, isNew) {
   return {
-    id, source:qf.name, idx,
-    status:'done',
-    category: detectCat(item),
-    attribution:'project',
-    projectId:'', dept: S.user?.dept||'',
+    id, source: qf.name, idx,
+    status:    'done',
+    category:  detectCat(item),
+    projectId: '', dept: S.config.userDeptCode || S.user?.dept || '',
     vendor:    item.vendor || item.merchant || '（未辨識）',
     amount:    parseFloat(item.amount || item.total || 0),
-    date:      item.date || '',
+    date:      item.date      || '',
     invoiceNo: item.invoiceNo || '',
-    ocrKey:    item.key || '',
-    notes:     item.notes || '',
-    error:     null,
+    ocrKey:    item.key       || '',
+    notes:     item.notes     || '',
+    parkAttr:  '',       // 停車費歸屬（填後存代碼）
+    parkReason:'',       // 停車事由
+    fieldRows: [],       // 外勤紀錄（里程實報）
+    _isNew:    !!isNew,
     _isDuplicate:    item.isDuplicate    || false,
     _duplicateOfKey: item.duplicateOfKey || '',
     _tempKey:        item.isDuplicate ? (item.key || '') : '',
-    editData:{ startPoint:'', endPoint:'', km:'', reason:'', isRoundTrip:true }
   };
 }
 
 function detectCat(item) {
-  return /停車|parking|car park|車位|泊/i.test(JSON.stringify(item)) ? 'parking' : 'other';
+  const s = JSON.stringify(item);
+  if (/停車|parking|car park|車位|泊/i.test(s))           return 'parking';
+  if (/fuel|油資|加油|中油|台塑油|汽油|柴油/i.test(s))    return 'fuel';
+  return 'other';
 }
 
 // ════════════════════════════════════════════════════════════
-// OCR RESULTS RENDER
+// OCR RESULTS RENDER  （tab：油資 / 停車費 / 其他）
 // ════════════════════════════════════════════════════════════
+let _ocrTab = 'fuel'; // 目前 active tab
+
 function renderOCRResults() {
   const c = document.getElementById('ocrResults');
-  // incremental: 只 append 尚未渲染的 receipt
-  S.receipts.forEach(r => {
-    if (!document.getElementById('rc-'+r.id)) {
-      const div = document.createElement('div');
-      div.innerHTML = rcHTML(r);
-      c.appendChild(div.firstElementChild);
-    }
+  if (!S.receipts.length) { c.innerHTML = ''; updateStats(); return; }
+
+  // 依類別分組，每組 newest 排序（date 降序，date 相同則 _isNew 優先）
+  const sorted = [...S.receipts].sort((a, b) => {
+    if (a._isNew !== b._isNew) return a._isNew ? -1 : 1;
+    return (b.date || '').localeCompare(a.date || '');
   });
+  const tabs = {
+    fuel:    sorted.filter(r => r.category === 'fuel'),
+    parking: sorted.filter(r => r.category === 'parking'),
+    other:   sorted.filter(r => r.category !== 'fuel' && r.category !== 'parking'),
+  };
+
+  // 確認目前 tab 有資料，否則退到有資料的 tab
+  if (!tabs[_ocrTab]?.length) {
+    _ocrTab = tabs.fuel.length ? 'fuel' : tabs.parking.length ? 'parking' : 'other';
+  }
+
+  const fuelAmt = tabs.fuel.reduce((s, r) => s + r.amount, 0);
+  const parkAmt = tabs.parking.reduce((s, r) => s + r.amount, 0);
+  const otherAmt= tabs.other.reduce((s, r) => s + r.amount, 0);
+
+  const tabBtn = (key, icon, label, cnt, amt) => {
+    const active = _ocrTab === key;
+    return `<button onclick="switchOcrTab('${key}')" style="
+      flex:1;padding:10px 8px;border:2px solid ${active?'var(--accent)':'var(--border)'};
+      border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
+      cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
+      <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${cnt} 張 <strong style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong></div>
+    </button>`;
+  };
+
+  const tabHtml = `
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      ${tabBtn('fuel',    '⛽', '油資',   tabs.fuel.length,    fuelAmt)}
+      ${tabBtn('parking', '🅿️', '停車費', tabs.parking.length, parkAmt)}
+      ${tabBtn('other',   '📄', '其他',   tabs.other.length,   otherAmt)}
+    </div>`;
+
+  // 渲染當前 tab 的 receipts
+  const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
+
+  c.innerHTML = tabHtml + (listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`);
+
+  updateStats();
   badge('nb-ocr', S.receipts.length);
+  const doneBar = document.getElementById('ocrDoneBar');
+  if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:10px;flex-wrap:wrap;align-items:center';
+}
+
+function switchOcrTab(tab) {
+  _ocrTab = tab;
+  renderOCRResults();
 }
 
 function rcHTML(r) {
-  const proj = S.config.projects.find(p => p.id===r.projectId);
+  const isNew = !!r._isNew;
+  const newTag = isNew
+    ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:4px">新產生</span>`
+    : '';
 
-  // 歸屬專案選項（來自 S.config.projects，已經過 GAS 過濾生效中專案）
-  const projOpts = S.config.projects.length
-    ? S.config.projects.map(p =>
-        `<option value="${p.id}" ${p.id===r.projectId?'selected':''}>${p.name}${p.quota?'（月定額）':'（里程）'}</option>`
-      ).join('')
-    : '<option value="" disabled>尚無生效專案</option>';
+  const catBadge = r.category === 'parking'
+    ? `<span class="badge bd-orange">🅿️ 停車費</span>`
+    : r.category === 'fuel'
+      ? `<span class="badge bd-blue">⛽ 油資</span>`
+      : `<span class="badge bd-muted">📄 其他</span>`;
+  const dupBadge = r._isDuplicate
+    ? `<span class="badge bd-red" title="發票號碼重複">⚠️ 重複</span>` : '';
 
-  // 歸屬部門選項（來自 Departments 可顯示 + fallback Persons 部門）
-  const deptOpts = S.config.departments.length
-    ? S.config.departments.map(d =>
-        `<option value="${d}" ${d===r.dept?'selected':''}>${d}</option>`
-      ).join('')
-    : '<option value="" disabled>尚無部門資料</option>';
+  // datalist：同部門專案（代碼+名稱），最近3筆優先
+  const myDeptCode = S.config.userDeptCode || S.config.userDept || '';
+  const sameDeptProjects = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode);
+  const recentIds = (S._recentProjIds || []).slice(0, 3);
+  const sortedProjs = [
+    ...sameDeptProjects.filter(p => recentIds.includes(p.id)),
+    ...sameDeptProjects.filter(p => !recentIds.includes(p.id)),
+  ];
+  const dlId = `dl-proj-${r.id}`;
+  const projDL = `<datalist id="${dlId}">${
+    sortedProjs.map(p => `<option value="${p.id} ${p.name}">${p.quota ? '月定額' : '里程'}</option>`).join('')
+  }</datalist>`;
 
-  const catBadge  = r.category==='parking' ? `<span class="badge bd-orange">🅿️ 停車費</span>` : `<span class="badge bd-blue">📄 其他</span>`;
-  const dupBadge  = r._isDuplicate ? `<span class="badge bd-red" title="發票號碼重複，暫用流水號 ${r._tempKey}">⚠️ 重複發票</span>` : '';
-  const attrLabel = r.attribution==='project' ? (proj?proj.name:'未選') : r.attribution==='dept' ? r.dept : '其他';
+  // 部門 datalist
+  const deptDlId = `dl-dept-${r.id}`;
+  const deptDL = `<datalist id="${deptDlId}">${
+    (S.config.departments || []).map(d => `<option value="${d.code}">${d.name}</option>`).join('')
+  }<option value="其他">其他</option></datalist>`;
 
-  return `<div class="rc sel" id="rc-${r.id}">
-    <div class="rc-hd" onclick="toggleRC('${r.id}')">
-      <div class="chkbox on" id="rck-${r.id}" onclick="event.stopPropagation();this.classList.toggle('on');syncAllOcrChk()"></div>
-      <div class="rc-thumb">🖼️</div>
+  // 停車費：歸屬顯示框（datalist 選專案/部門/其他）
+  const parkAttrVal = r.parkAttr || '';
+  const parkAttrDlId = `dl-pkattr-${r.id}`;
+  const parkAttrDL = `<datalist id="${parkAttrDlId}">
+    ${sortedProjs.map(p => `<option value="${p.id} ${p.name}"></option>`).join('')}
+    ${(S.config.departments||[]).map(d=>`<option value="${d.code}"></option>`).join('')}
+    <option value="其他"></option>
+  </datalist>`;
+
+  const isPark  = r.category === 'parking';
+  const isFuel  = r.category === 'fuel';
+
+  // 油資：已選專案顯示核定補助或「里程實報」
+  const fuelProjDisplay = (() => {
+    if (!isFuel || !r.projectId) return '';
+    const p = S.config.projects.find(x => x.id === r.projectId);
+    if (!p) return '';
+    if (p.quota) return `<div style="font-size:13px;color:var(--green);margin-top:6px">核定補助 <strong>$${p.subsidy.toLocaleString()}</strong>/月</div>`;
+    return `<div style="font-size:13px;color:var(--accent);margin-top:6px">里程實報制</div>`;
+  })();
+
+  return `<div class="rc ${isNew?'rc-new':''}" id="rc-${r.id}" style="
+    border:1px solid var(--border);border-radius:10px;margin-bottom:10px;
+    overflow:hidden;background:var(--surface);
+    ${isNew?'box-shadow:0 0 0 2px rgba(21,128,61,.25)':''}">
+
+    <!-- Header -->
+    <div class="rc-hd" onclick="toggleRC('${r.id}')" style="
+      display:grid;grid-template-columns:28px 1fr auto auto auto;
+      gap:10px;align-items:center;padding:12px 14px;cursor:pointer;
+      background:var(--surface2)">
+      <div class="chkbox on" id="rck-${r.id}"
+        onclick="event.stopPropagation();this.classList.toggle('on');syncAllOcrChk()"></div>
       <div style="min-width:0">
-        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.vendor}</div>
-        <div style="font-size:11px;color:var(--muted)">${r.source}${r.idx>0?' [第'+r.idx+'張]':''} · ${r.date}</div>
+        <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${r.vendor}${newTag}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${r.source || ''}${r.idx > 0 ? ' [第'+r.idx+'張]' : ''} · ${r.date || ''}</div>
         <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${catBadge}${dupBadge}</div>
       </div>
-      <div style="text-align:center;min-width:80px;font-size:12px">
-        <div style="color:var(--muted);font-size:10px">歸屬</div>
-        <div style="font-weight:600">${attrLabel}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="mono" style="font-size:16px;font-weight:700;color:var(--gold)">$${r.amount.toLocaleString()}</div>
-        <div style="font-size:11px;color:var(--muted)">${r.invoiceNo||'—'}</div>
-      </div>
-      <button class="btn btn-danger btn-sm btn-icon" title="刪除" onclick="event.stopPropagation();delR('${r.id}')" style="padding:5px 8px;font-size:13px">🗑</button>
-      <div style="color:var(--muted);font-size:12px" class="rc-chev">▼</div>
+      <div class="mono" style="font-size:17px;font-weight:800;color:var(--gold)">$${r.amount.toLocaleString()}</div>
+      <div style="font-size:12px;color:var(--muted)">${r.invoiceNo || '—'}</div>
+      <div class="rc-chev" style="color:var(--muted);font-size:13px">▼</div>
     </div>
+
+    <!-- Body -->
     <div class="rc-body" id="rcb-${r.id}">
-      <div class="fg4" style="margin-bottom:12px">
-        <div><label class="lbl">廠商</label><input class="inp" value="${r.vendor}" onchange="upR('${r.id}','vendor',this.value)"></div>
-        <div><label class="lbl">金額</label><input type="number" class="inp" value="${r.amount}" onchange="upR('${r.id}','amount',+this.value);updateStats()"></div>
-        <div><label class="lbl">日期</label><input type="date" class="inp" value="${r.date}" onchange="upR('${r.id}','date',this.value)"></div>
-        <div><label class="lbl">發票號碼</label><input class="inp" value="${r.invoiceNo}" onchange="upR('${r.id}','invoiceNo',this.value)"></div>
-      </div>
+      <div style="padding:14px">
+        <!-- 基本欄位 -->
+        <div class="fg4" style="margin-bottom:12px">
+          <div><label class="lbl">廠商</label>
+            <input class="inp" value="${esc(r.vendor)}"
+              onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
+          <div><label class="lbl">金額</label>
+            <input type="number" class="inp" value="${r.amount}"
+              onchange="upR('${r.id}','amount',+this.value);updateStats();stashSingle('${r.id}')"></div>
+          <div><label class="lbl">日期</label>
+            <input type="date" class="inp" value="${r.date || ''}"
+              onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
+          <div><label class="lbl">發票號碼</label>
+            <input class="inp" value="${esc(r.invoiceNo)}"
+              onchange="upR('${r.id}','invoiceNo',this.value);stashSingle('${r.id}')"></div>
+        </div>
 
-      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-        <div>
-          <label class="lbl">費用類型</label>
-          <div class="tgl" style="width:200px" id="tgl-cat-${r.id}">
-            <button class="tgl-btn ${r.category==='other'?'on':''}" onclick="setCat('${r.id}','other')">📄 其他</button>
-            <button class="tgl-btn ${r.category==='parking'?'on':''}" onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
+        <!-- 費用類別 -->
+        <div style="margin-bottom:12px">
+          <label class="lbl">費用類別</label>
+          <div class="tgl" style="width:280px" id="tgl-cat-${r.id}">
+            <button class="tgl-btn ${isFuel?'on':''}"    onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
+            <button class="tgl-btn ${isPark?'on':''}"    onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
+            <button class="tgl-btn ${!isFuel&&!isPark?'on':''}" onclick="setCat('${r.id}','other')">📄 其他</button>
           </div>
         </div>
-        <div>
-          <label class="lbl">歸屬類型</label>
-          <div class="tgl" style="width:270px" id="tgl-attr-${r.id}">
-            <button class="tgl-btn ${r.attribution==='project'?'on':''}" onclick="setAttr('${r.id}','project')">🗂 專案</button>
-            <button class="tgl-btn ${r.attribution==='dept'?'on':''}" onclick="setAttr('${r.id}','dept')">🏢 部門</button>
-            <button class="tgl-btn ${r.attribution==='other'?'on':''}" onclick="setAttr('${r.id}','other')">📋 其他</button>
+
+        <!-- 停車費：歸屬框 -->
+        <div id="pf-park-${r.id}" style="${isPark?'':'display:none'};margin-bottom:12px">
+          <label class="lbl">停車費歸屬（專案代碼/部門代碼/其他）</label>
+          ${parkAttrDL}
+          <input class="inp" id="inp-pkattr-${r.id}" list="${parkAttrDlId}"
+            value="${esc(parkAttrVal)}" placeholder="輸入專案代碼、部門代碼或「其他」"
+            onchange="upR('${r.id}','parkAttr',this.value);stashSingle('${r.id}')">
+          <div style="margin-top:6px">
+            <label class="lbl">停車事由</label>
+            <input class="inp" id="inp-pkrsn-${r.id}" value="${esc(r.parkReason||'')}"
+              placeholder="請說明與公務的關聯"
+              onchange="upR('${r.id}','parkReason',this.value);stashSingle('${r.id}')">
           </div>
         </div>
-      </div>
 
-      <div class="fg2" style="margin-bottom:12px">
-        <div id="pf-proj-${r.id}" style="${r.attribution!=='project'?'display:none':''}">
-          <label class="lbl">歸屬專案</label>
-          <select class="inp" onchange="upR('${r.id}','projectId',this.value);updateStats()">
-            <option value="">— 選擇 —</option>${projOpts}
-          </select>
+        <!-- 油資：選擇專案 -->
+        <div id="pf-fuel-${r.id}" style="${isFuel?'':'display:none'};margin-bottom:12px">
+          ${projDL}
+          <label class="lbl">選擇專案</label>
+          <input class="inp" id="inp-fuelproj-${r.id}" list="${dlId}"
+            value="${r.projectId ? (r.projectId + ' ' + (S.config.projects.find(p=>p.id===r.projectId)?.name||'')) : ''}"
+            placeholder="輸入專案代碼或名稱篩選"
+            oninput="onFuelProjInput('${r.id}',this.value)"
+            onchange="onFuelProjInput('${r.id}',this.value)">
+          <div id="fp-extra-${r.id}">${fuelProjDisplay}</div>
+          <!-- 里程實報：外勤紀錄 -->
+          <div id="fp-fieldrows-${r.id}" style="display:none;margin-top:10px">
+            <div id="fp-fr-list-${r.id}"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:6px"
+              onclick="addFieldRow('${r.id}')">＋ 新增外勤紀錄</button>
+          </div>
         </div>
-        <div id="pf-dept-${r.id}" style="${r.attribution!=='dept'?'display:none':''}">
+
+        <!-- 其他：歸屬部門 -->
+        <div id="pf-other-${r.id}" style="${!isFuel&&!isPark?'':'display:none'};margin-bottom:12px">
+          ${deptDL}
           <label class="lbl">歸屬部門</label>
-          <select class="inp" onchange="upR('${r.id}','dept',this.value)">
-            <option value="">— 選擇 —</option>${deptOpts}
-          </select>
+          <input class="inp" list="${deptDlId}" value="${esc(r.dept||'')}"
+            placeholder="輸入部門代碼"
+            onchange="upR('${r.id}','dept',this.value);stashSingle('${r.id}')">
         </div>
-      </div>
 
-      <div style="margin-bottom:12px"><label class="lbl">備註</label><input class="inp" value="${r.notes}" onchange="upR('${r.id}','notes',this.value)"></div>
+        <!-- 備註 -->
+        <div><label class="lbl">備註</label>
+          <input class="inp" value="${esc(r.notes)}"
+            onchange="upR('${r.id}','notes',this.value);stashSingle('${r.id}')"></div>
+      </div>
     </div>
   </div>`;
 }
 
-function upR(id, k, v)   { const r=S.receipts.find(x=>x.id===id); if(r) r[k]=v; }
+function esc(s) { return String(s||'').replace(/"/g,'&quot;'); }
+
+function upR(id, k, v) { const r = S.receipts.find(x => x.id === id); if (r) r[k] = v; }
+
+// 每欄 change 觸發暫存單筆（不需等全部完成）
+async function stashSingle(id) {
+  const r = S.receipts.find(x => x.id === id);
+  if (!r) return;
+  const attribution = r.category === 'parking' ? 'parking'
+    : r.category === 'fuel'    ? 'project'
+    : 'dept';
+  const attributionTarget = r.category === 'parking' ? (r.parkAttr || '')
+    : r.category === 'fuel'    ? (r.projectId || '')
+    : (r.dept || '');
+  try {
+    await callGAS({ action: 'stashSelected', updates: [{
+      key: r.ocrKey || r.invoiceNo || '',
+      attribution, attributionTarget,
+      vendor: r.vendor, amount: r.amount, date: r.date,
+      invoiceNo: r.invoiceNo, category: r.category,
+      notes: r.notes,
+      fieldRows: r.fieldRows ? JSON.stringify(r.fieldRows) : '',
+    }]});
+  } catch(_) { /* 靜默 */ }
+}
+
+// 油資：datalist 選好後解析 projectId
+function onFuelProjInput(id, val) {
+  const r = S.receipts.find(x => x.id === id);
+  if (!r) return;
+  // val 格式為 "projectId name" 或僅 projectId
+  const parts = val.trim().split(/\s+/);
+  const projId = parts[0];
+  const proj   = S.config.projects.find(p => p.id === projId);
+  if (proj) {
+    upR(id, 'projectId', proj.id);
+    // 記錄最近使用
+    S._recentProjIds = [proj.id, ...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
+    // 顯示核定補助或里程實報
+    const extra = document.getElementById(`fp-extra-${id}`);
+    if (extra) {
+      if (proj.quota) {
+        extra.innerHTML = `<div style="font-size:13px;color:var(--green);margin-top:6px">核定補助 <strong>$${proj.subsidy.toLocaleString()}</strong>/月</div>`;
+      } else {
+        extra.innerHTML = `<div style="font-size:13px;color:var(--accent);margin-top:6px">里程實報制</div>`;
+      }
+    }
+    // 里程實報才顯示外勤紀錄區塊
+    const frDiv = document.getElementById(`fp-fieldrows-${id}`);
+    if (frDiv) frDiv.style.display = proj.quota ? 'none' : '';
+  } else {
+    upR(id, 'projectId', '');
+    const extra = document.getElementById(`fp-extra-${id}`);
+    if (extra) extra.innerHTML = '';
+    const frDiv = document.getElementById(`fp-fieldrows-${id}`);
+    if (frDiv) frDiv.style.display = 'none';
+  }
+  stashSingle(id);
+}
+
+// 外勤紀錄
+const _frCount = {}; // rid → count
+function addFieldRow(rid) {
+  if (!_frCount[rid]) _frCount[rid] = 0;
+  const i   = _frCount[rid]++;
+  const list = document.getElementById(`fp-fr-list-${rid}`);
+  if (!list) return;
+  const div = document.createElement('div');
+  div.innerHTML = fieldRowHTML(rid, i);
+  list.appendChild(div.firstElementChild);
+}
+
+function fieldRowHTML(rid, i, pf) {
+  const p   = pf || {};
+  const def = {
+    start: p.start  || '新北市三重區三民街272巷13號',
+    end:   p.end    || '',
+    date:  p.date   || '',
+    reason:p.reason || '',
+    remark:p.remark || '',
+    km:    p.km     || '',
+    isRound: p.isRound !== undefined ? p.isRound : true,
+  };
+  return `<div id="fr-${rid}-${i}" style="
+    border:1px solid var(--border);border-radius:8px;
+    padding:12px;margin-bottom:8px;background:var(--surface2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:800;color:var(--muted)">第 ${i+1} 筆外勤</span>
+      ${i > 0 ? `<button class="btn btn-danger btn-sm" onclick="removeFR('${rid}',${i})">✕</button>` : ''}
+    </div>
+    <div class="fg4" style="margin-bottom:8px">
+      <div><label class="lbl">外勤日期</label>
+        <input type="date" class="inp" id="fr-d-${rid}-${i}" value="${def.date}"
+          onchange="saveFRs('${rid}')"></div>
+      <div><label class="lbl">事由</label>
+        <input class="inp" id="fr-rsn-${rid}-${i}" value="${esc(def.reason)}" placeholder="外勤事由"
+          onchange="saveFRs('${rid}')"></div>
+      <div><label class="lbl">來回 / 單程</label>
+        <div class="tgl">
+          <button class="tgl-btn ${def.isRound?'on':''}"  id="fr-rnd-${rid}-${i}"
+            onclick="setFRRound('${rid}',${i},true)">來回</button>
+          <button class="tgl-btn ${def.isRound?'':'on'}" id="fr-one-${rid}-${i}"
+            onclick="setFRRound('${rid}',${i},false)">單程</button>
+        </div></div>
+      <div><label class="lbl">公里數（單程）</label>
+        <input type="number" class="inp" id="fr-km-${rid}-${i}" value="${def.km}"
+          placeholder="0" readonly style="background:var(--surface2);cursor:default"
+          title="填完終點後自動計算"></div>
+    </div>
+    <div class="fg2" style="margin-bottom:8px">
+      <div><label class="lbl">起點</label>
+        <input class="inp" id="fr-s-${rid}-${i}" value="${esc(def.start)}" placeholder="起點地址"
+          onchange="saveFRs('${rid}')"></div>
+      <div><label class="lbl">終點</label>
+        <input class="inp" id="fr-e-${rid}-${i}" value="${esc(def.end)}" placeholder="終點地址"
+          onchange="queryMapsFR('${rid}',${i});saveFRs('${rid}')"></div>
+    </div>
+    <div style="margin-bottom:8px"><label class="lbl">備註</label>
+      <input class="inp" id="fr-rem-${rid}-${i}" value="${esc(def.remark)}"
+        onchange="saveFRs('${rid}')"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="queryMapsFR('${rid}',${i})">🗺 查詢距離</button>
+      <span id="fr-km-txt-${rid}-${i}" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+  </div>`;
+}
+
+function removeFR(rid, i) {
+  document.getElementById(`fr-${rid}-${i}`)?.remove();
+  saveFRs(rid);
+}
+
+function setFRRound(rid, i, val) {
+  document.getElementById(`fr-rnd-${rid}-${i}`)?.classList.toggle('on', val);
+  document.getElementById(`fr-one-${rid}-${i}`)?.classList.toggle('on', !val);
+  saveFRs(rid);
+}
+
+// 從 DOM 收集外勤紀錄並存回 S.receipts
+function saveFRs(rid) {
+  const r = S.receipts.find(x => x.id === rid);
+  if (!r) return;
+  const cnt = _frCount[rid] || 0;
+  const rows = [];
+  for (let i = 0; i < cnt; i++) {
+    if (!document.getElementById(`fr-${rid}-${i}`)) continue;
+    rows.push({
+      date:    document.getElementById(`fr-d-${rid}-${i}`)?.value    || '',
+      reason:  document.getElementById(`fr-rsn-${rid}-${i}`)?.value  || '',
+      start:   document.getElementById(`fr-s-${rid}-${i}`)?.value    || '',
+      end:     document.getElementById(`fr-e-${rid}-${i}`)?.value    || '',
+      km:      parseFloat(document.getElementById(`fr-km-${rid}-${i}`)?.value) || 0,
+      isRound: document.getElementById(`fr-rnd-${rid}-${i}`)?.classList.contains('on') ?? true,
+      remark:  document.getElementById(`fr-rem-${rid}-${i}`)?.value  || '',
+    });
+  }
+  r.fieldRows = rows;
+  stashSingle(rid);
+}
+
+// Maps API 查詢距離（外勤紀錄版）
+async function queryMapsFR(rid, i) {
+  const start = document.getElementById(`fr-s-${rid}-${i}`)?.value || '';
+  const end   = document.getElementById(`fr-e-${rid}-${i}`)?.value || '';
+  if (!start || !end) return;
+  const txtEl = document.getElementById(`fr-km-txt-${rid}-${i}`);
+  const kmEl  = document.getElementById(`fr-km-${rid}-${i}`);
+  if (txtEl) txtEl.textContent = '查詢中...';
+  try {
+    const res = await callGAS({ action: 'getDirections', origin: start, destination: end });
+    const km  = res.distanceKm || 0;
+    if (kmEl)  kmEl.value = km;
+    if (txtEl) txtEl.textContent = `${km} 公里`;
+    saveFRs(rid);
+  } catch(e) {
+    if (txtEl) txtEl.textContent = '查詢失敗';
+  }
+}
 
 function setCat(id, cat) {
   upR(id, 'category', cat);
   const tgl = document.getElementById('tgl-cat-'+id);
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b,i) => b.classList.toggle('on', ['other','parking'][i]===cat));
-  const rc = document.getElementById('rc-'+id);
-  if (rc) {
-    const badgeEl = rc.querySelector('.rc-hd .badge');
-    if (badgeEl) {
-      badgeEl.className = 'badge ' + (cat==='parking' ? 'bd-orange' : 'bd-blue');
-      badgeEl.innerHTML = cat==='parking' ? '🅿️ 停車費' : '📄 其他';
-    }
-  }
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+    b.classList.toggle('on', ['fuel','parking','other'][i] === cat));
+  // 顯示對應 panel
+  const panels = { fuel: `pf-fuel-${id}`, parking: `pf-park-${id}`, other: `pf-other-${id}` };
+  Object.entries(panels).forEach(([k, elId]) => {
+    const el = document.getElementById(elId);
+    if (el) el.style.display = k === cat ? '' : 'none';
+  });
+  stashSingle(id);
   updateStats();
+  // tab 切換後重繪（讓統計 badge 更新）
+  renderOCRResults();
 }
 
 function toggleRC(id) {
@@ -1369,35 +1624,21 @@ function syncAllOcrChk() {
   master.classList.toggle('on', allOn);
 }
 
-function setAttr(id, attr) {
-  upR(id,'attribution',attr);
-  const tgl = document.getElementById('tgl-attr-'+id);
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b,i) => b.classList.toggle('on', ['project','dept','other'][i]===attr));
-  ['proj','dept'].forEach(t => {
-    const el = document.getElementById(`pf-${t}-${id}`);
-    if (el) el.style.display = (t==='proj'?attr==='project':attr==='dept') ? 'block' : 'none';
-  });
-  const rc = document.getElementById('rc-'+id);
-  if (rc) {
-    const r = S.receipts.find(x=>x.id===id);
-    const proj = S.config.projects.find(p=>p.id===r?.projectId);
-    const attrLabel = attr==='project' ? (proj?proj.name:'未選') : attr==='dept' ? (r?.dept||'') : '其他';
-    const labelDiv = rc.querySelector('.rc-hd > div[style*="text-align:center"]');
-    if (labelDiv) { const last = labelDiv.querySelector('div:last-child'); if(last) last.textContent = attrLabel; }
-  }
-}
+// setAttr 已由 setCat 取代
 
 function updateStats() {
+  const fuel  = S.receipts.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
   const park  = S.receipts.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
-  const other = S.receipts.filter(r=>r.category!=='parking').reduce((s,r)=>s+r.amount,0);
+  const other = S.receipts.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
+  const total = fuel + park + other;
   se('s-count', S.receipts.length);
+  se('s-fuel',  '$'+fuel.toLocaleString());
   se('s-park',  '$'+park.toLocaleString());
   se('s-other', '$'+other.toLocaleString());
-  se('s-total', '$'+(park+other).toLocaleString());
-  se('es-cnt',  S.receipts.length);
-  se('es-park', '$'+park.toLocaleString());
-  se('es-other','$'+other.toLocaleString());
-  se('es-total','$'+(park+other).toLocaleString());
+  se('s-total', '$'+total.toLocaleString());
+  // 統計列顯示
+  const bar = document.getElementById('ocrStatBar');
+  if (bar) bar.style.display = S.receipts.length ? 'block' : 'none';
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1506,104 +1747,110 @@ async function resolveDup(action) {
 // ════════════════════════════════════════════════════════════
 function refreshExport() {
   updateStats();
-  const main  = document.getElementById('expMain');
-
-  // 清除舊的 sec 和 group label（保留 expEmpty、expSelBar、expPrintBar）
-  main.querySelectorAll('.exp-sec, .att-group-label, #att2QuickBar').forEach(e => e.remove());
-  // 清空 pid 對應表，避免跨次殘留
-  Object.keys(att2PidMap).forEach(k => delete att2PidMap[k]);
+  const main = document.getElementById('expMain');
+  main.querySelectorAll('.exp-sec, .att-group-label').forEach(e => e.remove());
 
   if (!S.receipts.length) {
-    document.getElementById('expEmpty').style.display  = 'block';
-    document.getElementById('expSelBar').style.display = 'none';
-    document.getElementById('expPrintBar').style.display = 'none';
+    document.getElementById('expEmpty').style.display   = 'block';
+    document.getElementById('expSelBar').style.display  = 'none';
+    document.getElementById('expPrintBar').style.display= 'none';
     return;
   }
-  document.getElementById('expEmpty').style.display = 'none';
-  document.getElementById('expSelBar').style.display = 'flex';
+  document.getElementById('expEmpty').style.display    = 'none';
+  document.getElementById('expSelBar').style.display   = 'flex';
   document.getElementById('expPrintBar').style.display = 'flex';
 
-  // ── 分群 ──────────────────────────────────────────────────
-  const groups = {};
+  const bar = document.getElementById('expPrintBar');
+
+  // ── 分群（依 category + 歸屬）────────────────────────────────
+  // fuel  → 依 projectId 分群
+  // parking → 統一一個 allPark 群
+  // other → 依 dept 分群
+
+  const fuelByProj  = {};   // projectId → [receipt]
+  const allPark     = [];   // 所有停車費
+  const otherByDept = {};   // dept → [receipt]
+
   S.receipts.forEach(r => {
-    const key = r.attribution === 'project' ? 'proj:' + r.projectId
-              : r.attribution === 'dept'    ? 'dept:' + r.dept
-              : 'other';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(r);
-  });
-
-  // 分為三類：里程實報制（附件二）、月定額（附件三+四）、其他
-  const att2Keys   = [];  // 非 quota 專案 + dept + other
-  const quotaProjs = [];  // quota 專案 [{key, proj, parkR, otherR}]
-  const att4Keys   = [];  // quota 停車費 + dept/other 停車費（依日期排序）
-
-  Object.entries(groups).forEach(([key, rs]) => {
-    const proj = key.startsWith('proj:') ? S.config.projects.find(p => p.id === key.slice(5)) : null;
-    if (proj && proj.quota) {
-      const parkR  = rs.filter(r => r.category === 'parking')
-                       .sort((a,b) => a.date.localeCompare(b.date));
-      const otherR = rs.filter(r => r.category !== 'parking');
-      quotaProjs.push({ key, proj, parkR, otherR });
+    if (r.category === 'fuel') {
+      const k = r.projectId || '__noproj__';
+      if (!fuelByProj[k]) fuelByProj[k] = [];
+      fuelByProj[k].push(r);
+    } else if (r.category === 'parking') {
+      allPark.push(r);
     } else {
-      att2Keys.push(key);
+      const k = r.dept || '__other__';
+      if (!otherByDept[k]) otherByDept[k] = [];
+      otherByDept[k].push(r);
     }
   });
 
-  // 月定額：依 proj.id 排序
-  quotaProjs.sort((a, b) => (a.proj.id || '').localeCompare(b.proj.id || ''));
+  // ── 附件二（里程實報專案）─────────────────────────────────────
+  // quota 專案 → 附件三；里程實報專案 → 附件二
+  const quotaGroups = [];
+  const att2Groups  = [];   // { proj, fuelR }
 
-  // 附件四：quota 專案停車費
-  quotaProjs.forEach(({ key, proj, parkR }) => {
-    if (parkR.length) att4Keys.push({ key, proj, parkR });
+  Object.entries(fuelByProj).forEach(([pid, fuelR]) => {
+    if (pid === '__noproj__') {
+      att2Groups.push({ proj: null, fuelR });
+      return;
+    }
+    const proj = S.config.projects.find(p => p.id === pid);
+    if (!proj) { att2Groups.push({ proj: null, fuelR }); return; }
+    if (proj.quota) quotaGroups.push({ proj, fuelR });
+    else            att2Groups.push({ proj, fuelR });
   });
 
-  // 附件四：dept / other 群組的停車費（里程實報附件二群組中有停車費者）
-  att2Keys.forEach(key => {
-    const rs    = groups[key];
-    const proj  = key.startsWith('proj:') ? S.config.projects.find(p => p.id === key.slice(5)) : null;
-    // 里程實報專案的停車費配對在附件二內處理，不產生附件四
-    if (proj) return;
-    const parkR = rs.filter(r => r.category === 'parking')
-                    .sort((a, b) => a.date.localeCompare(b.date));
-    if (parkR.length) att4Keys.push({ key, proj: null, parkR });
-  });
+  // ── 附件三差額計算 ────────────────────────────────────────────
+  // quota 專案核定補助總計 + 里程實報外勤申請金額總計 vs 油資發票總計
+  const quotaSubsidyTotal = quotaGroups.reduce((s, g) => s + (g.proj.subsidy || 0), 0);
+  const att2FuelTotal     = att2Groups.reduce((s, g) =>
+    s + g.fuelR.reduce((a, r) => a + r.amount, 0), 0);
+  const allFuelInvoice    = S.receipts.filter(r => r.category === 'fuel')
+                              .reduce((s, r) => s + r.amount, 0);
+  // 差額 = 發票總額 − (quota 補助 + 里程實報申請)
+  const att2FieldTotal    = att2Groups.reduce((s, g) => {
+    return s + g.fuelR.reduce((a, r) => {
+      if (!r.fieldRows?.length) return a;
+      return a + r.fieldRows.reduce((b, fr) => {
+        const km   = parseFloat(fr.km) || 0;
+        const rate = S.config.mileageRates?.[0]?.rate || 0;
+        return b + Math.round(km * (fr.isRound ? 2 : 1) * rate);
+      }, 0);
+    }, 0);
+  }, 0);
 
-  const printBarRef = document.getElementById('expPrintBar');
-
-  // ── 附件二群組 ────────────────────────────────────────────
-  // 同時收集已有 att2Form 的 key，供底部快速新增列排除
-  const att2ExistingKeys = new Set();
-  if (att2Keys.length) {
-    const lbl = makeGroupLabel('📎 附件二');
-    main.insertBefore(lbl, printBarRef);
-    att2Keys.forEach(key => {
-      att2ExistingKeys.add(key);
-      const rs = groups[key];
-      const sec = buildExpSec(key, rs, 'att2');
-      main.insertBefore(sec, printBarRef);
+  // ── 附件二：里程實報 ──────────────────────────────────────────
+  if (att2Groups.length) {
+    main.insertBefore(makeGroupLabel('📎 附件二 — 里程實報'), bar);
+    att2Groups.forEach(({ proj, fuelR }) => {
+      const key = proj ? 'proj:' + proj.id : 'other';
+      const sec = buildExpSecAtt2(key, proj, fuelR);
+      main.insertBefore(sec, bar);
     });
   }
 
-  // ── 附件二底部：快速新增外勤（無停車費憑證的群組）────────
-  const quickBar = buildAtt2QuickAdd(att2ExistingKeys);
-  if (quickBar) main.insertBefore(quickBar, printBarRef);
-
-  // ── 附件三（合併所有月定額） ──────────────────────────────
-  if (quotaProjs.length) {
-    const lbl = makeGroupLabel('📎 附件三 — 月定額制彙總');
-    main.insertBefore(lbl, printBarRef);
-    const sec3 = buildExpSecAtt3(quotaProjs);
-    main.insertBefore(sec3, printBarRef);
+  // ── 附件三：月定額 ────────────────────────────────────────────
+  if (quotaGroups.length) {
+    main.insertBefore(makeGroupLabel('📎 附件三 — 月定額'), bar);
+    const sec3 = buildExpSecAtt3(quotaGroups, allFuelInvoice);
+    main.insertBefore(sec3, bar);
   }
 
-  // ── 附件四（每月定額專案停車費一份 PDF） ─────────────────
-  if (att4Keys.length) {
-    const lbl = makeGroupLabel('📎 附件四');
-    main.insertBefore(lbl, printBarRef);
-    att4Keys.forEach(({ key, proj, parkR }) => {
-      const sec = buildExpSec('att4:' + key, parkR, 'att4', proj);
-      main.insertBefore(sec, printBarRef);
+  // ── 附件四：全部停車費統一一張 ───────────────────────────────
+  if (allPark.length) {
+    main.insertBefore(makeGroupLabel('📎 附件四 — 停車費'), bar);
+    const sorted = [...allPark].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const sec4 = buildExpSecAtt4(sorted);
+    main.insertBefore(sec4, bar);
+  }
+
+  // ── 其他費用 ─────────────────────────────────────────────────
+  if (Object.keys(otherByDept).length) {
+    main.insertBefore(makeGroupLabel('📋 其他費用'), bar);
+    Object.entries(otherByDept).forEach(([dept, rs]) => {
+      const sec = buildExpSecOther(dept, rs);
+      main.insertBefore(sec, bar);
     });
   }
 
@@ -1619,246 +1866,195 @@ function makeGroupLabel(text) {
 
 // ── 附件二底部快速新增外勤列 ─────────────────────────────────
 // 列出尚未有 att2Form 的里程實報專案 + 可顯示部門 + 其他
-function buildAtt2QuickAdd(existingKeys) {
-  // 收集可選項目
-  const options = [];
+// buildAtt2QuickAdd / doAtt2QuickAdd 已移除
 
-  // 里程實報專案（生效中、非 quota、尚未在 att2Form 裡）
-  (S.config.projects || []).forEach(p => {
-    if (p.quota) return;
-    const key = 'proj:' + p.id;
-    if (!existingKeys.has(key)) {
-      options.push({ key, label: p.name });
+// ── 附件二：里程實報外勤 ─────────────────────────────────────
+function buildExpSecAtt2(key, proj, fuelR) {
+  const div   = document.createElement('div');
+  div.className        = 'exp-sec';
+  div.dataset.secKey   = key;
+  div.dataset.attType  = 'att2';
+
+  const label = proj ? proj.name : '（未選專案）';
+  const total = fuelR.reduce((s, r) => s + r.amount, 0);
+
+  // 從 fuelR 中找已存的外勤紀錄
+  const savedRows = (() => {
+    for (const r of fuelR) {
+      if (r.fieldRows?.length) return r.fieldRows;
     }
-  });
+    return [];
+  })();
+  const pid = proj ? proj.id : key.replace(/[^a-zA-Z0-9_-]/g, '_');
+  att2Rows[pid] = Math.max(savedRows.length, 1);
 
-  // 可顯示部門（尚未在 att2Form 裡）
-  (S.config.departments || []).forEach(d => {
-    const key = 'dept:' + d;
-    if (!existingKeys.has(key)) {
-      options.push({ key, label: '🏢 ' + d });
-    }
-  });
-
-  // 其他（若 att2Form 裡還沒有 other）
-  if (!existingKeys.has('other')) {
-    options.push({ key: 'other', label: '📋 其他' });
-  }
-
-  if (!options.length) return null;
-
-  const div = document.createElement('div');
-  div.id = 'att2QuickBar';
-  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap';
-
-  const optHtml = options.map(o =>
-    `<option value="${o.key}">${o.label}</option>`
-  ).join('');
-
-  div.innerHTML = `
-    <span style="font-size:12px;color:var(--muted);white-space:nowrap">➕ 新增外勤記錄至：</span>
-    <select class="inp" id="att2QuickSel" style="flex:1;min-width:160px;max-width:280px;padding:6px 28px 6px 10px;font-size:13px">
-      <option value="">— 選擇群組 —</option>
-      ${optHtml}
-    </select>
-    <button class="btn btn-ghost btn-sm" onclick="doAtt2QuickAdd()" style="white-space:nowrap">＋ 新增外勤記錄</button>
-  `;
-  return div;
-}
-
-// 快速新增：建立新的 exp-sec 並插入附件二最後（附件三之前）
-function doAtt2QuickAdd() {
-  const sel = document.getElementById('att2QuickSel');
-  if (!sel || !sel.value) { toast('⚠️ 請先選擇群組'); return; }
-  const key = sel.value;
-
-  // 找插入位置：att2QuickBar 本身（新 sec 插在它前面）
-  const bar   = document.getElementById('att2QuickBar');
-  const main  = document.getElementById('expMain');
-  if (!bar || !main) return;
-
-  // 建立新 sec（無 receipts，att2Form 會給一筆空白外勤行）
-  let proj  = null;
-  let label = '';
-  if (key.startsWith('proj:')) {
-    const pid = key.slice(5);
-    proj  = S.config.projects.find(p => p.id === pid) || null;
-    label = proj ? proj.name : '（未知專案）';
-  } else if (key.startsWith('dept:')) {
-    label = '🏢 ' + key.slice(5);
-  } else {
-    label = '📋 其他';
-  }
-
-  const sec = buildExpSec(key, [], 'att2', proj || undefined);
-  // 展開 body
-  const bd = sec.querySelector('.exp-sec-bd');
-  if (bd) bd.classList.add('open');
-  const chev = sec.querySelector('.exp-sec-hd > span:last-child');
-  if (chev) chev.textContent = '▲';
-
-  main.insertBefore(sec, bar);
-
-  // 從下拉移除此選項
-  const opt = sel.querySelector(`option[value="${key}"]`);
-  if (opt) opt.remove();
-  // 若下拉只剩 placeholder，隱藏整列
-  if (sel.options.length <= 1) bar.style.display = 'none';
-
-  updatePrintBar();
-  toast(`✅ 已新增「${label}」外勤記錄`);
-  // 捲動到新建的 sec
-  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── 通用 exp-sec（附件二 / 附件四） ─────────────────────────
-function buildExpSec(key, rs, attType, proj) {
-  const div = document.createElement('div');
-  div.className = 'exp-sec';
-  div.dataset.secKey  = key;
-  div.dataset.attType = attType;
-
-  let label = '';
-  if (!proj) {
-    if (key.startsWith('proj:') || key.startsWith('att4:proj:')) {
-      const pid = key.replace('att4:','').slice(5);
-      proj  = S.config.projects.find(p => p.id === pid);
-      label = proj ? proj.name : '（未選專案）';
-    } else if (key.startsWith('dept:') || key.startsWith('att4:dept:')) {
-      const deptName = key.replace('att4:','').slice(5);
-      label = '🏢 ' + deptName;
-    } else { label = '📋 其他'; }
-  } else {
-    label = proj.name;
-  }
-
-  const parkR  = attType === 'att4' ? rs : rs.filter(r => r.category === 'parking');
-  const otherR = attType === 'att4' ? [] : rs.filter(r => r.category !== 'parking');
-  const hasOil = otherR.some(r => /中油|加油|fuel|oil|cpc/i.test(r.vendor + r.notes));
-  const total  = rs.reduce((s, r) => s + r.amount, 0);
-
-  const badgeMap = { att2: '<span class="badge bd-blue">📎 附件二</span>',
-                     att4: '<span class="badge bd-orange">📎 附件四</span>' };
-
-  let bodyHtml = '';
-  if (attType === 'att4') {
-    // att4 的 pid：quota 專案用 proj.id；dept/other 用 sanitized key（與附件二 att2FormNoProj 一致）
-    const att4Pid = proj ? proj.id : (att2PidMap[key] || key.replace(/[^a-zA-Z0-9_-]/g, '_'));
-    bodyHtml = att4Form(att4Pid, rs);
-  } else if (proj) {
-    bodyHtml = att2Form(proj, otherR, parkR);
-  } else {
-    bodyHtml = att2FormNoProj(key, rs);
-  }
+  const rowsHtml = savedRows.length
+    ? savedRows.map((fr, i) => a2RowHTML(pid, i, fr)).join('')
+    : a2RowHTML(pid, 0);
 
   div.innerHTML = `
     <div class="exp-sec-hd">
-      <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
-        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)" title="勾選此份 PDF">✓</div>
-        <span style="font-size:14px;font-weight:700;margin-right:8px;flex-shrink:0">${label}</span>
-        ${badgeMap[attType] || ''}
-        <span class="badge bd-muted">${rs.length} 張</span>
-        <span class="mono" style="font-size:13px;color:var(--gold);margin-left:6px">$${total.toLocaleString()}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
+        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)">✓</div>
+        <span style="font-size:15px;font-weight:800">${label}</span>
+        <span class="badge bd-blue">📎 附件二</span>
+        <span class="badge bd-muted">${fuelR.length} 張</span>
+        <span class="mono" style="color:var(--gold);font-size:14px;margin-left:4px">$${total.toLocaleString()}</span>
       </div>
-      <span style="color:var(--muted);padding-left:12px;cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
+      <span style="color:var(--muted);cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
     </div>
     <div class="exp-sec-bd">
-      ${bodyHtml}
+      <div class="att-form">
+        <div class="att-title">📎 附件二 — 外勤記錄（里程實報）</div>
+        <div id="a2rows-${pid}">${rowsHtml}</div>
+        <div style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm" onclick="addA2Row('${pid}')">＋ 新增外勤記錄</button>
+        </div>
+      </div>
     </div>`;
-  // Trigger park selectors rendering after DOM insertion
-  if (attType === 'att2') {
-    if (proj) {
-      setTimeout(()=>renderParkSelectors(proj.id), 0);
-    } else {
-      const _pid = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const _parkData = att2ParkData[_pid] || [];
-      setTimeout(()=>renderParkSelectors2(_pid, _parkData), 0);
-    }
-  }
   return div;
 }
 
-// ── 附件三專屬 sec（合併所有月定額專案） ────────────────────
-function buildExpSecAtt3(quotaProjs) {
+// ── 附件三：月定額彙整 ────────────────────────────────────────
+function buildExpSecAtt3(quotaGroups, allFuelInvoice) {
   const div = document.createElement('div');
-  div.className = 'exp-sec';
+  div.className       = 'exp-sec';
   div.dataset.secKey  = 'att3:quota';
   div.dataset.attType = 'att3';
 
-  // 計算各合計
-  const subsidyTotal  = quotaProjs.reduce((s, e) => s + (e.proj.subsidy || 0), 0);
-  const invoiceTotal  = quotaProjs.reduce((s, e) => s + e.otherR.reduce((a, r) => a + r.amount, 0), 0);
-  const diffTotal     = invoiceTotal - subsidyTotal;
-  const diffColor     = diffTotal >= 0 ? 'var(--green)' : 'var(--red)';
+  const subsidyTotal = quotaGroups.reduce((s, g) => s + (g.proj.subsidy || 0), 0);
+  const diff         = allFuelInvoice - subsidyTotal;
+  const diffColor    = diff > 0 ? 'var(--red)' : 'var(--green)';
+  const diffWarn     = diff > 0
+    ? `<div style="font-size:13px;font-weight:800;color:var(--red);margin-top:10px">
+        ⚠️ 油資發票超出核定補助 $${diff.toLocaleString()}，請補充說明或調整
+       </div>` : '';
 
-  // 逐專案列
-  const projRows = quotaProjs.map(e => {
-    const inv = e.otherR.reduce((a, r) => a + r.amount, 0);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
-      <span style="flex:1;font-weight:600">${e.proj.name}</span>
-      <span class="mono" style="color:var(--muted);min-width:110px;text-align:right">核定 $${(e.proj.subsidy||0).toLocaleString()}/月</span>
-      <span class="mono" style="min-width:100px;text-align:right">發票 $${inv.toLocaleString()}</span>
+  const projRows = quotaGroups.map(g => {
+    const inv = g.fuelR.reduce((a, r) => a + r.amount, 0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+      padding:9px 0;border-bottom:1px solid var(--border);font-size:14px">
+      <span style="font-weight:700">${g.proj.name}</span>
+      <span class="mono" style="color:var(--muted)">核定 $${(g.proj.subsidy||0).toLocaleString()}/月</span>
+      <span class="mono">發票 $${inv.toLocaleString()}</span>
     </div>`;
   }).join('');
 
   div.innerHTML = `
     <div class="exp-sec-hd">
-      <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
-        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)" title="勾選此份 PDF">✓</div>
-        <span style="font-size:14px;font-weight:700;margin-right:8px;flex-shrink:0">月定額彙總</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
+        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)">✓</div>
+        <span style="font-size:15px;font-weight:800">月定額彙總</span>
         <span class="badge bd-purple">📎 附件三</span>
-        <span class="badge bd-muted">${quotaProjs.length} 專案</span>
+        <span class="badge bd-muted">${quotaGroups.length} 專案</span>
+        ${diff > 0 ? '<span class="badge bd-red">⚠️ 差額</span>' : ''}
       </div>
-      <span style="color:var(--muted);padding-left:12px;cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
+      <span style="color:var(--muted);cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
     </div>
     <div class="exp-sec-bd">
       <div style="padding:4px 0">
         ${projRows}
-        <div style="display:flex;justify-content:space-between;padding:10px 0 4px;font-size:13px;font-weight:700;border-top:2px solid var(--border2);margin-top:2px">
+        <div style="display:flex;justify-content:space-between;padding:10px 0 4px;
+          font-size:14px;font-weight:800;border-top:2px solid var(--border2);margin-top:4px">
           <span style="color:var(--muted)">核定補助合計</span>
           <span class="mono">$${subsidyTotal.toLocaleString()}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;font-weight:700">
-          <span style="color:var(--muted)">當月油品發票合計</span>
-          <span class="mono">$${invoiceTotal.toLocaleString()}</span>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;font-weight:800">
+          <span style="color:var(--muted)">油資發票合計</span>
+          <span class="mono">$${allFuelInvoice.toLocaleString()}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:14px;font-weight:700;border-top:1px solid var(--border2);margin-top:6px;padding-top:8px">
-          <span>當月差額（發票 − 補助）</span>
-          <span class="mono" style="color:${diffColor}">$${diffTotal.toLocaleString()}</span>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;
+          font-size:15px;font-weight:800;border-top:1px solid var(--border2);margin-top:6px">
+          <span>差額（發票 − 補助）</span>
+          <span class="mono" style="color:${diffColor}">$${diff.toLocaleString()}</span>
         </div>
+        ${diffWarn}
       </div>
     </div>`;
   return div;
 }
 
-// 附件二（無專案）- 給 dept / other 群組用，提供外勤記錄欄位
-function att2FormNoProj(key, rs) {
-  // pid：sanitize key，與附件四共用同一個 id 命名空間
-  const pid = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const parkR = rs.filter(r => r.category === 'parking');
-  // 記錄 key→pid 的對應，供附件四 buildExpSec 時使用
-  att2PidMap[key] = pid;
+// ── 附件四：所有停車費統一一張 ───────────────────────────────
+function buildExpSecAtt4(parkR) {
+  const div = document.createElement('div');
+  div.className       = 'exp-sec';
+  div.dataset.secKey  = 'att4:all';
+  div.dataset.attType = 'att4';
 
-  // 從同群組 receipts 裡找已存的外勤資料（含 mapUrl）
-  const savedRows = (() => {
-    for (const r of rs) {
-      if (r.fieldRows && r.fieldRows.length) return r.fieldRows;
-    }
-    return [];
-  })();
-  att2Rows[pid] = Math.max(savedRows.length, 1);
+  const total = parkR.reduce((s, r) => s + r.amount, 0);
 
-  // Store parkR for later rendering (called by buildExpSec after DOM insertion)
-  att2ParkData[pid] = parkR.map(r=>({id:r.id,vendor:r.vendor,date:r.date,amount:r.amount}));
-  return `<div class="att-form">
-    <div class="att-title">📎 附件二 — 外勤記錄與停車費配對</div>
-    <div id="a2rows-${pid}">${
-      savedRows.length
-        ? savedRows.map((fr, i) => a2RowHTML(pid, i, fr)).join('')
-        : a2RowHTML(pid, 0)
-    }</div>
-    <button class="btn btn-ghost btn-sm" onclick="addA2Row('${pid}')" style="margin-top:4px;margin-bottom:4px">＋ 新增外勤記錄</button>
-  </div>`;
+  const rows = parkR.map((r, i) => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;
+      border-bottom:1px solid var(--border);font-size:14px;flex-wrap:wrap">
+      <span style="color:var(--muted);min-width:24px">${i+1}</span>
+      <div style="flex:1;min-width:140px">
+        <div style="font-weight:700">${r.vendor}</div>
+        <div style="font-size:12px;color:var(--muted)">${r.date} · ${r.invoiceNo||'無發票號'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">歸屬：${r.parkAttr||'未設定'}</div>
+        <div style="margin-top:4px">
+          <label class="lbl" style="margin-bottom:2px">停車事由</label>
+          <input class="inp" value="${esc(r.parkReason||'')}" placeholder="請說明與公務的關聯"
+            onchange="upR('${r.id}','parkReason',this.value);stashSingle('${r.id}')">
+        </div>
+      </div>
+      <span class="mono" style="font-size:15px;font-weight:800;color:var(--gold)">$${r.amount.toLocaleString()}</span>
+    </div>`).join('');
+
+  div.innerHTML = `
+    <div class="exp-sec-hd">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
+        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)">✓</div>
+        <span style="font-size:15px;font-weight:800">停車費明細</span>
+        <span class="badge bd-orange">📎 附件四</span>
+        <span class="badge bd-muted">${parkR.length} 張</span>
+        <span class="mono" style="color:var(--gold);font-size:14px;margin-left:4px">$${total.toLocaleString()}</span>
+      </div>
+      <span style="color:var(--muted);cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
+    </div>
+    <div class="exp-sec-bd">
+      <div>${rows}</div>
+      <div style="display:flex;justify-content:flex-end;padding:10px 0;font-size:15px;font-weight:800;
+        border-top:2px solid var(--border2);margin-top:4px">
+        <span style="color:var(--muted);margin-right:16px">停車費合計</span>
+        <span class="mono" style="color:var(--gold)">$${total.toLocaleString()}</span>
+      </div>
+    </div>`;
+  return div;
+}
+
+// ── 其他費用（非油資、非停車費）────────────────────────────
+function buildExpSecOther(dept, rs) {
+  const div = document.createElement('div');
+  div.className       = 'exp-sec';
+  div.dataset.secKey  = 'other:' + dept;
+  div.dataset.attType = 'other';
+
+  const label = dept === '__other__' ? '其他' : dept;
+  const total = rs.reduce((s, r) => s + r.amount, 0);
+
+  const rows = rs.map(r => `
+    <div style="display:flex;gap:10px;align-items:center;padding:9px 0;
+      border-bottom:1px solid var(--border);font-size:14px">
+      <div style="flex:1">
+        <div style="font-weight:700">${r.vendor}</div>
+        <div style="font-size:12px;color:var(--muted)">${r.date} · ${r.invoiceNo||'無'}</div>
+      </div>
+      <span class="mono" style="color:var(--gold)">$${r.amount.toLocaleString()}</span>
+    </div>`).join('');
+
+  div.innerHTML = `
+    <div class="exp-sec-hd">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0" onclick="toggleExpSec(this.parentElement)">
+        <div class="sec-ck on" onclick="event.stopPropagation();toggleSecCk(this)">✓</div>
+        <span style="font-size:15px;font-weight:800">${label}</span>
+        <span class="badge bd-muted">📋 其他</span>
+        <span class="badge bd-muted">${rs.length} 張</span>
+        <span class="mono" style="color:var(--gold);font-size:14px;margin-left:4px">$${total.toLocaleString()}</span>
+      </div>
+      <span style="color:var(--muted);cursor:pointer" onclick="toggleExpSec(this.parentElement)">▼</span>
+    </div>
+    <div class="exp-sec-bd"><div>${rows}</div></div>`;
+  return div;
 }
 
 function toggleExpSec(el) {
@@ -1936,220 +2132,100 @@ function att2Form(proj, otherR, parkR) {
 }
 
 function a2RowHTML(pid, i, prefill) {
-  const p = prefill || {};
-  const defStart = p.start  || '新北市三重區三民街272巷13號';
-  const defEnd   = p.end    || '';
-  const defDate  = p.date   || '';
-  const defRsn    = p.reason || '';
-  const defRemark = p.remark || '';
-  const defKm    = p.km     || '';
-  const isRound  = p.isRound !== undefined ? p.isRound : true;
-  const hasMap   = !!(p.mapUrl);
-  return `<div class="att-form" id="a2r-${pid}-${i}" style="margin-bottom:8px;padding:10px 12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:11px;font-weight:700;color:var(--muted)">第 ${i+1} 筆外勤</span>
-      ${i > 0 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="removeA2Row('${pid}',${i})">✕ 移除</button>` : ''}
+  const p        = prefill || {};
+  const defStart  = p.start   || '新北市三重區三民街272巷13號';
+  const defEnd    = p.end     || '';
+  const defDate   = p.date    || '';
+  const defRsn    = p.reason  || '';
+  const defRemark = p.remark  || '';
+  const defKm     = p.km      || '';
+  const isRound   = p.isRound !== undefined ? p.isRound : true;
+  return `<div class="att-form" id="a2r-${pid}-${i}"
+    style="margin-bottom:8px;padding:12px 14px;background:var(--surface2);border-radius:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:800;color:var(--muted)">第 ${i+1} 筆外勤</span>
+      ${i > 0 ? `<button class="btn btn-danger btn-sm" onclick="removeA2Row('${pid}',${i})">✕ 移除</button>` : ''}
     </div>
-    <div class="fg4" style="margin-bottom:8px">
-      <div><label class="lbl">外勤日期</label><input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
-      <div><label class="lbl">事由</label><input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由" value="${defRsn}"></div>
-      <div><label class="lbl">公里數（單程）</label>
-        <input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}" placeholder="0"
-               style="background:rgba(255,255,255,.04);cursor:default" readonly
-               title="由 Maps 查詢後自動填入">
-      </div>
+    <div class="fg4" style="margin-bottom:10px">
+      <div><label class="lbl">外勤日期</label>
+        <input type="date" class="inp" id="a2d-${pid}-${i}" value="${defDate}"></div>
+      <div><label class="lbl">事由</label>
+        <input class="inp" id="a2rsn-${pid}-${i}" placeholder="外勤事由" value="${esc(defRsn)}"></div>
       <div><label class="lbl">來回 / 單程</label>
         <div class="tgl">
-          <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}" onclick="setRound(this,'${pid}',${i},true)">來回</button>
-          <button class="tgl-btn ${isRound?'':'on'}" id="a2one-${pid}-${i}" onclick="setRound(this,'${pid}',${i},false)">單程</button>
-        </div>
-      </div>
+          <button class="tgl-btn ${isRound?'on':''}"  id="a2rnd-${pid}-${i}"
+            onclick="setRound(this,'${pid}',${i},true)">來回</button>
+          <button class="tgl-btn ${isRound?'':'on'}" id="a2one-${pid}-${i}"
+            onclick="setRound(this,'${pid}',${i},false)">單程</button>
+        </div></div>
+      <div><label class="lbl">公里數（單程）</label>
+        <input type="number" class="inp" id="a2km-${pid}-${i}" value="${defKm}"
+          placeholder="0" readonly style="background:var(--surface);cursor:default"
+          title="填完終點後自動計算"></div>
     </div>
-    <div class="fg2" style="margin-bottom:8px">
-      <div><label class="lbl">起點</label><input class="inp" id="a2s-${pid}-${i}" value="${defStart}" placeholder="起點地址"></div>
-      <div><label class="lbl">終點</label><input class="inp" id="a2e-${pid}-${i}" value="${defEnd}" placeholder="終點地址"></div>
+    <div class="fg2" style="margin-bottom:10px">
+      <div><label class="lbl">起點</label>
+        <input class="inp" id="a2s-${pid}-${i}" value="${esc(defStart)}" placeholder="起點地址"></div>
+      <div><label class="lbl">終點</label>
+        <input class="inp" id="a2e-${pid}-${i}" value="${esc(defEnd)}" placeholder="終點地址"
+          onchange="queryMaps('${pid}',${i})"></div>
     </div>
-    <div style="margin-bottom:8px">
-      <label class="lbl">備註</label>
-      <input class="inp" id="a2rem-${pid}-${i}" placeholder="補充說明（會填入 PDF 備註欄）" value="${defRemark}">
+    <div style="margin-bottom:10px"><label class="lbl">備註</label>
+      <input class="inp" id="a2rem-${pid}-${i}" placeholder="補充說明（填入 PDF 備註欄）"
+        value="${esc(defRemark)}"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="queryMaps('${pid}',${i})">🗺 查詢距離</button>
+      <span id="a2km-result-${pid}-${i}" style="font-size:13px;color:var(--muted)"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-      <button class="btn btn-ghost btn-sm" id="a2mapbtn-${pid}-${i}" onclick="queryMaps('${pid}',${i})">🗺 查詢最短距離</button>
-      <div id="a2km-result-${pid}-${i}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
-    </div>
-    <div class="map-preview ${hasMap?'show':''}" id="a2map-prev-${pid}-${i}">${hasMap
-      ? `<a href="${p.mapUrl}" target="_blank"
-          style="display:flex;align-items:center;justify-content:center;gap:8px;
-                 padding:14px;background:rgba(79,142,247,.07);color:var(--accent);
-                 font-size:13px;font-weight:600;text-decoration:none;border-radius:8px">
-          🗺 在 Google Maps 開啟路線↗
-        </a>`
-      : ''}</div>
-    <input type="hidden" id="a2map-url-${pid}-${i}" value="${p.mapUrl||''}" data-mapurl>
-    <div id="a2park-sel-${pid}-${i}"></div>
   </div>`;
 }
 
 function addA2Row(pid) {
   const i = att2Rows[pid]++;
   document.getElementById('a2rows-'+pid)?.insertAdjacentHTML('beforeend', a2RowHTML(pid, i));
-  renderParkSelectors(pid);
 }
 
 function removeA2Row(pid, i) {
   document.getElementById(`a2r-${pid}-${i}`)?.remove();
-  // att2Rows 不遞減（保持 index 不重複），renderParkSelectors 會跳過不存在的 DOM
-}
-
-// 渲染每個外勤行的停車費多選（同專案停車費，里程實報制）
-function renderParkSelectors(pid) {
-  const rowCount = att2Rows[pid] || 1;
-  const parkR = S.receipts.filter(r => r.category === 'parking' && r.projectId === pid);
-
-  // 從已存的 fieldRows 讀取每行的 pairedParkIdx
-  const savedRows = (() => {
-    for (const r of S.receipts.filter(x => x.projectId === pid)) {
-      if (r.fieldRows && r.fieldRows.length) return r.fieldRows;
-    }
-    return [];
-  })();
-
-  for (let i = 0; i < rowCount; i++) {
-    const el = document.getElementById(`a2park-sel-${pid}-${i}`);
-    if (!el) continue;
-    if (!parkR.length) { el.innerHTML = ''; continue; }
-    const savedPairedArr = (() => {
-      const fr = savedRows[i];
-      if (!fr) return [];
-      if (Array.isArray(fr.pairedParkIdxArr)) return fr.pairedParkIdxArr;
-      // 向後相容：舊資料只有 pairedParkIdx（單一數字）
-      return fr.pairedParkIdx != null ? [fr.pairedParkIdx] : [];
-    })();
-    el.innerHTML = `...` +
-      parkR.map((r, ri) => {
-        const isChecked = savedPairedArr.includes(ri);
-        return `
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px">
-          <div class="chkbox${isChecked ? ' on' : ''}" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},false)"></div>
-          🅿️ ${r.vendor} · ${r.date} · <span class="mono">$${r.amount.toLocaleString()}</span>
-        </label>`;
-      }).join('');
-  }
-}
-
-// 給 dept/other 群組（傳入已序列化的 parkR），選取後即時連動附件四
-function renderParkSelectors2(pid, parkR) {
-  const rowCount = att2Rows[pid] || 1;
-  for (let i = 0; i < rowCount; i++) {
-    const el = document.getElementById(`a2park-sel-${pid}-${i}`);
-    if (!el) continue;
-    if (!parkR || !parkR.length) { el.innerHTML = ''; continue; }
-    el.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">🅿️ 此筆外勤關聯停車費（可多選，選取後從附件四移除）：</div>` +
-      parkR.map((r, ri) => `
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px">
-          <div class="chkbox" id="a2pk-${pid}-${i}-${ri}" onclick="onParkToggle('${pid}',${i},${ri},true)"></div>
-          🅿️ ${r.vendor} · ${r.date} · <span class="mono">$${r.amount.toLocaleString()}</span>
-        </label>`
-      ).join('');
-  }
-}
-
-// ── 停車費勾選：強制單選（同一筆停車費只能配對一個外勤）+ 附件四即時連動 ──
-// isAtt4=true  → dept/other 群組，需即時 hide/show 附件四對應列
-// isAtt4=false → 里程實報專案，不影響附件四
-function onParkToggle(pid, rowIdx, parkIdx, isAtt4) {
-  const thisChk = document.getElementById(`a2pk-${pid}-${rowIdx}-${parkIdx}`);
-  if (!thisChk) return;
-  const willBeOn = !thisChk.classList.contains('on');
-
-  // 若要勾選，先清除同 pid 其他外勤行對同一 parkIdx 的勾選（單選）
-  if (willBeOn) {
-    const rowCount = att2Rows[pid] || 1;
-    for (let oi = 0; oi < rowCount; oi++) {
-      if (oi === rowIdx) continue;
-      const other = document.getElementById(`a2pk-${pid}-${oi}-${parkIdx}`);
-      if (other && other.classList.contains('on')) {
-        other.classList.remove('on');
-      }
-    }
-  }
-
-  thisChk.classList.toggle('on', willBeOn);
-
-  // 附件四即時 hide/show
-  if (isAtt4) {
-    // 附件四的 pid 是群組 key（dept:xxx / other），和附件二的 pid 相同
-    const att4Row = document.getElementById(`a4row-${pid}-${parkIdx}`);
-    if (att4Row) {
-      att4Row.style.display = willBeOn ? 'none' : 'flex';
-    }
-    // 更新附件四空白提示
-    syncAtt4Empty(pid);
-  }
-
-}
-
-// 檢查附件四是否所有列都已配對，顯示提示文字
-function syncAtt4Empty(pid) {
-  const list  = document.getElementById(`a4list-${pid}`);
-  const empty = document.getElementById(`a4empty-${pid}`);
-  if (!list || !empty) return;
-  const rows  = list.querySelectorAll('.info-row');
-  const allHidden = rows.length > 0 && [...rows].every(r => r.style.display === 'none');
-  empty.style.display = allHidden ? 'block' : 'none';
 }
 
 function setRound(btn, pid, i, isRound) {
-  document.getElementById(`a2rnd-${pid}-${i}`).classList.toggle('on', isRound);
+  document.getElementById(`a2rnd-${pid}-${i}`).classList.toggle('on',  isRound);
   document.getElementById(`a2one-${pid}-${i}`).classList.toggle('on', !isRound);
-}
-
-function att4Form(pid, rs) {
-  const rows = rs.map((r, i) => `
-    <div class="info-row" id="a4row-${pid}-${i}" style="align-items:center;gap:12px;display:flex;flex-wrap:wrap">
-      <div style="flex-shrink:0;min-width:200px">
-        <span style="font-size:11px;color:var(--muted)">${r.date || '—'}</span>
-        <span style="font-size:13px;font-weight:600;margin-left:8px">${r.vendor}</span>
-        <span class="mono" style="font-size:12px;color:var(--gold);margin-left:8px">$${r.amount.toLocaleString()}</span>
-        <span style="font-size:11px;color:var(--muted);margin-left:6px">${r.invoiceNo || ''}</span>
-      </div>
-      <div style="flex:1;min-width:180px">
-        <input class="inp" id="a4rsn-${pid}-${i}" placeholder="停車事由（與公務關聯）" style="font-size:12px;padding:5px 10px"
-               value="${(r.notes && r.notes.trim()) ? r.notes.trim() : ''}">
-      </div>
-      <div style="font-size:11px;color:var(--muted);white-space:nowrap" id="a4paired-${pid}-${i}" style="display:none"></div>
-    </div>`).join('');
-
-  return `<div class="att-form">
-    <div class="att-title">📎 附件四 — 停車事由補充</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">請為每筆停車費填寫與公務關聯的停車事由；已在附件二配對的項目會自動隱藏</div>
-    <div id="a4list-${pid}">${rows}</div>
-    <div id="a4empty-${pid}" style="display:none;font-size:12px;color:var(--green);padding:8px 0">✅ 所有停車費已在附件二外勤記錄中配對</div>
-  </div>`;
 }
 
 // ════════════════════════════════════════════════════════════
 // EXPORT ACTION
 // ════════════════════════════════════════════════════════════
 // 只匯出勾選的 sec
-// 載入此人此月份的歷史匯出紀錄，進整理匯出頁時自動呼叫
-async function loadExportHistory() {
-  const person = document.getElementById('exp-person')?.value || '';
-  const month  = document.getElementById('exp-month')?.value  || '';
-  // 人或月份未選時不顯示（避免撈出全部）
+async function loadExportHistory(showToast) {
+  const person = S.user?.name || '';
+  const month  = document.getElementById('global-month')?.value || '';
   if (!person || !month) return;
   try {
     const res = await callGAS({ action: 'getHistory', person, month });
     const rows = res.rows || [];
-    if (!rows.length) return; // 無歷史，不顯示卡片
-    _renderPdfTable(rows.map(r => ({
-      label:  r.attachment || r.project,
-      url:    r.pdfUrl,
-      timeD:  r.time ? r.time.slice(0, 10) : '',
-      timeH:  r.time ? r.time.slice(11, 16) : '',
-      isHist: true,
-    })), false /*noScroll*/);
-  } catch(e) { /* 靜默失敗 */ }
+    // 匯出紀錄頁
+    const tbody = document.getElementById('histTblBody');
+    const cnt   = document.getElementById('histCnt');
+    if (tbody) {
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px">此月份無匯出紀錄</td></tr>';
+      } else {
+        tbody.innerHTML = [...rows].reverse().map((r, i) => `
+          <tr>
+            <td><span class="badge bd-purple">${r.attachment || '附件'}</span></td>
+            <td style="font-size:13px;color:var(--muted)">${r.time ? r.time.slice(0,16) : ''}</td>
+            <td style="font-size:14px">${r.project || ''}</td>
+            <td><a href="${r.pdfUrl}" target="_blank" style="color:var(--accent);font-weight:700">開啟↗</a></td>
+          </tr>`).join('');
+      }
+      if (cnt) cnt.textContent = rows.length + ' 份';
+    }
+    const syncEl = document.getElementById('histSyncDone');
+    if (syncEl) { syncEl.style.display='inline'; setTimeout(()=>syncEl.style.display='none',2500); }
+    if (showToast) toast(`📋 載入 ${rows.length} 筆匯出紀錄`);
+  } catch(e) { if (showToast) toast('❌ 載入失敗'); }
 }
 
 // 本次匯出完成後呼叫
@@ -2207,113 +2283,69 @@ async function doExportAll() {
 }
 
 async function _doExport(secKeys) {
-  const person = document.getElementById('exp-person').value;
-  const month  = document.getElementById('exp-month').value;
-  if (!person) { toast('⚠️ 請選擇申請人'); return; }
+  const person = S.user?.name || '';
+  const month  = document.getElementById('global-month').value;
+  if (!person) { toast('⚠️ 尚未登入，無法匯出'); return; }
 
   const mRate = getMileageRate(month);
 
-  // ── 從 DOM 讀附件二外勤欄位 ──────────────────────────────
+  // ── 從 DOM 讀附件二外勤（a2RowHTML 欄位）────────────────────
   const projFieldRowsMap = {};
   Object.keys(att2Rows).forEach(pid => {
     const rowCount = att2Rows[pid] || 0;
     const rows = [];
     for (let i = 0; i < rowCount; i++) {
-      const rowEl = document.getElementById(`a2r-${pid}-${i}`);
-      if (!rowEl) continue;
+      if (!document.getElementById(`a2r-${pid}-${i}`)) continue;
       rows.push({
         date:    document.getElementById(`a2d-${pid}-${i}`)?.value    || '',
         reason:  document.getElementById(`a2rsn-${pid}-${i}`)?.value  || '',
         start:   document.getElementById(`a2s-${pid}-${i}`)?.value    || '',
         end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
         km:      parseFloat(document.getElementById(`a2km-${pid}-${i}`)?.value) || 0,
-        isRound:       document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
-        rate:          mRate,
-        mapUrl:        document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
-        remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value || '',
-        pairedParkIdxArr: (() => {
-          const parkR_all = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
-          return parkR_all
-            .map((_, ri) => ri)
-            .filter(ri => document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on'));
-        })(),
-        pairedParkIdx: (() => {  // 向後相容
-          const parkR_all = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
-          const idx = parkR_all.findIndex((_, ri) =>
-            document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on')
-          );
-          return idx >= 0 ? idx : null;
-        })(),
+        isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
+        rate:    mRate,
+        remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value  || '',
       });
     }
     if (rows.length) projFieldRowsMap[pid] = rows;
   });
 
-  // ── 從 DOM 讀附件四停車事由 ──────────────────────────────
-  // key: att4 sec 的 pid，value: [{ receiptIdx, reason }]
-  const att4ReasonMap = {};  // pid → { ri: reason }
-  document.querySelectorAll('[id^="a4rsn-"]').forEach(el => {
-    const parts = el.id.replace('a4rsn-', '').split('-');
-    // id 格式: a4rsn-{pid}-{i}，pid 本身可能含 '-'，取最後一段為 i
-    const ri  = parseInt(parts[parts.length - 1]);
-    const pid = parts.slice(0, parts.length - 1).join('-');
-    if (!att4ReasonMap[pid]) att4ReasonMap[pid] = {};
-    att4ReasonMap[pid][ri] = el.value || '';
-  });
+  // ── 從 buildExpSecAtt4 的 input 讀停車事由 ───────────────────
+  // 附件四的每列 input 格式：id 無統一 pid 前綴，改從 receipt id 對應
+  // buildExpSecAtt4 沒有 id prefix，直接從 S.receipts 的 parkReason 取（已由 stashSingle 同步）
 
-  // ── 組裝 receipts，注入外勤 & 停車事由 ──────────────────
+  // ── 組裝 receipts，注入外勤 ──────────────────────────────────
   const receiptsWithFieldRows = S.receipts.map(r => {
-    const base = { ...r, liveFieldRows: r.projectId ? (projFieldRowsMap[r.projectId] || r.fieldRows || []) : [] };
-    // 附件四：為停車費注入 liveNotes（停車事由）
-    if (r.category === 'parking' && r.projectId) {
-      const pid = r.projectId;
-      const reasons = att4ReasonMap[pid];
-      if (reasons) {
-        // 找這張停車費在該 pid 的 parkR 排序中的 index
-        const parkR = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
-        const ri = parkR.findIndex(x => x.id === r.id);
-        if (ri >= 0 && reasons[ri] !== undefined) {
-          base.liveNotes = reasons[ri];
-        }
-      }
-    }
-    return base;
+    const pid = r.projectId || r.dept?.replace(/[^a-zA-Z0-9_-]/g,'_') || 'other';
+    const liveFieldRows = projFieldRowsMap[pid] || r.fieldRows || [];
+    return { ...r, liveFieldRows };
   });
 
-  // ── 過濾：若有指定 secKeys，只傳對應的 receipts ─────────
+  // ── 過濾：若有指定 secKeys，只傳對應的 receipts ─────────────
   let receiptsToExport = receiptsWithFieldRows;
-  let filterKeys = secKeys;
 
-  if (filterKeys) {
-    // 解析 secKeys 決定要包含哪些 receipts
-    const att2ProjIds = new Set();
-    const att4ProjIds = new Set();
-    let   includeAtt3 = false;
-
-    filterKeys.forEach(k => {
-      if (k === 'att3:quota') { includeAtt3 = true; return; }
-      if (k.startsWith('att4:proj:')) { att4ProjIds.add(k.slice('att4:proj:'.length)); return; }
-      if (k.startsWith('proj:')) { att2ProjIds.add(k.slice(5)); return; }
-      // dept / other 也加入附件二
-      att2ProjIds.add('__' + k); // 特殊標記
-    });
-
+  if (secKeys) {
+    const selectedKeys = new Set(secKeys);
     receiptsToExport = receiptsWithFieldRows.filter(r => {
-      const proj = r.projectId ? S.config.projects.find(p => p.id === r.projectId) : null;
-      if (proj && proj.quota) {
-        // 月定額
-        if (r.category === 'parking') return att4ProjIds.has(r.projectId);
-        return includeAtt3;
+      // 附件三（月定額）
+      if (selectedKeys.has('att3:quota')) {
+        const proj = r.projectId ? S.config.projects.find(p => p.id === r.projectId) : null;
+        if (proj?.quota && r.category !== 'parking') return true;
       }
-      // 里程實報 / 部門 / 其他
-      const key = r.attribution === 'project' ? r.projectId
-                : r.attribution === 'dept'    ? '__dept:' + r.dept
-                : '__other';
-      return att2ProjIds.has(key) || att2ProjIds.has('__dept:' + r.dept) || att2ProjIds.has('__other');
+      // 附件二（里程實報）
+      if (selectedKeys.has('proj:' + r.projectId) && r.category === 'fuel') {
+        const proj = S.config.projects.find(p => p.id === r.projectId);
+        if (!proj?.quota) return true;
+      }
+      // 附件四（所有停車費）
+      if (selectedKeys.has('att4:all') && r.category === 'parking') return true;
+      // 其他費用
+      if (selectedKeys.has('other:' + (r.dept || '__other__')) && r.category === 'other') return true;
+      return false;
     });
-
-    if (!receiptsToExport.length) { toast('⚠️ 無可匯出的憑證'); return; }
   }
+
+  if (!receiptsToExport.length) { toast('⚠️ 無可匯出的憑證'); return; }
 
   // ── 先暫存，再匯出 ──────────────────────────────────────
   toast('⏳ 暫存中...');
@@ -2346,7 +2378,6 @@ function nav(name) {
   if (name==='export') {
     if (S.receipts.length === 0) loadOcrResults(true, true);
     else refreshExport();
-    loadExportHistory(); // 進頁時顯示已有的匯出紀錄
   }
   if (name==='ocr') {
     if (S.receipts.length === 0) {
@@ -2354,9 +2385,12 @@ function nav(name) {
     } else {
       renderOCRResults();
       const doneBar = document.getElementById('ocrDoneBar');
-      if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:8px';
+      if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:8px;flex-wrap:wrap';
       setStep(3);
     }
+  }
+  if (name==='history') {
+    loadExportHistory(false);
   }
   // 手機版切頁後關閉 sidebar
   document.getElementById('mainSidebar')?.classList.remove('open');
@@ -2442,7 +2476,7 @@ async function stashThenExport() {
   } catch(e) {
     // doStashAll handles its own toasts; just continue navigating
   }
-  if (btn) { btn.disabled = false; btn.innerHTML = '📄 前往整理匯出 →'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = '📄 匯出 Pdf →'; }
   nav('export');
 }
 
@@ -2450,79 +2484,33 @@ async function doStashAll() {
   if (!S.receipts.length) { toast('⚠️ 沒有可暫存的憑證'); return; }
 
   const updates = S.receipts.map(r => {
-    const attribution = r.attribution || 'project';
-    let attributionTarget = '';
-    if (attribution === 'project') attributionTarget = r.projectId || '';
-    else if (attribution === 'dept') attributionTarget = r.dept || '';
-    else if (attribution === 'other') attributionTarget = '其他';
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
-
-    // ── 讀取附件二外勤欄位（從 DOM 取得使用者填入值）──
-    // 決定此 receipt 所屬的 pid：專案用 projectId，dept/other 用 att2PidMap 查 sanitized key
-    const att2Key = r.attribution === 'project' ? 'proj:' + (r.projectId || '')
-                  : r.attribution === 'dept'    ? 'dept:' + (r.dept || '')
-                  : 'other';
-    const pid = r.projectId || att2PidMap[att2Key] || '';
-    const rowCount = att2Rows[pid] || 0;
-    const fieldRows = [];
-    for (let i = 0; i < rowCount; i++) {
-      // 確認此外勤行確實屬於這張 receipt 所在的群組
-      const rowEl = document.getElementById(`a2r-${pid}-${i}`);
-      if (!rowEl) continue;
-      // 讀取此外勤行勾選的停車費索引（單選，最多一個）
-      const parkR_all = S.receipts.filter(x => x.category === 'parking' &&
-        (r.projectId ? x.projectId === r.projectId : (x.dept === r.dept && x.attribution === r.attribution)));
-      const pairedParkIdxArr = parkR_all
-        .map((_, ri) => ri)
-        .filter(ri => document.getElementById(`a2pk-${pid}-${i}-${ri}`)?.classList.contains('on'));
-      fieldRows.push({
-        date:    document.getElementById(`a2d-${pid}-${i}`)?.value    || '',
-        reason:  document.getElementById(`a2rsn-${pid}-${i}`)?.value  || '',
-        start:   document.getElementById(`a2s-${pid}-${i}`)?.value    || '',
-        end:     document.getElementById(`a2e-${pid}-${i}`)?.value    || '',
-        km:      document.getElementById(`a2km-${pid}-${i}`)?.value   || '',
-        isRound: document.getElementById(`a2rnd-${pid}-${i}`)?.classList.contains('on') ?? true,
-        mapUrl:  document.getElementById(`a2map-url-${pid}-${i}`)?.value || '',
-        remark:  document.getElementById(`a2rem-${pid}-${i}`)?.value || '',
-        pairedParkIdxArr,          // 陣列，可能是 [] / [0] / [1,2]
-        pairedParkIdx: pairedParkIdxArr[0] ?? null,  // 向後相容舊版 GAS
-      });
-    }
-
-    // ── 讀取附件四停車事由（停車費 receipt）──
-    let liveNotes = r.notes || '';
-    if (r.category === 'parking' && r.projectId) {
-      const pid = r.projectId;
-      const parkR = S.receipts.filter(x => x.category === 'parking' && x.projectId === pid);
-      const ri = parkR.findIndex(x => x.id === r.id);
-      const reasonEl = ri >= 0 ? document.getElementById(`a4rsn-${pid}-${ri}`) : null;
-      if (reasonEl && reasonEl.value.trim()) liveNotes = reasonEl.value.trim();
-    }
+    // 依類別決定 attribution / attributionTarget
+    const attribution = r.category === 'parking' ? 'parking'
+      : r.category === 'fuel'    ? 'project'
+      : 'dept';
+    const attributionTarget = r.category === 'parking' ? (r.parkAttr   || '')
+      : r.category === 'fuel'    ? (r.projectId || '')
+      : (r.dept     || '');
 
     return {
       key,
       attribution,
       attributionTarget,
-      // 可修改的憑證欄位
-      vendor:    r.vendor    || '',
-      amount:    r.amount    ?? '',
-      date:      r.date      || '',
-      invoiceNo: r.invoiceNo || '',
-      category:  r.category  || 'other',
-      notes:     liveNotes,
-      // 附件二外勤（JSON 字串存入一個欄位）
-      fieldRows: fieldRows.length ? JSON.stringify(fieldRows) : '',
+      vendor:     r.vendor    || '',
+      amount:     r.amount    ?? '',
+      date:       r.date      || '',
+      invoiceNo:  r.invoiceNo || '',
+      category:   r.category  || 'other',
+      notes:      r.notes     || '',
+      fieldRows:  r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '',
     };
   }).filter(Boolean);
 
   if (!updates.length) { toast('⚠️ 憑證缺少辨識 Key，請先執行 OCR'); return; }
 
-  setBtnLoading('btnStashBar', true,  '暫存中...');
-  setBtnLoading('btnOcrStash', true,  '暫存中...');
   const res = await callGAS({ action: 'stashSelected', updates });
-  setBtnLoading('btnStashBar', false, '💾 暫存');
-  setBtnLoading('btnOcrStash', false, '💾 暫存');
 
   if (res.success) {
     toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
@@ -2538,31 +2526,26 @@ async function doStashAll() {
 //   fromExport=true → 從整理匯出頁觸發，載入後 refreshExport 而非跳 OCR 頁
 // ════════════════════════════════════════════════════════════
 async function loadOcrResults(auto = false, fromExport = false) {
-  // 月份：fromExport 用 exp-month，其餘用 ocr-month
-  const monthEl = fromExport
-    ? document.getElementById('exp-month')
-    : document.getElementById('ocr-month');
+  const month = document.getElementById('global-month')?.value || '';
 
-  // loading 狀態同步到對應按鈕
   const btnOcr = document.getElementById('btnLoadOcr');
-  const btnExp = document.getElementById('btnExpLoad');
-  const activeBtn = fromExport ? btnExp : btnOcr;
-  if (activeBtn) { activeBtn.disabled = true; activeBtn.innerHTML = '<div class="spin"></div> 載入中...'; }
+  const activeBtn = btnOcr;
+  if (activeBtn) { activeBtn.disabled = true; activeBtn.innerHTML = '<div class="spin"></div>'; }
 
   let res;
   try {
     res = await callGAS({
       action:  'getOcrResults',
       lineId:  S.user?.lineId || '',
-      month:   monthEl?.value || '',
+      month:   month,
     });
   } catch(e) {
-    if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '📥 從 Sheet 載入'; }
+    if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '🔄'; }
     if (!auto) toast('❌ 載入失敗：' + e.message);
     return;
   }
 
-  if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '📥 從 Sheet 載入'; }
+  if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '🔄'; }
 
   if (!res.success) {
     if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
@@ -2582,25 +2565,35 @@ async function loadOcrResults(auto = false, fromExport = false) {
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
     existKeys.add(row.key);
+    // 類別：sheet 欄值 → fuel / parking / other
+    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
+              : /停車|parking/i.test(row.category) ? 'parking'
+              : 'other';
+    // 歸屬還原
+    const parkAttr   = cat === 'parking' ? (row.attributionTarget || '') : '';
+    const projectId  = cat === 'fuel'    ? (row.attributionTarget || '') : '';
+    const dept       = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    const frParsed   = (() => { try { return JSON.parse(row.fieldRows || '[]'); } catch(_){ return []; } })();
+
     S.receipts.push({
-      id:           'sheet_' + row.key,
-      source:       row.fileName || '（Sheet）',
-      idx:          0,
-      status:       'done',
-      category:     /停車|parking/i.test(row.category) ? 'parking' : 'other',
-      attribution:  row.attribution || 'project',
-      projectId:    row.attribution === 'project' ? (row.attributionTarget || '') : '',
-      dept:         row.attribution === 'dept'    ? (row.attributionTarget || '') : (S.user?.dept || ''),
-      vendor:       row.vendor    || '',
-      amount:       parseFloat(row.amount  || 0),
-      date:         row.date      || '',
-      invoiceNo:    row.invoiceNo || '',
-      ocrKey:       row.key       || '',
-      notes:        row.notes     || '',
-      error:        null,
+      id:         'sheet_' + row.key,
+      source:     row.fileName || '（Sheet）',
+      idx:        0,
+      status:     'done',
+      category:   cat,
+      projectId,
+      dept,
+      parkAttr,
+      parkReason: row.parkReason || '',
+      vendor:     row.vendor    || '',
+      amount:     parseFloat(row.amount  || 0),
+      date:       row.date      || '',
+      invoiceNo:  row.invoiceNo || '',
+      ocrKey:     row.key       || '',
+      notes:      row.notes     || '',
+      fieldRows:  frParsed,
+      _isNew:     false,
       _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
-      editData:     { startPoint:'', endPoint:'', km:'', reason:'', isRoundTrip:true },
-      fieldRows:    (() => { try { return JSON.parse(row.fieldRows || '[]'); } catch(_){ return []; } })(),
     });
     added++;
   });
@@ -2629,10 +2622,10 @@ async function loadOcrResults(auto = false, fromExport = false) {
 }
 
 function syncOcrMonth(val) {
-  const el = document.getElementById('ocr-month');
+  const el = document.getElementById('global-month');
   if (el && val) el.value = val;
-  loadDriveFiles();    // 月份變更時重新載入雲端憑證清單
-  loadExportHistory(); // 月份變更時重新載入匯出歷史
+  loadDriveFiles();
+  loadExportHistory(false);
 }
 
 // ════════════════════════════════════════════════════════════
