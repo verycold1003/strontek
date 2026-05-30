@@ -1235,10 +1235,10 @@ function mkReceipt(id, qf, item, idx, isNew) {
     date:      item.date      || '',
     invoiceNo: item.invoiceNo || '',
     ocrKey:    item.key       || '',
-    notes:     item.notes     || '',
-    parkAttr:  '',       // 停車費歸屬（填後存代碼）
-    parkReason:'',       // 停車事由
-    fieldRows: [],       // 外勤紀錄（里程實報）
+    notes:     item.notes     || '',   // OCR 辨識結果，不覆蓋
+    supplement:'',                     // 申請人補充（外勤JSON/停車事由/申請說明）
+    parkAttr:  '',
+    fieldRows: [],                     // 油資里程實報外勤紀錄
     _isNew:    !!isNew,
     _isDuplicate:    item.isDuplicate    || false,
     _duplicateOfKey: item.duplicateOfKey || '',
@@ -1432,11 +1432,11 @@ function rcHTML(r) {
           <input class="inp" id="inp-pkattr-${r.id}" list="${parkAttrDlId}"
             value="${esc(parkAttrVal)}" placeholder="輸入專案代碼、部門代碼或「其他」"
             onchange="upR('${r.id}','parkAttr',this.value);stashSingle('${r.id}')">
-          <div style="margin-top:6px">
-            <label class="lbl">停車事由</label>
-            <input class="inp" id="inp-pkrsn-${r.id}" value="${esc(r.parkReason||'')}"
+          <div style="margin-top:8px">
+            <label class="lbl">停車事由（補充）</label>
+            <input class="inp" id="inp-supp-park-${r.id}" value="${esc(r.supplement||'')}"
               placeholder="請說明與公務的關聯"
-              onchange="upR('${r.id}','parkReason',this.value);stashSingle('${r.id}')">
+              onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
           </div>
         </div>
 
@@ -1465,12 +1465,19 @@ function rcHTML(r) {
           <input class="inp" list="${deptDlId}" value="${esc(r.dept||'')}"
             placeholder="輸入部門代碼"
             onchange="upR('${r.id}','dept',this.value);stashSingle('${r.id}')">
+          <div style="margin-top:8px">
+            <label class="lbl">申請說明（補充）</label>
+            <input class="inp" value="${esc(r.supplement||'')}"
+              placeholder="請說明費用用途與公務關聯"
+              onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
+          </div>
         </div>
 
-        <!-- 備註 -->
-        <div><label class="lbl">備註</label>
-          <input class="inp" value="${esc(r.notes)}"
-            onchange="upR('${r.id}','notes',this.value);stashSingle('${r.id}')"></div>
+        <!-- 備註（OCR 辨識結果，唯讀）-->
+        <div><label class="lbl">備註（OCR 辨識）</label>
+          <input class="inp" value="${esc(r.notes)}" readonly
+            style="background:var(--surface2);color:var(--muted);cursor:default"
+            title="備註為 OCR 辨識結果，不可修改"></div>
       </div>
     </div>
   </div>`;
@@ -1490,6 +1497,11 @@ async function stashSingle(id) {
   const attributionTarget = r.category === 'parking' ? (r.parkAttr || '')
     : r.category === 'fuel'    ? (r.projectId || '')
     : (r.dept || '');
+  // 補充欄：油資存外勤JSON，停車/其他存文字補充
+  const fieldRows  = r.category === 'fuel'
+    ? (r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '')
+    : undefined;
+  const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
   try {
     await callGAS({ action: 'stashSelected', updates: [{
       key: r.ocrKey || r.invoiceNo || '',
@@ -1497,7 +1509,8 @@ async function stashSingle(id) {
       vendor: r.vendor, amount: r.amount, date: r.date,
       invoiceNo: r.invoiceNo, category: r.category,
       notes: r.notes,
-      fieldRows: r.fieldRows ? JSON.stringify(r.fieldRows) : '',
+      ...(fieldRows  !== undefined ? { fieldRows }  : {}),
+      ...(supplement !== undefined ? { supplement } : {}),
     }]});
   } catch(_) { /* 靜默 */ }
 }
@@ -2836,6 +2849,11 @@ async function doStashAll() {
       : r.category === 'fuel'    ? (r.projectId || '')
       : (r.dept     || '');
 
+    const fieldRows  = r.category === 'fuel'
+      ? (r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '')
+      : undefined;
+    const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
+
     return {
       key,
       attribution,
@@ -2846,7 +2864,8 @@ async function doStashAll() {
       invoiceNo:  r.invoiceNo || '',
       category:   r.category  || 'other',
       notes:      r.notes     || '',
-      fieldRows:  r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '',
+      ...(fieldRows  !== undefined ? { fieldRows }  : {}),
+      ...(supplement !== undefined ? { supplement } : {}),
     };
   }).filter(Boolean);
 
@@ -2886,6 +2905,7 @@ async function loadOcrResults(auto = false, fromExport = false) {
     });
   } catch(e) {
     if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '🔄'; }
+    renderQueue(); // 還原 loading spinner
     if (!auto) toast('❌ 載入失敗：' + e.message);
     return;
   }
@@ -2893,6 +2913,7 @@ async function loadOcrResults(auto = false, fromExport = false) {
   if (activeBtn) { activeBtn.disabled = false; activeBtn.innerHTML = '🔄'; }
 
   if (!res.success) {
+    renderQueue(); // 還原 loading spinner
     if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
     return;
   }
@@ -2910,15 +2931,20 @@ async function loadOcrResults(auto = false, fromExport = false) {
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
     existKeys.add(row.key);
-    // 類別：sheet 欄值 → fuel / parking / other
     const cat = /fuel|油資/i.test(row.category) ? 'fuel'
               : /停車|parking/i.test(row.category) ? 'parking'
               : 'other';
-    // 歸屬還原
-    const parkAttr   = cat === 'parking' ? (row.attributionTarget || '') : '';
-    const projectId  = cat === 'fuel'    ? (row.attributionTarget || '') : '';
-    const dept       = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
-    const frParsed   = (() => { try { return JSON.parse(row.fieldRows || '[]'); } catch(_){ return []; } })();
+    // 補充欄依類別還原
+    const rawSupp   = row.fieldRows || '';  // fieldRows 對應 GAS 回傳的 補充欄
+    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
+    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
+    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    // 油資→外勤JSON，停車/其他→文字補充
+    const frParsed  = (() => {
+      if (cat !== 'fuel') return [];
+      try { return JSON.parse(rawSupp || '[]'); } catch(_){ return []; }
+    })();
+    const supplement = cat !== 'fuel' ? rawSupp : '';
 
     S.receipts.push({
       id:         'sheet_' + row.key,
@@ -2929,7 +2955,7 @@ async function loadOcrResults(auto = false, fromExport = false) {
       projectId,
       dept,
       parkAttr,
-      parkReason: row.parkReason || '',
+      supplement,          // 停車事由 or 申請說明 or ''
       vendor:     row.vendor    || '',
       amount:     parseFloat(row.amount  || 0),
       date:       row.date      || '',
@@ -2951,7 +2977,8 @@ async function loadOcrResults(auto = false, fromExport = false) {
     if (!auto) toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
     else if (added > 0) toast(`📥 已從 Sheet 載入 ${added} 筆`);
   } else {
-    // OCR 頁邏輯（原行為不變）
+    // OCR 頁：先還原佇列顯示（清掉 loading spinner），再渲染辨識結果
+    renderQueue();
     renderOCRResults();
     if (added > 0) {
       setStep(3);
