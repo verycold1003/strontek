@@ -1302,64 +1302,6 @@ function detectCat(item) {
 // ════════════════════════════════════════════════════════════
 // OCR RESULTS RENDER  （tab：油資 / 停車費 / 其他）
 // ════════════════════════════════════════════════════════════
-let _ocrTab = 'fuel'; // 目前 active tab
-
-function renderOCRResults() {
-  const c = document.getElementById('ocrResults');
-  if (!S.receipts.length) { c.innerHTML = ''; updateStats(); return; }
-
-  // 依類別分組，每組 newest 排序（date 降序，date 相同則 _isNew 優先）
-  const sorted = [...S.receipts].sort((a, b) => {
-    if (a._isNew !== b._isNew) return a._isNew ? -1 : 1;
-    return (b.date || '').localeCompare(a.date || '');
-  });
-  const tabs = {
-    fuel:    sorted.filter(r => r.category === 'fuel'),
-    parking: sorted.filter(r => r.category === 'parking'),
-    other:   sorted.filter(r => r.category !== 'fuel' && r.category !== 'parking'),
-  };
-
-  // 確認目前 tab 有資料，否則退到有資料的 tab
-  if (!tabs[_ocrTab]?.length) {
-    _ocrTab = tabs.fuel.length ? 'fuel' : tabs.parking.length ? 'parking' : 'other';
-  }
-
-  const fuelAmt = tabs.fuel.reduce((s, r) => s + r.amount, 0);
-  const parkAmt = tabs.parking.reduce((s, r) => s + r.amount, 0);
-  const otherAmt= tabs.other.reduce((s, r) => s + r.amount, 0);
-
-  const tabBtn = (key, icon, label, cnt, amt) => {
-    const active = _ocrTab === key;
-    return `<button onclick="switchOcrTab('${key}')" style="
-      flex:1;padding:10px 8px;border:2px solid ${active?'var(--accent)':'var(--border)'};
-      border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
-      cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
-      <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">${cnt} 張 <strong style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong></div>
-    </button>`;
-  };
-
-  const tabHtml = `
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      ${tabBtn('fuel',    '⛽', '油資',   tabs.fuel.length,    fuelAmt)}
-      ${tabBtn('parking', '🅿️', '停車費', tabs.parking.length, parkAmt)}
-      ${tabBtn('other',   '📄', '其他',   tabs.other.length,   otherAmt)}
-    </div>`;
-
-  // 渲染當前 tab 的 receipts
-  const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
-
-  c.innerHTML = tabHtml + (listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`);
-
-  updateStats();
-  badge('nb-ocr', S.receipts.length);
-  const doneBar = document.getElementById('ocrDoneBar');
-  if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:10px;flex-wrap:wrap;align-items:center';
-}
-
-// ════════════════════════════════════════════════════════════
-// OCR RESULTS RENDER  （tab：油資 / 停車費 / 其他）
-// ════════════════════════════════════════════════════════════
 let _ocrTab = 'fuel';
 
 function renderOCRResults() {
