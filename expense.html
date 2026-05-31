@@ -375,7 +375,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <tbody id="driveFileTbl"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">
                 <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
                   <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
-                  載入雲端憑證中...
+                  載入中...
                 </div>
               </td></tr></tbody>
             </table>
@@ -403,15 +403,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div class="card-hd">
             📥 辨識佇列
             <span class="badge bd-blue" id="queueCnt">0 個</span>
-            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-              <button class="btn btn-ghost btn-sm" id="btnLoadOcr" onclick="loadOcrResults()" title="從 Sheet 載入">🔄</button>
-              <span id="syncDoneOcr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
-            </div>
           </div>
           <!-- Sheet 載入狀態列（獨立，不蓋 queueList） -->
           <div id="ocrSheetLoadBar" style="display:none;align-items:center;gap:10px;padding:10px 16px;background:rgba(37,99,235,.05);border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)">
             <div style="width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0"></div>
-            <span id="ocrSheetLoadMsg">從 Sheet 載入中...</span>
+            <span id="ocrSheetLoadMsg">載入中...</span>
           </div>
           <div class="card-bd" id="queueList">
             <div style="text-align:center;color:var(--muted);padding:20px;font-size:15px">從上傳頁面勾選雲端檔案，或直接拖曳照片到此</div>
@@ -434,16 +430,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </div>
         </div>
 
-        <!-- 統計：佇列與結果中間 -->
-        <div id="ocrStatBar" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;display:none">
-          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
-            <span style="font-size:14px;color:var(--muted)">已辨識 <strong id="s-count" style="color:var(--text)">0</strong> 張</span>
-            <span style="font-size:14px;color:var(--muted)">⛽ 油資 <strong id="s-fuel" style="color:var(--text)">$0</strong></span>
-            <span style="font-size:14px;color:var(--muted)">🅿️ 停車費 <strong id="s-park" style="color:var(--text)">$0</strong></span>
-            <span style="font-size:14px;color:var(--muted)">📄 其他 <strong id="s-other" style="color:var(--text)">$0</strong></span>
-            <span style="font-size:15px;font-weight:800;color:var(--gold);margin-left:auto">合計 <span id="s-total">$0</span></span>
-          </div>
-        </div>
 
         <div id="ocrResults"></div>
 
@@ -763,12 +749,7 @@ function finishLogin(person) {
   renderUserBar();
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = document.getElementById('driveFileTbl');
-  if (tbl) tbl.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">
-    <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
-      <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
-      載入雲端憑證中...
-    </div>
-  </td></tr>`;
+  if (tbl) tbl.innerHTML = loadingRow(4);
   loadConfig(); // loadConfig 結尾會呼叫 loadDriveFiles
 }
 
@@ -864,9 +845,20 @@ function onGlobalMonthChange(val) {
   loadExportHistory(false);
 }
 
-// 🔄 重新從 Sheet 載入所有資料
+// 🔄 依當前頁面決定觸發動作
 function doReloadAll() {
-  loadConfig();
+  const activePage = document.querySelector('.page.active')?.id || '';
+  if (activePage === 'page-upload') {
+    loadConfig(); // 含 loadDriveFiles
+  } else if (activePage === 'page-ocr') {
+    loadOcrResults(false);
+  } else if (activePage === 'page-history') {
+    loadExportHistory(true);
+  } else if (activePage === 'page-project') {
+    loadProjectList(true);
+  } else {
+    loadConfig();
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1016,7 +1008,7 @@ async function loadDriveFiles() {
 
   // 顯示 loading（card 已預設顯示，直接更新 tbody）
   const tbl = document.getElementById('driveFileTbl');
-  if (tbl) tbl.innerHTML = loadingRow(4, '載入雲端憑證中...');
+  if (tbl) tbl.innerHTML = loadingRow(4);
 
   try {
     const res = await callGAS({ action:'listFiles', person, month });
@@ -1309,8 +1301,10 @@ function renderOCRResults() {
       border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
       cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
       <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">${cnt} 張
-        <strong style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+        <span id="tab-${key}-cnt">${cnt} 張</span>
+        <strong id="tab-${key}-amt" style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong>
+      </div>
     </button>`;
   };
 
@@ -1361,7 +1355,7 @@ function renderFuelTab(fuelReceipts) {
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
       border-bottom:1px solid var(--border);flex-wrap:wrap" id="fuel-inv-${r.id}">
       <div class="chkbox on" id="rck-${r.id}"
-        onclick="this.classList.toggle('on');syncAllOcrChk()"
+        onclick="this.classList.toggle('on');syncAllOcrChk();updateStats()"
         style="flex-shrink:0"></div>
       <div style="flex:1;min-width:120px">
         <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}</div>
@@ -1752,7 +1746,7 @@ function rcHTML(r) {
       gap:10px;align-items:center;padding:12px 14px;cursor:pointer;
       background:var(--surface2)">
       <div class="chkbox on" id="rck-${r.id}"
-        onclick="event.stopPropagation();this.classList.toggle('on');syncAllOcrChk()"></div>
+        onclick="event.stopPropagation();this.classList.toggle('on');syncAllOcrChk();updateStats()"></div>
       <div style="min-width:0">
         <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${r.vendor}${newTag}
@@ -2292,6 +2286,7 @@ function toggleAllOcr() {
   S.receipts.forEach(r => {
     document.getElementById('rck-' + r.id)?.classList.toggle('on', toOn);
   });
+  updateStats();
 }
 
 // 同步 master checkbox 狀態（個別勾選後呼叫）
@@ -2308,18 +2303,21 @@ function syncAllOcrChk() {
 // setAttr 已由 setCat 取代
 
 function updateStats() {
-  const fuel  = S.receipts.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
-  const park  = S.receipts.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
-  const other = S.receipts.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
-  const total = fuel + park + other;
-  se('s-count', S.receipts.length);
-  se('s-fuel',  '$'+fuel.toLocaleString());
-  se('s-park',  '$'+park.toLocaleString());
-  se('s-other', '$'+other.toLocaleString());
-  se('s-total', '$'+total.toLocaleString());
-  // 統計列顯示
-  const bar = document.getElementById('ocrStatBar');
-  if (bar) bar.style.display = S.receipts.length ? 'block' : 'none';
+  // 只統計勾選中的 receipts
+  const checked = S.receipts.filter(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
+  const fuel  = checked.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
+  const park  = checked.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
+  const other = checked.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
+  // tab 按鈕數字也依勾選更新（renderOCRResults 渲染後呼叫）
+  const fuelCnt  = checked.filter(r=>r.category==='fuel').length;
+  const parkCnt  = checked.filter(r=>r.category==='parking').length;
+  const otherCnt = checked.filter(r=>r.category!=='fuel'&&r.category!=='parking').length;
+  se('tab-fuel-cnt',  fuelCnt  + ' 張');
+  se('tab-fuel-amt',  '$'+fuel.toLocaleString());
+  se('tab-park-cnt',  parkCnt  + ' 張');
+  se('tab-park-amt',  '$'+park.toLocaleString());
+  se('tab-other-cnt', otherCnt + ' 張');
+  se('tab-other-amt', '$'+other.toLocaleString());
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3373,34 +3371,25 @@ async function queryMaps(pid, i) {
 // ════════════════════════════════════════════════════════════
 async function stashThenExport() {
   const btn = document.getElementById('btnGoExport');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 暫存中...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 準備中...'; }
   try {
-    await doStashAll();
-  } catch(e) {
-    // doStashAll handles its own toasts; just continue navigating
-  }
+    await doStashAll(true); // true = 靜默模式
+  } catch(e) { /* 靜默 */ }
   if (btn) { btn.disabled = false; btn.innerHTML = '📄 匯出 Pdf →'; }
-  // 暫存完成後直接執行匯出
   await _doExport(null, true);
 }
 
-async function doStashAll() {
-  if (!S.receipts.length) { toast('⚠️ 沒有可暫存的憑證'); return; }
+async function doStashAll(silent = false) {
+  if (!S.receipts.length) { if (!silent) toast('⚠️ 沒有可暫存的憑證'); return; }
 
-  // 油資：先建立 _fuelProjList 的索引（index=0 對應第一個專案的所有 receipt）
-  // 新版 UI 下，fuel receipt 的 projectId 可能為空，需從 _fuelProjList 取
-  // 策略：所有 fuel receipts 共享 _fuelProjList[0] 的專案（若只有一個）
-  //       或依 receipt.projectId（若已有值）對應到 _fuelProjList 中的項目
   const fuelProjForReceipt = (r) => {
     if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId);
-    // projectId 空時，取第一個有 projId 的項目（向後相容舊資料）
     return window._fuelProjList.find(fp => fp.projId);
   };
 
   const updates = S.receipts.map(r => {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
-    // 依類別決定 attribution / attributionTarget
     const fuelFp = r.category === 'fuel' ? fuelProjForReceipt(r) : null;
     const attribution = r.category === 'parking' ? 'parking'
       : r.category === 'fuel'    ? 'project'
@@ -3428,14 +3417,13 @@ async function doStashAll() {
     };
   }).filter(Boolean);
 
-  if (!updates.length) { toast('⚠️ 憑證缺少辨識 Key，請先執行 OCR'); return; }
+  if (!updates.length) { if (!silent) toast('⚠️ 憑證缺少辨識 Key，請先執行 OCR'); return; }
 
   const res = await callGAS({ action: 'stashSelected', updates });
 
-  if (res.success) {
-    toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
-  } else {
-    toast('❌ 暫存失敗：' + (res.error || '未知'));
+  if (!silent) {
+    if (res.success) toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
+    else toast('❌ 暫存失敗：' + (res.error || '未知'));
   }
 }
 
@@ -3448,18 +3436,18 @@ async function doStashAll() {
 async function loadOcrResults(auto = false, fromExport = false) {
   const month = document.getElementById('global-month')?.value || '';
 
-  const btnOcr  = document.getElementById('btnLoadOcr');
+  const btnReload = document.getElementById('btnReload');
   const loadBar = document.getElementById('ocrSheetLoadBar');
   const loadMsg = document.getElementById('ocrSheetLoadMsg');
 
   // 顯示獨立 loading 列（不蓋 queueList）
   if (loadBar) { loadBar.style.display = 'flex'; }
-  if (loadMsg) { loadMsg.textContent = '從 Sheet 載入中...'; }
-  if (btnOcr)  { btnOcr.disabled = true; btnOcr.innerHTML = '<div class="spin"></div>'; }
+  if (loadMsg) { loadMsg.textContent = '載入中...'; }
+  if (btnReload) { btnReload.disabled = true; btnReload.innerHTML = '<div class="spin" style="border-top-color:var(--text)"></div>'; }
 
   const hideLoading = () => {
     if (loadBar) loadBar.style.display = 'none';
-    if (btnOcr)  { btnOcr.disabled = false; btnOcr.innerHTML = '🔄'; }
+    if (btnReload) { btnReload.disabled = false; btnReload.innerHTML = '🔄'; }
   };
 
   // 20 秒 timeout 保護
@@ -3468,7 +3456,7 @@ async function loadOcrResults(auto = false, fromExport = false) {
     timedOut = true;
     hideLoading();
     if (!auto) toast('⚠️ 載入逾時，請按 🔄 重試');
-    else toast('⚠️ Sheet 載入逾時');
+    else toast('⚠️ 載入逾時');
   }, 20000);
 
   let res;
@@ -3499,9 +3487,6 @@ async function loadOcrResults(auto = false, fromExport = false) {
   if (!rows.length) {
     if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
     if (fromExport) refreshExport();
-    // 顯示同步完成
-    const syncEl = document.getElementById('syncDoneOcr');
-    if (syncEl) { syncEl.style.display='inline'; setTimeout(()=>syncEl.style.display='none',2500); }
     return;
   }
 
@@ -3568,9 +3553,9 @@ async function loadOcrResults(auto = false, fromExport = false) {
     if (!existIds.has(fp.projId)) window._fuelProjList.push(fp);
   });
 
-  // 顯示同步完成
-  const syncEl = document.getElementById('syncDoneOcr');
-  if (syncEl) { syncEl.style.display='inline'; setTimeout(()=>syncEl.style.display='none',2500); }
+  // 顯示同步完成（sidebar）
+  const syncDoneEl = document.getElementById('syncDone');
+  if (syncDoneEl) { syncDoneEl.style.display='inline'; setTimeout(()=>syncDoneEl.style.display='none',2500); }
 
   if (fromExport) {
     // 整理匯出頁：直接重繪分群，不跳頁、不碰 OCR 頁的 DOM
