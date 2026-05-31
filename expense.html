@@ -298,7 +298,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="nav-sec">作業流程</div>
     <div class="nav-item active" data-page="upload" onclick="nav('upload')">📤 <span>上傳憑證</span> <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
     <div class="nav-item" data-page="ocr" onclick="nav('ocr')">🤖 <span>OCR 辨識</span> <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
-    <div class="nav-item" data-page="export" onclick="nav('export')">📄 <span>匯出 PDF</span></div>
     <div class="nav-item" data-page="history" onclick="nav('history')">📋 <span>匯出紀錄</span></div>
 
     <!-- 申請月份：作業流程與上傳憑證中間 -->
@@ -361,7 +360,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div class="card-hd">
             ✅ 已上傳至雲端
             <span class="badge bd-green" id="uploadedCnt">—</span>
-            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadDriveFiles()" title="重新載入雲端紀錄">🔄</button>
           </div>
           <div id="uploadDoneHint" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:rgba(37,99,235,.06);border-bottom:1px solid var(--border);font-size:14px;color:var(--accent)">
             ✅ 上傳完成，請勾選檔案後點「辨識勾選項目」
@@ -458,33 +456,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
 
-    <!-- PAGE: EXPORT -->
-    <div class="page" id="page-export">
-      <div class="pg-title">📄 整理與匯出</div>
-      <div class="pg-sub">依專案自動分組憑證，填寫附件欄位後匯出 PDF 至 Drive</div>
-
-      <div id="expMain">
-        <div style="text-align:center;color:var(--muted);padding:60px;font-size:15px" id="expEmpty">
-          請先完成 OCR 辨識，結果將自動分群顯示於此
-        </div>
-        <!-- 全選列（有資料時顯示） -->
-        <div id="expSelBar" style="display:none;align-items:center;gap:10px;margin-bottom:12px">
-          <div class="sec-ck on" id="expSelAll" onclick="toggleAllSec()" title="全選／全不選">✓</div>
-          <span style="font-size:14px;color:var(--muted)">全選</span>
-          <span id="expSelCount" style="font-size:14px;color:var(--accent);font-weight:700"></span>
-        </div>
-        <!-- 附件區塊由 refreshExport() 填入 -->
-
-        <!-- 底部列印列 -->
-        <div class="print-bar" id="expPrintBar" style="display:none">
-          <span class="print-bar-info" id="expPrintInfo">已勾選 0 份</span>
-          <button class="btn btn-ghost" onclick="toggleAllSec()">☐ 全選／全不選</button>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-primary" id="btnExportSel" onclick="doExportSelected()">📄 匯出 Pdf →</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- PAGE: HISTORY (匯出紀錄) -->
     <div class="page" id="page-history">
@@ -2936,9 +2907,6 @@ function renderPdfResultList(urls, labels) {
   // 重新載入匯出紀錄（含新產生的項目）
   loadExportHistory(false);
   // 若目前在 export 頁，自動跳到匯出紀錄頁
-  if (document.getElementById('page-export')?.classList.contains('active')) {
-    setTimeout(() => nav('history'), 800);
-  }
 }
 
 async function doExportSelected() {
@@ -2949,10 +2917,10 @@ async function doExportSelected() {
 }
 
 async function doExportAll() {
-  await _doExport(null); // null = 全部
+  await _doExport(null, true); // null = 全部
 }
 
-async function _doExport(secKeys) {
+async function _doExport(secKeys, skipStash = false) {
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month').value;
   if (!person) { toast('⚠️ 尚未登入，無法匯出'); return; }
@@ -3027,8 +2995,10 @@ async function _doExport(secKeys) {
   if (!receiptsToExport.length) { toast('⚠️ 無可匯出的憑證'); return; }
 
   // ── 先暫存，再匯出 ──────────────────────────────────────
-  toast('⏳ 暫存中...');
-  try { await doStashAll(); } catch(_) { /* doStashAll 自行處理 toast，不阻斷 */ }
+  if (!skipStash) {
+    toast('⏳ 暫存中...');
+    try { await doStashAll(); } catch(_) { /* doStashAll 自行處理 toast，不阻斷 */ }
+  }
 
   toast(`⏳ 產生 PDF 中（${receiptsToExport.length} 筆）...`);
   try {
@@ -3054,10 +3024,6 @@ function nav(name) {
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  if (name==='export') {
-    if (S.receipts.length === 0) loadOcrResults(true, true);
-    else refreshExport();
-  }
   if (name==='ocr') {
     if (S.receipts.length === 0) {
       loadOcrResults(true);
@@ -3403,7 +3369,8 @@ async function stashThenExport() {
     // doStashAll handles its own toasts; just continue navigating
   }
   if (btn) { btn.disabled = false; btn.innerHTML = '📄 匯出 Pdf →'; }
-  nav('export');
+  // 暫存完成後直接執行匯出
+  await _doExport(null, true);
 }
 
 async function doStashAll() {
