@@ -892,126 +892,6 @@ async function restoreFuelProjList(rows) {
 }
 
 // ════════════════════════════════════════════════════════════
-// LOAD OCR RESULTS FROM SHEET
-//   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
-//   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
-// ════════════════════════════════════════════════════════════
-async function loadOcrResults(auto = false) {
-  const month = document.getElementById('global-month')?.value || '';
-
-  const btnOcr  = document.getElementById('btnLoadOcr');
-  const loadBar = document.getElementById('ocrSheetLoadBar');
-  const loadMsg = document.getElementById('ocrSheetLoadMsg');
-
-  if (loadBar) { loadBar.style.display = 'flex'; }
-  if (loadMsg) { loadMsg.textContent = '從 Sheet 載入中...'; }
-  if (btnOcr)  { btnOcr.disabled = true; btnOcr.innerHTML = '<div class="spin"></div>'; }
-
-  const hideLoading = () => {
-    if (loadBar) loadBar.style.display = 'none';
-    if (btnOcr)  { btnOcr.disabled = false; btnOcr.innerHTML = '🔄'; }
-  };
-
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    hideLoading();
-    if (!auto) toast('⚠️ 載入逾時，請按 🔄 重試');
-  }, 20000);
-
-  let res;
-  try {
-    res = await callGAS({
-      action:  'getOcrResults',
-      lineId:  S.user?.lineId || '',
-      month,
-    });
-  } catch(e) {
-    clearTimeout(timer);
-    if (timedOut) return;
-    hideLoading();
-    if (!auto) toast('❌ 載入失敗：' + e.message);
-    return;
-  }
-
-  clearTimeout(timer);
-  if (timedOut) return;
-  hideLoading();
-
-  if (!res.success) {
-    if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
-    return;
-  }
-
-  const rows = res.rows || [];
-  if (!rows.length) {
-    if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
-    return;
-  }
-
-  // 合併到 S.receipts（以 key 去重）
-  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
-  let added = 0;
-  rows.forEach(row => {
-    if (existKeys.has(row.key)) return;
-    existKeys.add(row.key);
-    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
-              : /停車|parking/i.test(row.category) ? 'parking'
-              : 'other';
-    const rawSupp   = row.fieldRows || '';
-    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
-    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
-    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
-    const frParsed  = (() => {
-      if (cat !== 'fuel') return [];
-      try { return JSON.parse(rawSupp || '[]'); } catch(_) { return []; }
-    })();
-    const supplement = cat !== 'fuel' ? rawSupp : '';
-    S.receipts.push({
-      id:         'sheet_' + row.key,
-      source:     row.fileName || '（Sheet）',
-      idx:        0,
-      status:     'done',
-      category:   cat,
-      projectId,
-      dept,
-      parkAttr,
-      supplement,
-      vendor:     row.vendor    || '',
-      amount:     parseFloat(row.amount  || 0),
-      date:       row.date      || '',
-      invoiceNo:  row.invoiceNo || '',
-      ocrKey:     row.key       || '',
-      notes:      row.notes     || '',
-      fieldRows:  frParsed,
-      _isNew:     false,
-      _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
-    });
-    added++;
-  });
-
-  updateStats();
-
-  // 顯示同步完成（sidebar）
-  const syncDoneEl = document.getElementById('syncDone');
-  if (syncDoneEl) { syncDoneEl.style.display='inline'; setTimeout(()=>syncDoneEl.style.display='none',2500); }
-
-  // OCR 頁：渲染佇列 + 辨識結果
-  renderQueue();
-  renderOCRResults();
-  if (added > 0) {
-    setStep(3);
-    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
-  }
-  if (!auto) {
-    nav('ocr');
-    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
-  } else if (added > 0) {
-    toast(`📥 已載入 ${added} 筆歷史紀錄`);
-  }
-}
-
-// ════════════════════════════════════════════════════════════
 // FILE UPLOAD
 // ════════════════════════════════════════════════════════════
 function onFilePick(files) {
@@ -1467,8 +1347,6 @@ function renderOCRResults() {
   let bodyHtml = '';
   if (_ocrTab === 'fuel') {
     bodyHtml = renderFuelTab(tabs.fuel);
-  } else if (_ocrTab === 'parking') {
-    bodyHtml = renderParkingTab(tabs.parking);
   } else {
     const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
     bodyHtml = listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`;
@@ -1476,15 +1354,14 @@ function renderOCRResults() {
 
   c.innerHTML = tabHtml + bodyHtml;
 
+  // 油資 tab：初始化專案 dropdown
   if (_ocrTab === 'fuel') {
     setTimeout(() => {
-      initFuelProjDropdowns();
+      initFuelProjDropdowns(); // 月定額輸入框
       window._fuelProjList.forEach((fp, idx) => {
         if (fp.type !== 'quota') initFuelMileDropdownAt(idx);
       });
     }, 0);
-  } else if (_ocrTab === 'parking') {
-    setTimeout(() => initParkingTabDropdown(), 0);
   }
 
   updateStats();
@@ -1496,178 +1373,6 @@ function renderOCRResults() {
 function switchOcrTab(tab) {
   _ocrTab = tab;
   renderOCRResults();
-}
-
-// ════════════════════════════════════════════════════════════
-// 停車費 Tab
-// ════════════════════════════════════════════════════════════
-if (!window._parkAttrSelected) window._parkAttrSelected = { id: '', label: '' };
-
-function getParkAttrLabel(attrId) {
-  if (!attrId) return '未設定';
-  const proj = S.config.projects.find(p => p.id === attrId);
-  if (proj) return `${proj.id} ${proj.name}`;
-  const dept = (S.config.departments||[]).find(d => d.code === attrId || d.name === attrId);
-  if (dept) return `${dept.code} ${dept.name}`;
-  return attrId;
-}
-
-function renderParkingTab(parkReceipts) {
-  const total = parkReceipts.reduce((s, r) => s + r.amount, 0);
-
-  const attrBar = `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hd" style="font-size:14px;font-weight:800">
-        🅿️ 停車費歸屬
-        <span class="mono" style="margin-left:auto;color:var(--gold);font-size:15px;font-weight:800">
-          共 $${total.toLocaleString()}
-        </span>
-      </div>
-      <div style="padding:12px 16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px">
-          <label class="lbl" style="margin-bottom:4px">選擇歸屬（套用至勾選項目）</label>
-          ${fdHTML('fd-park-attr', 'fd-park-attr-inp', '搜尋專案 / 部門 / 其他')}
-          <div id="park-attr-selected" style="margin-top:6px;font-size:13px;color:var(--accent);font-weight:700;min-height:18px">
-            ${window._parkAttrSelected.label ? '✓ 已選：' + window._parkAttrSelected.label : ''}
-          </div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="applyParkAttrToChecked()"
-          style="flex-shrink:0;margin-bottom:2px">套用到勾選項目</button>
-      </div>
-    </div>`;
-
-  const listRows = parkReceipts.map(r => {
-    const attrLabel = getParkAttrLabel(r.parkAttr);
-    const attrBadge = r.parkAttr
-      ? `<span class="badge bd-blue" style="font-size:11px">${attrLabel}</span>`
-      : `<span class="badge bd-muted" style="font-size:11px">未設定</span>`;
-    const errBadge = r.status === 'error'
-      ? `<span class="badge bd-red" style="font-size:11px">❌ 辨識失敗</span>` : '';
-    const newTag = r._isNew
-      ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
-
-    return `
-    <div id="park-row-${r.id}"
-      style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;
-      overflow:hidden;background:var(--surface)">
-      <!-- Header 行 -->
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;
-        background:var(--surface2);cursor:pointer;flex-wrap:wrap"
-        onclick="toggleParkRow('${r.id}')">
-        <div class="chkbox on" id="rck-${r.id}"
-          onclick="event.stopPropagation();this.classList.toggle('on');syncAllOcrChk()"
-          style="flex-shrink:0"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-            id="park-vendor-${r.id}">${r.vendor}${newTag}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">
-            ${r.source||''} · <span id="park-date-${r.id}">${r.date||''}</span>
-          </div>
-          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
-            <span class="badge bd-orange">🅿️ 停車費</span>
-            <span id="park-attr-badge-${r.id}">${attrBadge}</span>
-            ${errBadge}
-          </div>
-        </div>
-        <div class="mono" style="font-size:17px;font-weight:800;color:var(--gold)"
-          id="park-amt-${r.id}">$${r.amount.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted)">${r.invoiceNo||'—'}</div>
-        <button class="btn btn-danger btn-sm btn-icon"
-          onclick="event.stopPropagation();delR('${r.id}')" style="padding:6px 9px">🗑</button>
-        <span id="park-chev-${r.id}" style="color:var(--muted);font-size:13px">▼</span>
-      </div>
-      <!-- 停車事由（直接顯示）-->
-      <div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--surface)">
-        <label class="lbl" style="margin-bottom:4px">停車事由</label>
-        <input class="inp" id="park-supp-${r.id}" value="${esc(r.supplement||'')}"
-          placeholder="請說明與公務的關聯"
-          onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
-      </div>
-      <!-- 展開：編輯辨識結果 -->
-      <div id="park-body-${r.id}" style="display:none;padding:14px;border-top:1px solid var(--border)">
-        <div class="fg4" style="margin-bottom:12px">
-          <div><label class="lbl">廠商</label>
-            <input class="inp" value="${esc(r.vendor)}"
-              onchange="upR('${r.id}','vendor',this.value);
-                var e=document.getElementById('park-vendor-${r.id}');if(e)e.textContent=this.value;
-                updateStats();stashSingle('${r.id}')"></div>
-          <div><label class="lbl">金額</label>
-            <input type="number" class="inp" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);
-                var e=document.getElementById('park-amt-${r.id}');if(e)e.textContent='$'+(+this.value).toLocaleString();
-                updateStats();stashSingle('${r.id}')"></div>
-          <div><label class="lbl">日期</label>
-            <input type="date" class="inp" value="${r.date||''}"
-              onchange="upR('${r.id}','date',this.value);
-                var e=document.getElementById('park-date-${r.id}');if(e)e.textContent=this.value;
-                stashSingle('${r.id}')"></div>
-          <div><label class="lbl">發票號碼</label>
-            <input class="inp" value="${esc(r.invoiceNo)}"
-              onchange="upR('${r.id}','invoiceNo',this.value);stashSingle('${r.id}')"></div>
-        </div>
-        <div>
-          <label class="lbl">費用類別</label>
-          <div class="tgl" style="width:280px" id="tgl-cat-${r.id}">
-            <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn on" onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
-            <button class="tgl-btn" onclick="setCat('${r.id}','other')">📄 其他</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  return attrBar + (listRows || `<div style="text-align:center;color:var(--muted);padding:32px">此月份無停車費紀錄</div>`);
-}
-
-function toggleParkRow(id) {
-  const body = document.getElementById(`park-body-${id}`);
-  const chev = document.getElementById(`park-chev-${id}`);
-  if (!body) return;
-  const open = body.style.display === 'none' || !body.style.display;
-  body.style.display = open ? 'block' : 'none';
-  if (chev) chev.textContent = open ? '▲' : '▼';
-}
-
-function initParkingTabDropdown() {
-  const wrapperId = 'fd-park-attr';
-  const el = document.getElementById(wrapperId);
-  if (!el) return;
-  const myDeptCode = S.config.userDeptCode || '';
-  const projItems = S.config.projects
-    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
-    .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
-  const deptItems = (S.config.departments||[]).map(d => ({ id: d.code, name: d.name, badge: '部門' }));
-  const allItems  = [...projItems, ...deptItems, { id:'其他', name:'其他', badge:'其他' }];
-  fdInit(wrapperId, allItems, item => {
-    window._parkAttrSelected = { id: item.id, label: getParkAttrLabel(item.id) };
-    const inp = document.querySelector(`#${wrapperId} .fd-input`);
-    if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
-    const selEl = document.getElementById('park-attr-selected');
-    if (selEl) selEl.textContent = '✓ 已選：' + window._parkAttrSelected.label;
-  }, S._recentProjIds || []);
-  if (window._parkAttrSelected.label) {
-    const selEl = document.getElementById('park-attr-selected');
-    if (selEl) selEl.textContent = '✓ 已選：' + window._parkAttrSelected.label;
-  }
-}
-
-function applyParkAttrToChecked() {
-  const { id, label } = window._parkAttrSelected;
-  if (!id) { toast('⚠️ 請先選擇歸屬'); return; }
-  const parkReceipts = S.receipts.filter(r => r.category === 'parking');
-  let count = 0;
-  parkReceipts.forEach(r => {
-    const chk = document.getElementById(`rck-${r.id}`);
-    if (!chk?.classList.contains('on')) return;
-    upR(r.id, 'parkAttr', id);
-    const badgeEl = document.getElementById(`park-attr-badge-${r.id}`);
-    if (badgeEl) badgeEl.innerHTML = `<span class="badge bd-blue" style="font-size:11px">${label}</span>`;
-    stashSingle(r.id);
-    count++;
-  });
-  toast(`✅ 已套用「${label}」到 ${count} 筆停車費`);
-  syncAllOcrChk();
 }
 
 // ── 油資 tab：上方發票列表 + 下方多專案 + 差額 ──────────────
@@ -1763,16 +1468,13 @@ function renderFuelTab(fuelReceipts) {
           申請總額 $${applyTotal.toLocaleString()}
         </span>
       </div>
-      <!-- 統一搜尋框 -->
-      <div style="padding:12px 16px 8px">
-        ${fdHTML('fd-fuel-proj-unified', 'fd-fuel-proj-unified-inp', '搜尋專案 / 部門 / 其他（選月定額或里程實報）')}
-      </div>
 
-      <!-- 月定額區 -->
-      <div style="padding:0 16px 12px;border-bottom:1px solid var(--border)">
+      <!-- 上：月定額 -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
-          text-transform:uppercase;margin-bottom:8px">── 月定額</div>
-        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px">
+          text-transform:uppercase;margin-bottom:8px">月定額</div>
+        <!-- 已選月定額 badge 列 -->
+        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
           ${quotaList.map((fp,i) => {
             const proj = S.config.projects.find(p => p.id === fp.projId);
             if (!proj) return '';
@@ -1780,26 +1482,28 @@ function renderFuelTab(fuelReceipts) {
             return `<span style="display:inline-flex;align-items:center;gap:6px;
               background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
-              ${proj.id} ${proj.name}
-              <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
-                $${(proj.subsidy||0).toLocaleString()}/月</span>
+              ${proj.id} ${proj.name} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
                 style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
             </span>`;
-          }).join('') || '<span style="font-size:13px;color:var(--muted)">尚未選擇月定額專案</span>'}
+          }).join('')}
         </div>
+        <!-- 月定額輸入框 -->
+        ${fdHTML('fd-fuel-quota', 'fd-fuel-quota-inp', '輸入代碼或名稱篩選月定額專案')}
       </div>
 
-      <!-- 里程實報 / 部門 / 其他區 -->
+      <!-- 下：里程實報 / 部門 / 其他 -->
       <div style="padding:12px 16px">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
-          text-transform:uppercase;margin-bottom:8px">── 里程實報 / 部門 / 其他</div>
+          text-transform:uppercase;margin-bottom:8px">里程實報 / 部門 / 其他</div>
         <div id="fuel-mile-list">
           ${mileList.map((fp, li) => {
             const idx = window._fuelProjList.indexOf(fp);
             return fuelMileRowHTML(fp, idx);
-          }).join('') || '<span style="font-size:13px;color:var(--muted)">尚未選擇里程實報 / 部門 / 其他</span>'}
+          }).join('') || ''}
         </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px"
+          onclick="addFuelMile()">＋ 新增</button>
       </div>
     </div>
 
@@ -1878,70 +1582,30 @@ function updateFuelDiff() {
   }
 }
 
-// ── 統一搜尋框：月定額 + 里程實報/部門/其他 ──────────────────
+// ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const wrapperId  = 'fd-fuel-proj-unified';
-  const el = document.getElementById(wrapperId);
-  if (!el) return;
-
   const myDeptCode = S.config.userDeptCode || '';
-  const today = todayStr();
-
-  // 生效中的所有專案（月定額 + 里程實報）
-  const projItems = S.config.projects
-    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
-    .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程', quota: p.quota }));
-
-  // 部門 + 其他
-  const deptItems  = (S.config.departments||[]).map(d => ({ id: d.code, name: d.name, badge: '部門' }));
-  const otherItem  = [{ id: '其他', name: '其他費用', badge: '其他' }];
-  const allItems   = [...projItems, ...deptItems, ...otherItem];
-
-  fdInit(wrapperId, allItems, item => {
-    const inp = document.querySelector(`#${wrapperId} .fd-input`);
-    // 選完立刻清空輸入框
-    if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
-
-    const proj = S.config.projects.find(p => p.id === item.id);
-
-    if (proj?.quota) {
-      // 月定額：加到上方紫色 badge 區
-      if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === proj.id)) {
-        toast('⚠️ 此月定額專案已加入'); return;
-      }
-      window._fuelProjList.push({ uid:'fp_'+Date.now(), projId:proj.id, type:'quota', fieldRows:[] });
-      S._recentProjIds = [proj.id,...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
-      updateFuelDiff();
-      syncFuelProjToSheet(window._fuelProjList.length - 1);
-
-    } else {
-      // 里程實報 / 部門 / 其他：加到下方藍色列，自動新增第一筆外勤
-      const fp = {
-        uid:     'fp_' + Date.now(),
-        projId:  proj ? proj.id : '',
-        deptId:  (!proj && item.id !== '其他') ? item.id : '',
-        attrType: proj ? 'project' : item.id === '其他' ? 'other' : 'dept',
-        type:    'mile',
-        fieldRows: [{ date:'', reason:'', end:'', km:'', isRound:true }],
-      };
-      window._fuelProjList.push(fp);
-      const idx = window._fuelProjList.length - 1;
-      S._recentProjIds = [item.id,...(S._recentProjIds||[]).filter(x=>x!==item.id)].slice(0,3);
-
-      // 加到 fuel-mile-list DOM
-      const list = document.getElementById('fuel-mile-list');
-      if (list) {
-        // 移除「尚未選擇」提示文字
-        const empty = list.querySelector('span[style*="color:var(--muted)"]');
-        if (empty) empty.remove();
-        const div = document.createElement('div');
-        div.innerHTML = fuelMileRowHTML(fp, idx);
-        list.appendChild(div.firstElementChild);
-        setTimeout(() => initFuelMileDropdownAt(idx), 0);
-      }
-      updateFuelDiff();
-      syncFuelProjToSheet(idx);
+  const quotaItems = S.config.projects.filter(p =>
+    p.quota && (!p.deptCode || p.deptCode === myDeptCode)
+  );
+  fdInit('fd-fuel-quota', quotaItems, proj => {
+    // 避免重複加入
+    if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === proj.id)) {
+      toast('⚠️ 此月定額專案已加入');
+      // 清空輸入框供下次輸入
+      const inp = document.querySelector('#fd-fuel-quota .fd-input');
+      if (inp) inp.value = '';
+      return;
     }
+    window._fuelProjList.push({ uid: 'fp_' + Date.now(), projId: proj.id, type: 'quota', fieldRows: [] });
+    S._recentProjIds = [proj.id, ...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
+    // 清空輸入框供下次選擇
+    const inp = document.querySelector('#fd-fuel-quota .fd-input');
+    if (inp) inp.value = '';
+    updateFuelDiff();
+    // 即時寫入
+    const newIdx = window._fuelProjList.length - 1;
+    syncFuelProjToSheet(newIdx);
   }, S._recentProjIds || []);
 }
 
@@ -2862,19 +2526,21 @@ function syncAllOcrChk() {
 // setAttr 已由 setCat 取代
 
 function updateStats() {
-  // 統計全部 receipts（不依賴 DOM checkbox，因為非當前 tab 的卡片不在 DOM 裡）
-  const fuel    = S.receipts.filter(r => r.category === 'fuel');
-  const parking = S.receipts.filter(r => r.category === 'parking');
-  const other   = S.receipts.filter(r => r.category !== 'fuel' && r.category !== 'parking');
-  const fuelAmt  = fuel.reduce((s,r)=>s+r.amount,0);
-  const parkAmt  = parking.reduce((s,r)=>s+r.amount,0);
-  const otherAmt = other.reduce((s,r)=>s+r.amount,0);
-  se('tab-fuel-cnt',  fuel.length    + ' 張');
-  se('tab-fuel-amt',  '$' + fuelAmt.toLocaleString());
-  se('tab-park-cnt',  parking.length + ' 張');
-  se('tab-park-amt',  '$' + parkAmt.toLocaleString());
-  se('tab-other-cnt', other.length   + ' 張');
-  se('tab-other-amt', '$' + otherAmt.toLocaleString());
+  // 只統計勾選中的 receipts
+  const checked = S.receipts.filter(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
+  const fuel  = checked.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
+  const park  = checked.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
+  const other = checked.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
+  // tab 按鈕數字也依勾選更新（renderOCRResults 渲染後呼叫）
+  const fuelCnt  = checked.filter(r=>r.category==='fuel').length;
+  const parkCnt  = checked.filter(r=>r.category==='parking').length;
+  const otherCnt = checked.filter(r=>r.category!=='fuel'&&r.category!=='parking').length;
+  se('tab-fuel-cnt',  fuelCnt  + ' 張');
+  se('tab-fuel-amt',  '$'+fuel.toLocaleString());
+  se('tab-park-cnt',  parkCnt  + ' 張');
+  se('tab-park-amt',  '$'+park.toLocaleString());
+  se('tab-other-cnt', otherCnt + ' 張');
+  se('tab-other-amt', '$'+other.toLocaleString());
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2981,9 +2647,10 @@ async function resolveDup(action) {
 
 // ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// EXPORT — 從 OCR 頁直接匯出
-// ════════════════════════════════════════════════════════════
+// ── 附件二底部快速新增外勤列 ─────────────────────────────────
+// 列出尚未有 att2Form 的里程實報專案 + 可顯示部門 + 其他
+// buildAtt2QuickAdd / doAtt2QuickAdd 已移除
+
 async function _doExport(skipStash = false) {
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month').value;
@@ -3432,6 +3099,171 @@ async function doStashAll(silent = false) {
   if (!silent) {
     if (res.success) toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
     else toast('❌ 暫存失敗：' + (res.error || '未知'));
+  }
+}
+
+async function loadFuelProjFromSheet() {
+  const person = S.user?.name || '';
+  const month  = document.getElementById('global-month')?.value || '';
+  if (!person || !month) return;
+  try {
+    const res = await callGAS({ action:'getFuelProjects', month, person });
+    if (!res.success || !res.rows?.length) return;
+    const todayStr = new Date().toISOString().slice(0,10);
+    window._fuelProjList = res.rows.map(row => {
+      const proj  = S.config.projects.find(p => p.id === row.attributionTarget);
+      const isExp = proj ? !!(proj.closeDate && proj.closeDate < todayStr) : false;
+      let fieldRows = [];
+      if (!proj?.quota && row.supplement) {
+        try {
+          const arr = JSON.parse(row.supplement);
+          const start = S.config.startAddress || '';
+          fieldRows = arr.map(fr => ({ ...fr, start }));
+        } catch(_) {}
+      }
+      return {
+        uid:        'fp_' + (row.attributionTarget || Date.now()),
+        projId:     proj ? row.attributionTarget : '',
+        attrId:     row.attributionTarget || '',
+        attrType:   row.attrType || 'project',
+        type:       proj?.quota ? 'quota' : 'mile',
+        fieldRows,
+        _isExpired: isExp,
+      };
+    });
+    window._fuelLastSync = new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
+    const syncLabel = document.getElementById('fuelLastSyncLabel');
+    if (syncLabel) {
+      syncLabel.textContent = '上次同步 ' + window._fuelLastSync;
+      syncLabel.style.display = 'inline';
+    }
+  } catch(_) { /* 靜默 */ }
+}
+
+// ════════════════════════════════════════════════════════════
+// LOAD OCR RESULTS FROM SHEET
+//   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
+//   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
+// ════════════════════════════════════════════════════════════
+async function loadOcrResults(auto = false) {
+  const month = document.getElementById('global-month')?.value || '';
+
+  const btnReload = document.getElementById('btnReload');
+  const loadBar = document.getElementById('ocrSheetLoadBar');
+  const loadMsg = document.getElementById('ocrSheetLoadMsg');
+
+  if (loadBar) { loadBar.style.display = 'flex'; }
+  if (loadMsg) { loadMsg.textContent = '載入中...'; }
+  if (btnReload) { btnReload.disabled = true; btnReload.innerHTML = '<div class="spin" style="border-top-color:var(--text)"></div>'; }
+
+  const hideLoading = () => {
+    if (loadBar) loadBar.style.display = 'none';
+    if (btnReload) { btnReload.disabled = false; btnReload.innerHTML = '🔄'; }
+  };
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    hideLoading();
+    if (!auto) toast('⚠️ 載入逾時，請稍後再試');
+    else toast('⚠️ 載入逾時');
+  }, 20000);
+
+  let res;
+  try {
+    res = await callGAS({
+      action:  'getOcrResults',
+      lineId:  S.user?.lineId || '',
+      month:   month,
+    });
+  } catch(e) {
+    clearTimeout(timer);
+    if (timedOut) return;
+    hideLoading();
+    if (!auto) toast('❌ 載入失敗：' + e.message);
+    return;
+  }
+
+  clearTimeout(timer);
+  if (timedOut) return;
+  hideLoading();
+
+  if (!res.success) {
+    if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
+    return;
+  }
+
+  const rows = res.rows || [];
+  if (!rows.length) {
+    if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
+    // 仍需嘗試讀 FuelProjects
+    await loadFuelProjFromSheet();
+    return;
+  }
+
+  // 合併到 S.receipts（以 key 去重）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
+  let added = 0;
+  rows.forEach(row => {
+    if (existKeys.has(row.key)) return;
+    existKeys.add(row.key);
+    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
+              : /停車|parking/i.test(row.category) ? 'parking'
+              : 'other';
+    const rawSupp   = row.fieldRows || '';
+    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
+    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
+    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    const frParsed  = (() => {
+      if (cat !== 'fuel') return [];
+      try { return JSON.parse(rawSupp || '[]'); } catch(_){ return []; }
+    })();
+    const supplement = cat !== 'fuel' ? rawSupp : '';
+
+    S.receipts.push({
+      id:         'sheet_' + row.key,
+      source:     row.fileName || '（Sheet）',
+      idx:        0,
+      status:     'done',
+      category:   cat,
+      projectId,
+      dept,
+      parkAttr,
+      supplement,
+      vendor:     row.vendor    || '',
+      amount:     parseFloat(row.amount  || 0),
+      date:       row.date      || '',
+      invoiceNo:  row.invoiceNo || '',
+      ocrKey:     row.key       || '',
+      notes:      row.notes     || '',
+      fieldRows:  frParsed,
+      _isNew:     false,
+      _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
+    });
+    added++;
+  });
+
+  updateStats();
+
+  // 讀回 FuelProjects，還原 _fuelProjList
+  await loadFuelProjFromSheet();
+
+  // 顯示同步完成（sidebar）
+  const syncDoneEl = document.getElementById('syncDone');
+  if (syncDoneEl) { syncDoneEl.style.display='inline'; setTimeout(()=>syncDoneEl.style.display='none',2500); }
+
+  // OCR 頁：渲染佇列 + 辨識結果
+  renderQueue();
+  renderOCRResults();
+  if (added > 0) {
+    setStep(3);
+    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+  }
+  if (!auto) {
+    nav('ocr');
+    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
+  } else if (added > 0) {
+    toast(`📥 已從 Sheet 載入 ${added} 筆歷史紀錄`);
   }
 }
 
