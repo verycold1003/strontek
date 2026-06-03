@@ -892,6 +892,126 @@ async function restoreFuelProjList(rows) {
 }
 
 // ════════════════════════════════════════════════════════════
+// LOAD OCR RESULTS FROM SHEET
+//   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
+//   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
+// ════════════════════════════════════════════════════════════
+async function loadOcrResults(auto = false) {
+  const month = document.getElementById('global-month')?.value || '';
+
+  const btnOcr  = document.getElementById('btnLoadOcr');
+  const loadBar = document.getElementById('ocrSheetLoadBar');
+  const loadMsg = document.getElementById('ocrSheetLoadMsg');
+
+  if (loadBar) { loadBar.style.display = 'flex'; }
+  if (loadMsg) { loadMsg.textContent = '載入中...'; }
+  if (btnOcr)  { btnOcr.disabled = true; btnOcr.innerHTML = '<div class="spin"></div>'; }
+
+  const hideLoading = () => {
+    if (loadBar) loadBar.style.display = 'none';
+    if (btnOcr)  { btnOcr.disabled = false; btnOcr.innerHTML = '🔄'; }
+  };
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    hideLoading();
+    if (!auto) toast('⚠️ 載入逾時，請按 🔄 重試');
+  }, 20000);
+
+  let res;
+  try {
+    res = await callGAS({
+      action:  'getOcrResults',
+      lineId:  S.user?.lineId || '',
+      month,
+    });
+  } catch(e) {
+    clearTimeout(timer);
+    if (timedOut) return;
+    hideLoading();
+    if (!auto) toast('❌ 載入失敗：' + e.message);
+    return;
+  }
+
+  clearTimeout(timer);
+  if (timedOut) return;
+  hideLoading();
+
+  if (!res.success) {
+    if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
+    return;
+  }
+
+  const rows = res.rows || [];
+  if (!rows.length) {
+    if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
+    return;
+  }
+
+  // 合併到 S.receipts（以 key 去重）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
+  let added = 0;
+  rows.forEach(row => {
+    if (existKeys.has(row.key)) return;
+    existKeys.add(row.key);
+    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
+              : /停車|parking/i.test(row.category) ? 'parking'
+              : 'other';
+    const rawSupp   = row.fieldRows || '';
+    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
+    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
+    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    const frParsed  = (() => {
+      if (cat !== 'fuel') return [];
+      try { return JSON.parse(rawSupp || '[]'); } catch(_) { return []; }
+    })();
+    const supplement = cat !== 'fuel' ? rawSupp : '';
+    S.receipts.push({
+      id:         'sheet_' + row.key,
+      source:     row.fileName || '（Sheet）',
+      idx:        0,
+      status:     'done',
+      category:   cat,
+      projectId,
+      dept,
+      parkAttr,
+      supplement,
+      vendor:     row.vendor    || '',
+      amount:     parseFloat(row.amount  || 0),
+      date:       row.date      || '',
+      invoiceNo:  row.invoiceNo || '',
+      ocrKey:     row.key       || '',
+      notes:      row.notes     || '',
+      fieldRows:  frParsed,
+      _isNew:     false,
+      _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
+    });
+    added++;
+  });
+
+  updateStats();
+
+  // 顯示同步完成（sidebar）
+  const syncDoneEl = document.getElementById('syncDone');
+  if (syncDoneEl) { syncDoneEl.style.display='inline'; setTimeout(()=>syncDoneEl.style.display='none',2500); }
+
+  // OCR 頁：渲染佇列 + 辨識結果
+  renderQueue();
+  renderOCRResults();
+  if (added > 0) {
+    setStep(3);
+    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+  }
+  if (!auto) {
+    nav('ocr');
+    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
+  } else if (added > 0) {
+    toast(`📥 已載入 ${added} 筆歷史紀錄`);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // FILE UPLOAD
 // ════════════════════════════════════════════════════════════
 function onFilePick(files) {
@@ -1348,20 +1468,28 @@ function renderOCRResults() {
   if (_ocrTab === 'fuel') {
     bodyHtml = renderFuelTab(tabs.fuel);
   } else {
-    const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
-    bodyHtml = listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`;
+    if (_ocrTab === 'parking') {
+      bodyHtml = renderParkTab(tabs.parking);
+    } else {
+      const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
+      bodyHtml = listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`;
+    }
   }
 
   c.innerHTML = tabHtml + bodyHtml;
 
-  // 油資 tab：初始化專案 dropdown
+  // 油資 tab：初始化統一搜尋框 + 里程實報 dropdown
   if (_ocrTab === 'fuel') {
     setTimeout(() => {
-      initFuelProjDropdowns(); // 月定額輸入框
+      initFuelProjDropdowns();
       window._fuelProjList.forEach((fp, idx) => {
         if (fp.type !== 'quota') initFuelMileDropdownAt(idx);
       });
     }, 0);
+  }
+  // 停車費 tab：初始化歸屬搜尋框
+  if (_ocrTab === 'parking') {
+    setTimeout(() => initParkAttrDropdown(), 0);
   }
 
   updateStats();
@@ -1378,6 +1506,145 @@ function switchOcrTab(tab) {
 // ── 油資 tab：上方發票列表 + 下方多專案 + 差額 ──────────────
 // S._fuelProjects = [{ uid, projId, fieldRows[] }]  // 當前選擇的專案列表
 if (!window._fuelProjList) window._fuelProjList = [];
+
+// ════════════════════════════════════════════════════════════
+// 停車費 Tab — 頂部統一歸屬搜尋框 + 套用按鈕
+// ════════════════════════════════════════════════════════════
+let _parkSelectedItem = null;
+
+function renderParkTab(parkReceipts) {
+  const rows = parkReceipts.map(r => {
+    const defChk  = shouldDefaultCheck ? shouldDefaultCheck(r) : true;
+    const isNew   = r._isNew;
+    const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
+
+    // 歸屬 badge
+    const attrBadge = (() => {
+      if (!r.parkAttr) return `<span class="badge bd-muted">未設定</span>`;
+      const proj = (S.config.projects||[]).find(p => p.id === r.parkAttr);
+      const dept = (S.config.departments||[]).find(d => d.code === r.parkAttr);
+      const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : r.parkAttr;
+      return `<span class="badge bd-blue">${name}</span>`;
+    })();
+
+    return `<div id="park-row-${r.id}" style="border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap">
+        <div class="chkbox ${defChk?'on':''}" id="rck-${r.id}"
+          onclick="this.classList.toggle('on');syncAllOcrChk();updateStats();updateParkApplyBtn()"
+          style="flex-shrink:0"></div>
+        <div style="flex:1;min-width:120px;cursor:pointer" onclick="toggleParkRow('${r.id}')">
+          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}</div>
+          <div style="font-size:12px;color:var(--muted)">${r.source||r.date||''} · ${r.invoiceNo||'—'}</div>
+          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}</div>
+        </div>
+        <div class="mono" id="rc-amt-${r.id}" style="font-size:16px;font-weight:800;color:var(--gold)">
+          $${r.amount.toLocaleString()}
+        </div>
+        <button class="btn btn-danger btn-sm btn-icon"
+          onclick="delR('${r.id}')" style="padding:6px 9px">🗑</button>
+        <span id="park-chev-${r.id}" style="color:var(--muted);font-size:13px;cursor:pointer"
+          onclick="toggleParkRow('${r.id}')">▼</span>
+      </div>
+      <!-- 停車事由（展開外）-->
+      <div style="padding:0 0 10px 36px">
+        <input class="inp" id="park-supp-${r.id}" value="${esc(r.supplement||'')}"
+          placeholder="停車事由（請說明與公務的關聯）"
+          onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
+      </div>
+      <!-- 展開：辨識資訊 -->
+      <div id="park-body-${r.id}" style="display:none;background:var(--surface2);border-radius:8px;margin-bottom:8px;padding:12px">
+        <div class="fg4" style="margin-bottom:10px">
+          <div><label class="lbl">廠商</label>
+            <input class="inp" value="${esc(r.vendor)}"
+              onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
+          <div><label class="lbl">金額</label>
+            <input type="number" class="inp" value="${r.amount}"
+              onchange="upR('${r.id}','amount',+this.value);refreshCardHeader&&refreshCardHeader('${r.id}');stashSingle('${r.id}')"></div>
+          <div><label class="lbl">日期</label>
+            <input type="date" class="inp" value="${r.date||''}"
+              onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
+          <div><label class="lbl">發票號碼</label>
+            <input class="inp" value="${esc(r.invoiceNo)}"
+              onchange="upR('${r.id}','invoiceNo',this.value);stashSingle('${r.id}')"></div>
+        </div>
+        <div>
+          <label class="lbl">費用類別</label>
+          <div class="tgl" style="width:280px">
+            <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
+            <button class="tgl-btn" onclick="setCat('${r.id}','other')">📄 其他</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="card-hd" style="font-size:14px;font-weight:800">
+      🅿️ 停車費
+      <span class="badge bd-orange" style="margin-left:6px">${parkReceipts.length} 張</span>
+    </div>
+    <!-- 頂部：歸屬搜尋框 + 套用按鈕 -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <label class="lbl" style="margin-bottom:4px">套用歸屬到勾選項目</label>
+        ${fdHTML('fd-park-attr', 'fd-park-attr-inp', '搜尋專案 / 部門 / 其他')}
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btn-park-apply" disabled
+        onclick="applyParkAttr()" style="flex-shrink:0;align-self:flex-end">套用到勾選</button>
+    </div>
+    <div style="padding:0 16px">
+      ${rows || '<div style="padding:20px;color:var(--muted);text-align:center">此月份無停車費紀錄</div>'}
+    </div>
+  </div>`;
+}
+
+function toggleParkRow(id) {
+  const body = document.getElementById('park-body-' + id);
+  const chev = document.getElementById('park-chev-' + id);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.textContent = isOpen ? '▼' : '▲';
+}
+
+function initParkAttrDropdown() {
+  _parkSelectedItem = null;
+  const items = (S.config.projects||[])
+    .filter(p => !p.deptCode || p.deptCode === (S.config.userDeptCode||''))
+    .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
+    .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name })))
+    .concat([{ id: '其他', name: '其他' }]);
+  fdInit('fd-park-attr', items, item => {
+    _parkSelectedItem = item;
+    updateParkApplyBtn();
+  }, S._recentProjIds || []);
+}
+
+function updateParkApplyBtn() {
+  const btn = document.getElementById('btn-park-apply');
+  if (!btn) return;
+  const hasChecked = S.receipts.filter(r => r.category === 'parking')
+    .some(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
+  btn.disabled = !(_parkSelectedItem && hasChecked);
+}
+
+function applyParkAttr() {
+  if (!_parkSelectedItem) return;
+  const item = _parkSelectedItem;
+  S.receipts
+    .filter(r => r.category === 'parking' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
+    .forEach(r => {
+      upR(r.id, 'parkAttr', item.id);
+      stashSingle(r.id);
+    });
+  const inp = document.querySelector('#fd-park-attr .fd-input');
+  if (inp) inp.value = '';
+  _parkSelectedItem = null;
+  const btn = document.getElementById('btn-park-apply');
+  if (btn) btn.disabled = true;
+  renderOCRResults();
+}
 
 function renderFuelTab(fuelReceipts) {
   const invoiceTotal = fuelReceipts.reduce((s, r) => s + r.amount, 0);
@@ -1469,41 +1736,40 @@ function renderFuelTab(fuelReceipts) {
         </span>
       </div>
 
-      <!-- 上：月定額 -->
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+      <!-- 統一搜尋框 -->
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+        ${fdHTML('fd-fuel-unified', 'fd-fuel-unified-inp', '搜尋專案 / 部門 / 其他')}
+      </div>
+      <!-- 月定額 -->
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
           text-transform:uppercase;margin-bottom:8px">月定額</div>
-        <!-- 已選月定額 badge 列 -->
-        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-          ${quotaList.map((fp,i) => {
+        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;min-height:20px">
+          ${quotaList.map((fp) => {
             const proj = S.config.projects.find(p => p.id === fp.projId);
             if (!proj) return '';
             const idx = window._fuelProjList.indexOf(fp);
+            const expLabel = fp._isExpired ? '（已結案）' : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
               background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
-              ${proj.id} ${proj.name} $${(proj.subsidy||0).toLocaleString()}/月
+              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
                 style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
             </span>`;
-          }).join('')}
+          }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
-        <!-- 月定額輸入框 -->
-        ${fdHTML('fd-fuel-quota', 'fd-fuel-quota-inp', '輸入代碼或名稱篩選月定額專案')}
       </div>
-
-      <!-- 下：里程實報 / 部門 / 其他 -->
-      <div style="padding:12px 16px">
+      <!-- 里程實報 / 部門 / 其他 -->
+      <div style="padding:10px 16px">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
           text-transform:uppercase;margin-bottom:8px">里程實報 / 部門 / 其他</div>
         <div id="fuel-mile-list">
-          ${mileList.map((fp, li) => {
+          ${mileList.map((fp) => {
             const idx = window._fuelProjList.indexOf(fp);
             return fuelMileRowHTML(fp, idx);
-          }).join('') || ''}
+          }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:4px"
-          onclick="addFuelMile()">＋ 新增</button>
       </div>
     </div>
 
@@ -1584,28 +1850,64 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode = S.config.userDeptCode || '';
-  const quotaItems = S.config.projects.filter(p =>
-    p.quota && (!p.deptCode || p.deptCode === myDeptCode)
-  );
-  fdInit('fd-fuel-quota', quotaItems, proj => {
-    // 避免重複加入
-    if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === proj.id)) {
-      toast('⚠️ 此月定額專案已加入');
-      // 清空輸入框供下次輸入
-      const inp = document.querySelector('#fd-fuel-quota .fd-input');
-      if (inp) inp.value = '';
-      return;
+  const myDeptCode  = S.config.userDeptCode || '';
+  const selectedIds = window._fuelProjList
+    .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
+    .filter(Boolean);
+
+  // 所有生效中專案 + 部門 + 其他（排除已選）
+  const projItems = (S.config.projects || [])
+    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
+    .filter(p => !selectedIds.includes(p.id))
+    .map(p => ({ id: p.id, name: p.name, quota: p.quota, type: p.quota ? 'quota' : 'mile' }));
+  const deptItems = (S.config.departments || [])
+    .filter(d => !selectedIds.includes(d.code))
+    .map(d => ({ id: d.code, name: d.name, type: 'dept' }));
+  const otherItem = selectedIds.includes('其他') ? [] : [{ id: '其他', name: '其他', type: 'other' }];
+  const allItems  = [...projItems, ...deptItems, ...otherItem];
+
+  fdInit('fd-fuel-unified', allItems, item => {
+    const inp = document.querySelector('#fd-fuel-unified .fd-input');
+
+    if (item.type === 'quota') {
+      // 月定額 → 上方 badge
+      if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === item.id)) {
+        toast('⚠️ 此月定額專案已加入');
+      } else {
+        window._fuelProjList.push({ uid:'fp_'+Date.now(), projId:item.id, type:'quota', fieldRows:[] });
+        const newIdx = window._fuelProjList.length - 1;
+        syncFuelProjToSheet && syncFuelProjToSheet(newIdx);
+      }
+    } else {
+      // 里程實報 / 部門 / 其他 → 下方，並自動新增第一筆外勤
+      const fp = {
+        uid: 'fp_' + Date.now(),
+        projId:   item.type === 'mile' ? item.id : '',
+        deptId:   item.type === 'dept' ? item.id : '',
+        attrType: item.type,
+        type:     'mile',
+        fieldRows: [{ date:'', reason:'', isRound:true, end:'', km:'', remark:'' }],
+      };
+      window._fuelProjList.push(fp);
+      const newIdx = window._fuelProjList.length - 1;
+      // 更新里程列表 DOM（不整頁重繪）
+      const list = document.getElementById('fuel-mile-list');
+      if (list) {
+        const noMsg = list.querySelector('span');
+        if (noMsg && noMsg.textContent === '尚未選擇') noMsg.remove();
+        const div = document.createElement('div');
+        div.innerHTML = fuelMileRowHTML(fp, newIdx);
+        list.appendChild(div.firstElementChild);
+        setTimeout(() => initFuelMileDropdownAt(newIdx), 0);
+      }
+      syncFuelProjToSheet && syncFuelProjToSheet(newIdx);
     }
-    window._fuelProjList.push({ uid: 'fp_' + Date.now(), projId: proj.id, type: 'quota', fieldRows: [] });
-    S._recentProjIds = [proj.id, ...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
-    // 清空輸入框供下次選擇
-    const inp = document.querySelector('#fd-fuel-quota .fd-input');
-    if (inp) inp.value = '';
+
+    S._recentProjIds = [item.id, ...(S._recentProjIds||[]).filter(x=>x!==item.id)].slice(0,3);
+    if (inp) { inp.value = ''; inp.focus(); }
     updateFuelDiff();
-    // 即時寫入
-    const newIdx = window._fuelProjList.length - 1;
-    syncFuelProjToSheet(newIdx);
+    // 重新 init 排除已選
+    setTimeout(() => initFuelProjDropdowns(), 0);
   }, S._recentProjIds || []);
 }
 
@@ -1641,11 +1943,16 @@ function fuelMileRowHTML(fp, idx) {
     style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
       background:var(--surface2);flex-wrap:wrap">
-      <div style="flex:1;min-width:160px">
-        ${fdHTML(`fd-fuelmile-${idx}`, `fd-fuelmile-inp-${idx}`, '專案 / 部門 / 其他')}
-      </div>
-      ${label !== '（未選）' ? `<span class="badge bd-blue">${label}</span>` : ''}
-      <span style="font-size:13px">${amtDisplay}</span>
+      ${label !== '（未選）'
+        ? `<!-- 已選：顯示 badge，隱藏輸入框 -->
+           <span class="badge bd-blue" style="font-size:13px;padding:5px 10px">${label}</span>
+           <span style="font-size:13px">${amtDisplay}</span>`
+        : `<!-- 未選：顯示輸入框 -->
+           <div style="flex:1;min-width:160px">
+             ${fdHTML(`fd-fuelmile-${idx}`, `fd-fuelmile-inp-${idx}`, '專案 / 部門 / 其他')}
+           </div>
+           <span style="font-size:13px">${amtDisplay}</span>`
+      }
       <button class="btn btn-danger btn-sm" onclick="removeFuelProj(${idx})">✕</button>
     </div>
     <div style="padding:10px 14px">
@@ -1826,6 +2133,12 @@ function setFuelFRRound(idx, fi, val) {
   if (fp?.fieldRows?.[fi]) fp.fieldRows[fi].isRound = val;
   document.getElementById(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
   document.getElementById(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
+  // 立即更新公里數文字顯示
+  const km   = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || 0;
+  const rate = getMileageRate(document.getElementById('global-month')?.value || '');
+  const amt  = km ? Math.round(km * (val ? 2 : 1) * rate) : 0;
+  const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
+  if (txtEl && km) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
   saveFuelFRs(idx);
 }
 
@@ -2526,21 +2839,24 @@ function syncAllOcrChk() {
 // setAttr 已由 setCat 取代
 
 function updateStats() {
-  // 只統計勾選中的 receipts
-  const checked = S.receipts.filter(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
-  const fuel  = checked.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
-  const park  = checked.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
-  const other = checked.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
-  // tab 按鈕數字也依勾選更新（renderOCRResults 渲染後呼叫）
-  const fuelCnt  = checked.filter(r=>r.category==='fuel').length;
-  const parkCnt  = checked.filter(r=>r.category==='parking').length;
-  const otherCnt = checked.filter(r=>r.category!=='fuel'&&r.category!=='parking').length;
+  const all = S.receipts;
+
+  // 張數：全部 receipts
+  const fuelCnt  = all.filter(r=>r.category==='fuel').length;
+  const parkCnt  = all.filter(r=>r.category==='parking').length;
+  const otherCnt = all.filter(r=>r.category!=='fuel'&&r.category!=='parking').length;
+
+  // 金額：油資用申請總額，停車/其他用全部發票加總（不依賴 DOM checkbox，切 tab 不會歸零）
+  const fuelAmt  = calcFuelApplyTotal();
+  const parkAmt  = all.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
+  const otherAmt = all.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
+
   se('tab-fuel-cnt',  fuelCnt  + ' 張');
-  se('tab-fuel-amt',  '$'+fuel.toLocaleString());
+  se('tab-fuel-amt',  '$'+fuelAmt.toLocaleString());
   se('tab-park-cnt',  parkCnt  + ' 張');
-  se('tab-park-amt',  '$'+park.toLocaleString());
+  se('tab-park-amt',  '$'+parkAmt.toLocaleString());
   se('tab-other-cnt', otherCnt + ' 張');
-  se('tab-other-amt', '$'+other.toLocaleString());
+  se('tab-other-amt', '$'+otherAmt.toLocaleString());
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2570,7 +2886,15 @@ function nextDup() {
 }
 
 function renderDupModal(r) {
-  const remaining = _dupQueue.length; // 還剩幾筆待確認
+  const remaining = _dupQueue.length;
+
+  // 判斷是否跨月：比對目前申請月份與舊 key 的月份前綴
+  const currentMonth = (document.getElementById('global-month')?.value || '').slice(0, 7).replace('-', '');
+  const oldKey       = r._duplicateOfKey || '';
+  // key 格式：發票號碼（無月份前綴）或 YYYYMM-NNN（流水號）
+  const oldKeyMonth  = oldKey.match(/^(\d{6})-\d{3}$/) ? oldKey.slice(0, 6) : '';
+  const isCrossMonth = oldKeyMonth && oldKeyMonth !== currentMonth;
+
   document.getElementById('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
@@ -2590,11 +2914,27 @@ function renderDupModal(r) {
         <span class="mono" style="color:var(--amber);font-weight:700">${r._duplicateOfKey}</span>
       </div>
     </div>
-    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
-      <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
-      <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
-      <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
-    </div>`;
+    ${isCrossMonth
+      ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
+           <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
+           <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${oldKeyMonth.slice(0,4)}-${oldKeyMonth.slice(4)}</strong> 月份紀錄中。</div>
+           <div style="color:var(--muted);margin-top:4px">跨月不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
+         </div>`
+      : `<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
+           <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
+           <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
+           <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
+         </div>`
+    }`;
+
+  // 跨月時禁用覆蓋按鈕
+  const btnOverwrite = document.getElementById('btnDupOverwrite');
+  if (btnOverwrite) {
+    btnOverwrite.disabled = isCrossMonth;
+    btnOverwrite.style.opacity = isCrossMonth ? '0.35' : '1';
+    btnOverwrite.title = isCrossMonth ? '跨月不可覆蓋' : '';
+  }
+
   document.getElementById('dupRemaining').textContent =
     remaining > 0 ? `還有 ${remaining} 筆待確認` : '這是最後一筆';
 }
@@ -2647,10 +2987,9 @@ async function resolveDup(action) {
 
 // ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
-// ── 附件二底部快速新增外勤列 ─────────────────────────────────
-// 列出尚未有 att2Form 的里程實報專案 + 可顯示部門 + 其他
-// buildAtt2QuickAdd / doAtt2QuickAdd 已移除
-
+// ════════════════════════════════════════════════════════════
+// EXPORT — 從 OCR 頁直接匯出
+// ════════════════════════════════════════════════════════════
 async function _doExport(skipStash = false) {
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month').value;
@@ -3099,171 +3438,6 @@ async function doStashAll(silent = false) {
   if (!silent) {
     if (res.success) toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
     else toast('❌ 暫存失敗：' + (res.error || '未知'));
-  }
-}
-
-async function loadFuelProjFromSheet() {
-  const person = S.user?.name || '';
-  const month  = document.getElementById('global-month')?.value || '';
-  if (!person || !month) return;
-  try {
-    const res = await callGAS({ action:'getFuelProjects', month, person });
-    if (!res.success || !res.rows?.length) return;
-    const todayStr = new Date().toISOString().slice(0,10);
-    window._fuelProjList = res.rows.map(row => {
-      const proj  = S.config.projects.find(p => p.id === row.attributionTarget);
-      const isExp = proj ? !!(proj.closeDate && proj.closeDate < todayStr) : false;
-      let fieldRows = [];
-      if (!proj?.quota && row.supplement) {
-        try {
-          const arr = JSON.parse(row.supplement);
-          const start = S.config.startAddress || '';
-          fieldRows = arr.map(fr => ({ ...fr, start }));
-        } catch(_) {}
-      }
-      return {
-        uid:        'fp_' + (row.attributionTarget || Date.now()),
-        projId:     proj ? row.attributionTarget : '',
-        attrId:     row.attributionTarget || '',
-        attrType:   row.attrType || 'project',
-        type:       proj?.quota ? 'quota' : 'mile',
-        fieldRows,
-        _isExpired: isExp,
-      };
-    });
-    window._fuelLastSync = new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
-    const syncLabel = document.getElementById('fuelLastSyncLabel');
-    if (syncLabel) {
-      syncLabel.textContent = '上次同步 ' + window._fuelLastSync;
-      syncLabel.style.display = 'inline';
-    }
-  } catch(_) { /* 靜默 */ }
-}
-
-// ════════════════════════════════════════════════════════════
-// LOAD OCR RESULTS FROM SHEET
-//   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
-//   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
-// ════════════════════════════════════════════════════════════
-async function loadOcrResults(auto = false) {
-  const month = document.getElementById('global-month')?.value || '';
-
-  const btnReload = document.getElementById('btnReload');
-  const loadBar = document.getElementById('ocrSheetLoadBar');
-  const loadMsg = document.getElementById('ocrSheetLoadMsg');
-
-  if (loadBar) { loadBar.style.display = 'flex'; }
-  if (loadMsg) { loadMsg.textContent = '載入中...'; }
-  if (btnReload) { btnReload.disabled = true; btnReload.innerHTML = '<div class="spin" style="border-top-color:var(--text)"></div>'; }
-
-  const hideLoading = () => {
-    if (loadBar) loadBar.style.display = 'none';
-    if (btnReload) { btnReload.disabled = false; btnReload.innerHTML = '🔄'; }
-  };
-
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    hideLoading();
-    if (!auto) toast('⚠️ 載入逾時，請稍後再試');
-    else toast('⚠️ 載入逾時');
-  }, 20000);
-
-  let res;
-  try {
-    res = await callGAS({
-      action:  'getOcrResults',
-      lineId:  S.user?.lineId || '',
-      month:   month,
-    });
-  } catch(e) {
-    clearTimeout(timer);
-    if (timedOut) return;
-    hideLoading();
-    if (!auto) toast('❌ 載入失敗：' + e.message);
-    return;
-  }
-
-  clearTimeout(timer);
-  if (timedOut) return;
-  hideLoading();
-
-  if (!res.success) {
-    if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
-    return;
-  }
-
-  const rows = res.rows || [];
-  if (!rows.length) {
-    if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
-    // 仍需嘗試讀 FuelProjects
-    await loadFuelProjFromSheet();
-    return;
-  }
-
-  // 合併到 S.receipts（以 key 去重）
-  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
-  let added = 0;
-  rows.forEach(row => {
-    if (existKeys.has(row.key)) return;
-    existKeys.add(row.key);
-    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
-              : /停車|parking/i.test(row.category) ? 'parking'
-              : 'other';
-    const rawSupp   = row.fieldRows || '';
-    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
-    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
-    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
-    const frParsed  = (() => {
-      if (cat !== 'fuel') return [];
-      try { return JSON.parse(rawSupp || '[]'); } catch(_){ return []; }
-    })();
-    const supplement = cat !== 'fuel' ? rawSupp : '';
-
-    S.receipts.push({
-      id:         'sheet_' + row.key,
-      source:     row.fileName || '（Sheet）',
-      idx:        0,
-      status:     'done',
-      category:   cat,
-      projectId,
-      dept,
-      parkAttr,
-      supplement,
-      vendor:     row.vendor    || '',
-      amount:     parseFloat(row.amount  || 0),
-      date:       row.date      || '',
-      invoiceNo:  row.invoiceNo || '',
-      ocrKey:     row.key       || '',
-      notes:      row.notes     || '',
-      fieldRows:  frParsed,
-      _isNew:     false,
-      _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
-    });
-    added++;
-  });
-
-  updateStats();
-
-  // 讀回 FuelProjects，還原 _fuelProjList
-  await loadFuelProjFromSheet();
-
-  // 顯示同步完成（sidebar）
-  const syncDoneEl = document.getElementById('syncDone');
-  if (syncDoneEl) { syncDoneEl.style.display='inline'; setTimeout(()=>syncDoneEl.style.display='none',2500); }
-
-  // OCR 頁：渲染佇列 + 辨識結果
-  renderQueue();
-  renderOCRResults();
-  if (added > 0) {
-    setStep(3);
-    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
-  }
-  if (!auto) {
-    nav('ocr');
-    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
-  } else if (added > 0) {
-    toast(`📥 已從 Sheet 載入 ${added} 筆歷史紀錄`);
   }
 }
 
