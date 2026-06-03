@@ -832,6 +832,22 @@ function doReloadAll() {
   }
 }
 
+async function loadOcrWithFuelInit() {
+  const person = S.user?.name || '';
+  const month  = document.getElementById('global-month')?.value || '';
+  // 先載入 FuelProjects（若有）
+  if (person && month) {
+    try {
+      const res = await callGAS({ action: 'getFuelProjects', month, person });
+      if (res.success && res.rows?.length) {
+        await restoreFuelProjList(res.rows);
+      }
+    } catch(_) { /* 靜默 */ }
+  }
+  // 再載入 OcrResults
+  await loadOcrResults(true);
+}
+
 async function reloadOcrWithFuel() {
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month')?.value || '';
@@ -1323,12 +1339,17 @@ async function runOCR() {
       items.forEach((item, idx) => {
         const id = `${qf.id}_${idx}`;
         if (!S.receipts.find(r => r.id===id)) {
+          // 跨月重複：跳過並提醒
+          if (item.isDuplicate && item.isCrossMonth) {
+            toast(`⚠️ 發票號碼 ${item.duplicateOfKey} 已於上月辨識過，本筆跳過`);
+            return; // forEach 裡用 return 跳過
+          }
           const rec = mkReceipt(id, qf, item, idx, true);
           // 套用佇列指定的歸屬
           rec.attribution = attribution;
           if (attribution === 'project') rec.projectId = attributionTarget;
           else if (attribution === 'dept') rec.dept = attributionTarget;
-          // 記錄重複發票資訊
+          // 記錄重複發票資訊（同月）
           if (item.isDuplicate) {
             rec._isDuplicate    = true;
             rec._duplicateOfKey = item.duplicateOfKey || '';
@@ -1467,18 +1488,16 @@ function renderOCRResults() {
   let bodyHtml = '';
   if (_ocrTab === 'fuel') {
     bodyHtml = renderFuelTab(tabs.fuel);
+  } else if (_ocrTab === 'parking') {
+    bodyHtml = renderParkTab(tabs.parking);
   } else {
-    if (_ocrTab === 'parking') {
-      bodyHtml = renderParkTab(tabs.parking);
-    } else {
-      const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
-      bodyHtml = listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`;
-    }
+    const listHtml = tabs[_ocrTab].map(r => rcHTML(r)).join('');
+    bodyHtml = listHtml || `<div style="text-align:center;color:var(--muted);padding:32px">此類別無紀錄</div>`;
   }
 
   c.innerHTML = tabHtml + bodyHtml;
 
-  // 油資 tab：初始化統一搜尋框 + 里程實報 dropdown
+  // 油資 tab：初始化專案 dropdown
   if (_ocrTab === 'fuel') {
     setTimeout(() => {
       initFuelProjDropdowns();
@@ -1508,17 +1527,14 @@ function switchOcrTab(tab) {
 if (!window._fuelProjList) window._fuelProjList = [];
 
 // ════════════════════════════════════════════════════════════
-// 停車費 Tab — 頂部統一歸屬搜尋框 + 套用按鈕
+// 停車費 Tab
 // ════════════════════════════════════════════════════════════
 let _parkSelectedItem = null;
 
 function renderParkTab(parkReceipts) {
   const rows = parkReceipts.map(r => {
-    const defChk  = shouldDefaultCheck ? shouldDefaultCheck(r) : true;
-    const isNew   = r._isNew;
-    const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
-
-    // 歸屬 badge
+    const isNew  = r._isNew;
+    const newTag = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
     const attrBadge = (() => {
       if (!r.parkAttr) return `<span class="badge bd-muted">未設定</span>`;
       const proj = (S.config.projects||[]).find(p => p.id === r.parkAttr);
@@ -1526,18 +1542,17 @@ function renderParkTab(parkReceipts) {
       const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : r.parkAttr;
       return `<span class="badge bd-blue">${name}</span>`;
     })();
-
     return `<div id="park-row-${r.id}" style="border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap">
-        <div class="chkbox ${defChk?'on':''}" id="rck-${r.id}"
-          onclick="this.classList.toggle('on');syncAllOcrChk();updateStats();updateParkApplyBtn()"
+        <div class="chkbox on" id="rck-${r.id}"
+          onclick="this.classList.toggle('on');syncAllOcrChk();updateParkApplyBtn()"
           style="flex-shrink:0"></div>
         <div style="flex:1;min-width:120px;cursor:pointer" onclick="toggleParkRow('${r.id}')">
           <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}</div>
-          <div style="font-size:12px;color:var(--muted)">${r.source||r.date||''} · ${r.invoiceNo||'—'}</div>
-          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}</div>
+          <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
+          <div style="margin-top:3px">${attrBadge}</div>
         </div>
-        <div class="mono" id="rc-amt-${r.id}" style="font-size:16px;font-weight:800;color:var(--gold)">
+        <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
           $${r.amount.toLocaleString()}
         </div>
         <button class="btn btn-danger btn-sm btn-icon"
@@ -1546,12 +1561,12 @@ function renderParkTab(parkReceipts) {
           onclick="toggleParkRow('${r.id}')">▼</span>
       </div>
       <!-- 停車事由（展開外）-->
-      <div style="padding:0 0 10px 36px">
+      <div style="padding:0 0 8px 36px">
         <input class="inp" id="park-supp-${r.id}" value="${esc(r.supplement||'')}"
           placeholder="停車事由（請說明與公務的關聯）"
           onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
       </div>
-      <!-- 展開：辨識資訊 -->
+      <!-- 展開：辨識資訊可編輯 -->
       <div id="park-body-${r.id}" style="display:none;background:var(--surface2);border-radius:8px;margin-bottom:8px;padding:12px">
         <div class="fg4" style="margin-bottom:10px">
           <div><label class="lbl">廠商</label>
@@ -1559,7 +1574,7 @@ function renderParkTab(parkReceipts) {
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
             <input type="number" class="inp" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);refreshCardHeader&&refreshCardHeader('${r.id}');stashSingle('${r.id}')"></div>
+              onchange="upR('${r.id}','amount',+this.value);updateStats();stashSingle('${r.id}')"></div>
           <div><label class="lbl">日期</label>
             <input type="date" class="inp" value="${r.date||''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
@@ -1584,7 +1599,6 @@ function renderParkTab(parkReceipts) {
       🅿️ 停車費
       <span class="badge bd-orange" style="margin-left:6px">${parkReceipts.length} 張</span>
     </div>
-    <!-- 頂部：歸屬搜尋框 + 套用按鈕 -->
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <label class="lbl" style="margin-bottom:4px">套用歸屬到勾選項目</label>
@@ -1600,18 +1614,19 @@ function renderParkTab(parkReceipts) {
 }
 
 function toggleParkRow(id) {
-  const body = document.getElementById('park-body-' + id);
-  const chev = document.getElementById('park-chev-' + id);
+  const body = document.getElementById('park-body-'+id);
+  const chev = document.getElementById('park-chev-'+id);
   if (!body) return;
-  const isOpen = body.style.display !== 'none';
-  body.style.display = isOpen ? 'none' : 'block';
-  if (chev) chev.textContent = isOpen ? '▼' : '▲';
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.textContent = open ? '▼' : '▲';
 }
 
 function initParkAttrDropdown() {
   _parkSelectedItem = null;
+  const myDeptCode = S.config.userDeptCode || '';
   const items = (S.config.projects||[])
-    .filter(p => !p.deptCode || p.deptCode === (S.config.userDeptCode||''))
+    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
     .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
     .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name })))
     .concat([{ id: '其他', name: '其他' }]);
@@ -1634,10 +1649,7 @@ function applyParkAttr() {
   const item = _parkSelectedItem;
   S.receipts
     .filter(r => r.category === 'parking' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
-    .forEach(r => {
-      upR(r.id, 'parkAttr', item.id);
-      stashSingle(r.id);
-    });
+    .forEach(r => { upR(r.id, 'parkAttr', item.id); stashSingle(r.id); });
   const inp = document.querySelector('#fd-park-attr .fd-input');
   if (inp) inp.value = '';
   _parkSelectedItem = null;
@@ -1708,7 +1720,7 @@ function renderFuelTab(fuelReceipts) {
   const diff       = invoiceTotal - applyTotal;
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
-    ? `✅ 差額 +$${diff.toLocaleString()}（舉證充分）`
+    ? `✅ 差額 +$${diff.toLocaleString()}`
     : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}（申請超出發票，請繼續填寫）`;
 
   return `
@@ -1736,40 +1748,41 @@ function renderFuelTab(fuelReceipts) {
         </span>
       </div>
 
-      <!-- 統一搜尋框 -->
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
-        ${fdHTML('fd-fuel-unified', 'fd-fuel-unified-inp', '搜尋專案 / 部門 / 其他')}
-      </div>
-      <!-- 月定額 -->
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+      <!-- 上：月定額 -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
           text-transform:uppercase;margin-bottom:8px">月定額</div>
-        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;min-height:20px">
-          ${quotaList.map((fp) => {
+        <!-- 已選月定額 badge 列 -->
+        <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          ${quotaList.map((fp,i) => {
             const proj = S.config.projects.find(p => p.id === fp.projId);
             if (!proj) return '';
             const idx = window._fuelProjList.indexOf(fp);
-            const expLabel = fp._isExpired ? '（已結案）' : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
               background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
-              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
+              ${proj.id} ${proj.name} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
                 style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
             </span>`;
-          }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
+          }).join('')}
         </div>
+        <!-- 月定額輸入框 -->
+        ${fdHTML('fd-fuel-quota', 'fd-fuel-quota-inp', '輸入代碼或名稱篩選月定額專案')}
       </div>
-      <!-- 里程實報 / 部門 / 其他 -->
-      <div style="padding:10px 16px">
+
+      <!-- 下：里程實報 / 部門 / 其他 -->
+      <div style="padding:12px 16px">
         <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);
           text-transform:uppercase;margin-bottom:8px">里程實報 / 部門 / 其他</div>
         <div id="fuel-mile-list">
-          ${mileList.map((fp) => {
+          ${mileList.map((fp, li) => {
             const idx = window._fuelProjList.indexOf(fp);
             return fuelMileRowHTML(fp, idx);
-          }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
+          }).join('') || ''}
         </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px"
+          onclick="addFuelMile()">＋ 新增</button>
       </div>
     </div>
 
@@ -1814,7 +1827,7 @@ function updateFuelDiff() {
     bar.style.background  = diffOk ? 'rgba(21,128,61,.07)' : 'rgba(220,38,38,.07)';
     bar.style.borderColor = diffOk ? 'rgba(21,128,61,.2)'  : 'rgba(220,38,38,.2)';
     const msg = diffOk
-      ? `✅ 差額 +$${diff.toLocaleString()}（舉證充分）`
+      ? `✅ 差額 +$${diff.toLocaleString()}`
       : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}（申請超出發票，請繼續填寫）`;
     bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span style="font-size:14px;color:var(--muted)">
@@ -1850,64 +1863,28 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode  = S.config.userDeptCode || '';
-  const selectedIds = window._fuelProjList
-    .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
-    .filter(Boolean);
-
-  // 所有生效中專案 + 部門 + 其他（排除已選）
-  const projItems = (S.config.projects || [])
-    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
-    .filter(p => !selectedIds.includes(p.id))
-    .map(p => ({ id: p.id, name: p.name, quota: p.quota, type: p.quota ? 'quota' : 'mile' }));
-  const deptItems = (S.config.departments || [])
-    .filter(d => !selectedIds.includes(d.code))
-    .map(d => ({ id: d.code, name: d.name, type: 'dept' }));
-  const otherItem = selectedIds.includes('其他') ? [] : [{ id: '其他', name: '其他', type: 'other' }];
-  const allItems  = [...projItems, ...deptItems, ...otherItem];
-
-  fdInit('fd-fuel-unified', allItems, item => {
-    const inp = document.querySelector('#fd-fuel-unified .fd-input');
-
-    if (item.type === 'quota') {
-      // 月定額 → 上方 badge
-      if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === item.id)) {
-        toast('⚠️ 此月定額專案已加入');
-      } else {
-        window._fuelProjList.push({ uid:'fp_'+Date.now(), projId:item.id, type:'quota', fieldRows:[] });
-        const newIdx = window._fuelProjList.length - 1;
-        syncFuelProjToSheet && syncFuelProjToSheet(newIdx);
-      }
-    } else {
-      // 里程實報 / 部門 / 其他 → 下方，並自動新增第一筆外勤
-      const fp = {
-        uid: 'fp_' + Date.now(),
-        projId:   item.type === 'mile' ? item.id : '',
-        deptId:   item.type === 'dept' ? item.id : '',
-        attrType: item.type,
-        type:     'mile',
-        fieldRows: [{ date:'', reason:'', isRound:true, end:'', km:'', remark:'' }],
-      };
-      window._fuelProjList.push(fp);
-      const newIdx = window._fuelProjList.length - 1;
-      // 更新里程列表 DOM（不整頁重繪）
-      const list = document.getElementById('fuel-mile-list');
-      if (list) {
-        const noMsg = list.querySelector('span');
-        if (noMsg && noMsg.textContent === '尚未選擇') noMsg.remove();
-        const div = document.createElement('div');
-        div.innerHTML = fuelMileRowHTML(fp, newIdx);
-        list.appendChild(div.firstElementChild);
-        setTimeout(() => initFuelMileDropdownAt(newIdx), 0);
-      }
-      syncFuelProjToSheet && syncFuelProjToSheet(newIdx);
+  const myDeptCode = S.config.userDeptCode || '';
+  const quotaItems = S.config.projects.filter(p =>
+    p.quota && (!p.deptCode || p.deptCode === myDeptCode)
+  );
+  fdInit('fd-fuel-quota', quotaItems, proj => {
+    // 避免重複加入
+    if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === proj.id)) {
+      toast('⚠️ 此月定額專案已加入');
+      // 清空輸入框供下次輸入
+      const inp = document.querySelector('#fd-fuel-quota .fd-input');
+      if (inp) inp.value = '';
+      return;
     }
-
-    S._recentProjIds = [item.id, ...(S._recentProjIds||[]).filter(x=>x!==item.id)].slice(0,3);
-    if (inp) { inp.value = ''; inp.focus(); }
+    window._fuelProjList.push({ uid: 'fp_' + Date.now(), projId: proj.id, type: 'quota', fieldRows: [] });
+    S._recentProjIds = [proj.id, ...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
+    // 清空輸入框供下次選擇
+    const inp = document.querySelector('#fd-fuel-quota .fd-input');
+    if (inp) inp.value = '';
     updateFuelDiff();
-    // 重新 init 排除已選
-    setTimeout(() => initFuelProjDropdowns(), 0);
+    // 即時寫入
+    const newIdx = window._fuelProjList.length - 1;
+    syncFuelProjToSheet(newIdx);
   }, S._recentProjIds || []);
 }
 
@@ -1920,11 +1897,11 @@ function fuelMileRowHTML(fp, idx) {
   const dept = fp.deptId ? (S.config.departments||[]).find(d => d.code === fp.deptId) : null;
   const isOther = fp.attrType === 'other';
 
-  // 顯示標籤
+  // 顯示標籤（含申請金額）
   let label = '（未選）';
-  if (proj)    label = `${proj.id} ${proj.name}`;
-  else if (dept) label = `${dept.code} ${dept.name}`;
-  else if (isOther) label = '其他';
+  if (proj)      label = `${proj.id} ${proj.name} $${mileAmt.toLocaleString()}`;
+  else if (dept) label = `${dept.code} ${dept.name} $${mileAmt.toLocaleString()}`;
+  else if (isOther) label = `其他 $${mileAmt.toLocaleString()}`;
 
   // 申請金額
   const frList  = fp.fieldRows || [];
@@ -1944,16 +1921,13 @@ function fuelMileRowHTML(fp, idx) {
     <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
       background:var(--surface2);flex-wrap:wrap">
       ${label !== '（未選）'
-        ? `<!-- 已選：顯示 badge，隱藏輸入框 -->
-           <span class="badge bd-blue" style="font-size:13px;padding:5px 10px">${label}</span>
-           <span style="font-size:13px">${amtDisplay}</span>`
-        : `<!-- 未選：顯示輸入框 -->
-           <div style="flex:1;min-width:160px">
-             ${fdHTML(`fd-fuelmile-${idx}`, `fd-fuelmile-inp-${idx}`, '專案 / 部門 / 其他')}
-           </div>
-           <span style="font-size:13px">${amtDisplay}</span>`
+        ? `<span class="badge bd-blue" style="flex-shrink:0">${label}</span>`
+        : `<div style="flex:1;min-width:160px">
+            ${fdHTML(`fd-fuelmile-${idx}`, `fd-fuelmile-inp-${idx}`, '專案 / 部門 / 其他')}
+           </div>`
       }
-      <button class="btn btn-danger btn-sm" onclick="removeFuelProj(${idx})">✕</button>
+      <span style="font-size:13px">${amtDisplay}</span>
+      <button class="btn btn-danger btn-sm" onclick="removeFuelProj(${idx})" style="margin-left:auto">✕</button>
     </div>
     <div style="padding:10px 14px">
       <div id="fuel-fr-list-${idx}">${frRows}</div>
@@ -2133,18 +2107,13 @@ function setFuelFRRound(idx, fi, val) {
   if (fp?.fieldRows?.[fi]) fp.fieldRows[fi].isRound = val;
   document.getElementById(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
   document.getElementById(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
-  // 立即更新公里數文字顯示
-  const km   = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || 0;
-  const rate = getMileageRate(document.getElementById('global-month')?.value || '');
-  const amt  = km ? Math.round(km * (val ? 2 : 1) * rate) : 0;
-  const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
-  if (txtEl && km) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
   saveFuelFRs(idx);
 }
 
 function saveFuelFRs(idx) {
   const fp = window._fuelProjList[idx];
   if (!fp) return;
+  const rate = getMileageRate(document.getElementById('global-month')?.value || '');
   const rows = fp.fieldRows || [];
   rows.forEach((fr, fi) => {
     fr.date    = document.getElementById(`fpd-${idx}-${fi}`)?.value    || fr.date;
@@ -2152,9 +2121,15 @@ function saveFuelFRs(idx) {
     fr.end     = document.getElementById(`fpe-${idx}-${fi}`)?.value    || fr.end;
     fr.km      = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || fr.km;
     fr.isRound = document.getElementById(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    // 即時更新金額顯示
+    const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
+    if (txtEl && fr.km) {
+      const amt = Math.round(parseFloat(fr.km) * (fr.isRound !== false ? 2 : 1) * rate);
+      txtEl.textContent = `${fr.km} km · $${amt.toLocaleString()}`;
+    }
   });
   updateFuelDiff();
-  syncFuelProjToSheet(idx); // 即時寫入
+  syncFuelProjToSheet(idx);
 }
 
 // ── 即時寫入 FuelProjects sheet ─────────────────────────────
@@ -2189,7 +2164,9 @@ async function syncFuelProjToSheet(idx) {
   const supplement = fp.type !== 'quota' && fp.fieldRows?.length
     ? JSON.stringify(fp.fieldRows.map(fr => {
         const { mapUrl, start, _start, ...rest } = fr;
-        return rest;
+        const km = parseFloat(fr.km) || 0;
+        const calcAmt = Math.round(km * (fr.isRound !== false ? 2 : 1) * rate);
+        return { ...rest, calcAmt };
       }))
     : '';
 
@@ -2745,8 +2722,8 @@ async function queryMapsFR(rid, i) {
 function setCat(id, cat) {
   upR(id, 'category', cat);
   stashSingle(id);
+  _ocrTab = cat; // 切換到對應 tab
   updateStats();
-  // 重繪整頁（展開外結構依類別不同，無法只更新 panel）
   renderOCRResults();
 }
 
@@ -2846,7 +2823,7 @@ function updateStats() {
   const parkCnt  = all.filter(r=>r.category==='parking').length;
   const otherCnt = all.filter(r=>r.category!=='fuel'&&r.category!=='parking').length;
 
-  // 金額：油資用申請總額，停車/其他用全部發票加總（不依賴 DOM checkbox，切 tab 不會歸零）
+  // 油資：申請總額；停車/其他：全部加總（不限勾選，避免非活躍 tab 時 checkbox 不在 DOM）
   const fuelAmt  = calcFuelApplyTotal();
   const parkAmt  = all.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
   const otherAmt = all.filter(r=>r.category!=='parking'&&r.category!=='fuel').reduce((s,r)=>s+r.amount,0);
@@ -2886,15 +2863,7 @@ function nextDup() {
 }
 
 function renderDupModal(r) {
-  const remaining = _dupQueue.length;
-
-  // 判斷是否跨月：比對目前申請月份與舊 key 的月份前綴
-  const currentMonth = (document.getElementById('global-month')?.value || '').slice(0, 7).replace('-', '');
-  const oldKey       = r._duplicateOfKey || '';
-  // key 格式：發票號碼（無月份前綴）或 YYYYMM-NNN（流水號）
-  const oldKeyMonth  = oldKey.match(/^(\d{6})-\d{3}$/) ? oldKey.slice(0, 6) : '';
-  const isCrossMonth = oldKeyMonth && oldKeyMonth !== currentMonth;
-
+  const remaining = _dupQueue.length; // 還剩幾筆待確認
   document.getElementById('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
@@ -2914,27 +2883,11 @@ function renderDupModal(r) {
         <span class="mono" style="color:var(--amber);font-weight:700">${r._duplicateOfKey}</span>
       </div>
     </div>
-    ${isCrossMonth
-      ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
-           <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
-           <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${oldKeyMonth.slice(0,4)}-${oldKeyMonth.slice(4)}</strong> 月份紀錄中。</div>
-           <div style="color:var(--muted);margin-top:4px">跨月不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
-         </div>`
-      : `<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
-           <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
-           <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
-           <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
-         </div>`
-    }`;
-
-  // 跨月時禁用覆蓋按鈕
-  const btnOverwrite = document.getElementById('btnDupOverwrite');
-  if (btnOverwrite) {
-    btnOverwrite.disabled = isCrossMonth;
-    btnOverwrite.style.opacity = isCrossMonth ? '0.35' : '1';
-    btnOverwrite.title = isCrossMonth ? '跨月不可覆蓋' : '';
-  }
-
+    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
+      <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
+      <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
+      <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
+    </div>`;
   document.getElementById('dupRemaining').textContent =
     remaining > 0 ? `還有 ${remaining} 筆待確認` : '這是最後一筆';
 }
@@ -3049,7 +3002,8 @@ function nav(name) {
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
   if (name==='ocr') {
     if (S.receipts.length === 0) {
-      loadOcrResults(true);
+      // 首次進入：同時載入 OcrResults 和 FuelProjects
+      loadOcrWithFuelInit();
     } else {
       renderOCRResults();
       const doneBar = document.getElementById('ocrDoneBar');
