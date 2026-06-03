@@ -1535,7 +1535,7 @@ let _parkSelectedItem = null;
 
 function renderParkTab(parkReceipts) {
   const rows = parkReceipts.map(r => {
-    const defChk  = true; // 預設勾選
+    const defChk  = !!r.parkAttr; // 有設定歸屬才預設勾選，未設定預設不勾選
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
 
@@ -1580,7 +1580,7 @@ function renderParkTab(parkReceipts) {
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
             <input type="number" class="inp" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);refreshCardHeader&&refreshCardHeader('${r.id}');stashSingle('${r.id}')"></div>
+              onchange="upR('${r.id}','amount',+this.value);(function(id,v){const el=document.getElementById('rc-amt-'+id);if(el)el.textContent='$'+(+v).toLocaleString()})('${r.id}',this.value);updateStats();stashSingle('${r.id}')"></div>
           <div><label class="lbl">日期</label>
             <input type="date" class="inp" value="${r.date||''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
@@ -1702,7 +1702,7 @@ function renderFuelTab(fuelReceipts) {
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
             <input type="number" class="inp" id="fi-amount-${r.id}" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);updateStats();stashSingle('${r.id}')"></div>
+              onchange="upR('${r.id}','amount',+this.value);(function(id,v){const p=document.querySelector('#fuel-inv-'+id+' .mono');if(p)p.textContent='$'+(+v).toLocaleString()})('${r.id}',this.value);updateFuelDiff();updateStats();stashSingle('${r.id}')"></div>
           <div><label class="lbl">日期</label>
             <input type="date" class="inp" id="fi-date-${r.id}" value="${r.date||''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
@@ -1730,7 +1730,7 @@ function renderFuelTab(fuelReceipts) {
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
     ? `✅ 差額 +$${diff.toLocaleString()}`
-    : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}（申請超出發票，請繼續填寫）`;
+    : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}`;
 
   return `
     <!-- 油資發票 card -->
@@ -1836,7 +1836,7 @@ function updateFuelDiff() {
     bar.style.borderColor = diffOk ? 'rgba(21,128,61,.2)'  : 'rgba(220,38,38,.2)';
     const msg = diffOk
       ? `✅ 差額 +$${diff.toLocaleString()}`
-      : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}（申請超出發票，請繼續填寫）`;
+      : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}`;
     bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span style="font-size:14px;color:var(--muted)">
         發票總額 <strong style="color:var(--text)">$${invoiceTotal.toLocaleString()}</strong>
@@ -2357,7 +2357,7 @@ function rcHTML(r) {
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
             <input type="number" class="inp" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);updateStats();stashSingle('${r.id}')"></div>
+              onchange="upR('${r.id}','amount',+this.value);(function(id,v){const hdAmt=document.querySelector('#rc-'+id+' .rc-hd .mono');if(hdAmt)hdAmt.textContent='$'+(+v).toLocaleString()})('${r.id}',this.value);updateStats();stashSingle('${r.id}')"></div>
           <div><label class="lbl">日期</label>
             <input type="date" class="inp" value="${r.date || ''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
@@ -2424,6 +2424,22 @@ function rcHTML(r) {
       ];
       fdInit(`fd-pkattr-${rid}`, pkItems, item => {
         upR(rid, 'parkAttr', item.id);
+        // 設定歸屬後自動勾選
+        const chkEl = document.getElementById('rck-' + rid);
+        if (chkEl && !chkEl.classList.contains('on')) {
+          chkEl.classList.add('on');
+          syncAllOcrChk();
+          updateStats();
+        }
+        // 更新 badge 顯示
+        const badgeEl = document.querySelector(`#park-row-${rid} .badge`);
+        if (badgeEl) {
+          const proj = (S.config.projects||[]).find(p => p.id === item.id);
+          const dept = (S.config.departments||[]).find(d => d.code === item.id);
+          const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : item.id;
+          badgeEl.textContent = name;
+          badgeEl.className = 'badge bd-blue';
+        }
         stashSingle(rid);
       }, _recentIds);
       if (r.parkAttr) {
