@@ -967,11 +967,12 @@ async function loadOcrResults(auto = false) {
     const cat = /fuel|油資/i.test(row.category) ? 'fuel'
               : /停車|parking/i.test(row.category) ? 'parking'
               : 'other';
-    const rawSupp   = row.fieldRows || '';
-    const parkAttr  = cat === 'parking' ? (row.attributionTarget || '') : '';
-    const projectId = cat === 'fuel'    ? (row.attributionTarget || '') : '';
-    const dept      = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
-    const frParsed  = (() => {
+    // Sheet 回傳：supplement 欄存油資外勤 JSON / 停車事由 / 其他說明
+    const rawSupp    = row.supplement || '';
+    const parkAttr   = cat === 'parking' ? (row.attributionTarget || '') : '';
+    const projectId  = cat === 'fuel'    ? (row.attributionTarget || '') : '';
+    const dept       = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    const frParsed   = (() => {
       if (cat !== 'fuel') return [];
       try { return JSON.parse(rawSupp || '[]'); } catch(_) { return []; }
     })();
@@ -2238,6 +2239,22 @@ async function syncFuelProjToSheet(idx) {
   else if (fp.deptId)       attrTarget = fp.deptId;
   else if (attrType === 'other') attrTarget = '其他';
 
+  // ── 前端去重：若 _fuelProjList 中已有相同 key，合併到那筆、移除本筆 ──
+  const myKey = attrType + '|' + attrTarget;
+  const dupIdx = window._fuelProjList.findIndex((x, i) =>
+    i !== idx &&
+    (x.type === 'quota' ? 'quota' : (x.attrType || 'mile')) + '|' +
+    (x.projId || x.deptId || (x.attrType==='other'?'其他':'')) === myKey
+  );
+  if (dupIdx !== -1) {
+    // 保留 fieldRows 較新的（本筆），覆蓋舊筆
+    window._fuelProjList[dupIdx].fieldRows = fp.fieldRows;
+    window._fuelProjList[dupIdx].uid = fp.uid;
+    window._fuelProjList.splice(idx, 1);
+    // 以舊筆 idx 繼續送 GAS
+    return syncFuelProjToSheet(dupIdx > idx ? dupIdx - 1 : dupIdx);
+  }
+
   // 計算金額
   let amount = 0;
   if (fp.type === 'quota') {
@@ -2258,10 +2275,13 @@ async function syncFuelProjToSheet(idx) {
       }))
     : '';
 
+  // key = attrType|attrTarget，讓 GAS 端以此 upsert（覆蓋舊筆）
+  const fuelProjKey = attrType + '|' + attrTarget;
   try {
     await callGAS({
       action: 'saveFuelProject',
       month, person, attrType, attrTarget, amount, supplement,
+      key: fuelProjKey,   // GAS 端以此 key 比對覆蓋
     });
   } catch(_) { /* 靜默 */ }
 }
@@ -3224,17 +3244,34 @@ async function _doExport(skipStash = false) {
     try { await doStashAll(); } catch(_) { /* doStashAll 自行處理 toast，不阻斷 */ }
   }
 
-  toast(`⏳ 產生 PDF 中（${receiptsToExport.length} 筆）...`);
+  // ── 合併油資 + 停車費 + 其他成單一份 PDF ────────────────
+  // 依類別排序：油資 → 停車費 → 其他，方便 GAS 排版
+  const sortedForExport = [
+    ...receiptsToExport.filter(r => r.category === 'fuel'),
+    ...receiptsToExport.filter(r => r.category === 'parking'),
+    ...receiptsToExport.filter(r => r.category !== 'fuel' && r.category !== 'parking'),
+  ];
+
+  // 計算各類合計（顯示用）
+  const fuelTotal  = sortedForExport.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
+  const parkTotal  = sortedForExport.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
+  const otherTotal = sortedForExport.filter(r=>r.category!=='fuel'&&r.category!=='parking').reduce((s,r)=>s+r.amount,0);
+  const grandTotal = fuelTotal + parkTotal + otherTotal;
+
+  toast(`⏳ 產生 PDF 中（${sortedForExport.length} 筆，合計 $${grandTotal.toLocaleString()}）...`);
   try {
     const res = await callGAS({
-      action:'exportAll', person, month,
-      receipts: receiptsToExport,
-      projects: S.config.projects
+      action: 'exportAll', person, month,
+      receipts: sortedForExport,
+      projects: S.config.projects,
+      merged: true,          // 告知 GAS 合併成單一 PDF
+      fuelTotal, parkTotal, otherTotal, grandTotal,
     });
     if (res.success) {
-      const urls   = res.urls   || [];
-      const labels = res.labels || [];
-      toast(`✅ PDF 已產生！共 ${urls.length} 份`);
+      // GAS 回傳單一 PDF（merged=true 時 urls/labels 只有一筆）
+      const urls   = res.urls   || (res.url   ? [res.url]   : []);
+      const labels = res.labels || (res.label ? [res.label] : [`${month} ${person} 雜支申請 $${grandTotal.toLocaleString()}`]);
+      toast(`✅ PDF 已產生！$${grandTotal.toLocaleString()}`);
       renderPdfResultList(urls, labels);
     } else { toast('❌ ' + res.error); }
   } catch(e) { toast('❌ ' + e.message); }
