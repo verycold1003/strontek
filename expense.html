@@ -867,7 +867,16 @@ async function reloadOcrWithFuel() {
 async function restoreFuelProjList(rows) {
   const todayStr = new Date().toISOString().slice(0,10);
   window._fuelProjList = [];
-  rows.forEach(row => {
+
+  // 去重：同 attrType + attrTarget 只保留最後一筆（陣列末端優先）
+  const seen = new Map();
+  [...rows].reverse().forEach(row => {
+    const key = (row.attrType || '') + '|' + (row.attrTarget || '');
+    if (!seen.has(key)) seen.set(key, row);
+  });
+  const dedupedRows = [...seen.values()].reverse(); // 恢復原始順序
+
+  dedupedRows.forEach(row => {
     const attrType   = row.attrType   || '';
     const attrTarget = row.attrTarget || '';
     const proj = (attrType !== 'dept' && attrType !== 'other')
@@ -877,7 +886,7 @@ async function restoreFuelProjList(rows) {
     let fieldRows = [];
     if (attrType !== 'quota' && row.supplement) {
       try { fieldRows = JSON.parse(row.supplement); } catch(_) {}
-      fieldRows = fieldRows.map(fr => ({ ...fr, start: S.config.startAddress || '' }));
+      fieldRows = fieldRows.map(fr => ({ ...fr, start: fr.start || S.config.startAddress || '' }));
     }
     window._fuelProjList.push({
       uid:       'fp_' + Date.now() + '_' + Math.random().toString(36).slice(2),
@@ -1534,8 +1543,10 @@ if (!window._fuelProjList) window._fuelProjList = [];
 let _parkSelectedItem = null;
 
 function renderParkTab(parkReceipts) {
+  // 全部有設定歸屬才預設全勾；只要有一筆未設定，全部預設不勾
+  const allHasAttr = parkReceipts.length > 0 && parkReceipts.every(r => !!r.parkAttr);
   const rows = parkReceipts.map(r => {
-    const defChk  = !!r.parkAttr; // 有設定歸屬才預設勾選，未設定預設不勾選
+    const defChk  = allHasAttr;
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
 
@@ -1968,12 +1979,12 @@ function fuelMileRowHTML(fp, idx) {
       ${label !== '（未選）'
         ? `<!-- 已選：顯示 badge，隱藏輸入框 -->
            <span class="badge bd-blue" style="font-size:13px;padding:5px 10px">${label}</span>
-           <span style="font-size:13px">${amtDisplay}</span>`
+           <span id="fuel-mile-amt-${idx}" style="font-size:13px">${amtDisplay}</span>`
         : `<!-- 未選：顯示輸入框 -->
            <div style="flex:1;min-width:160px">
              ${fdHTML(`fd-fuelmile-${idx}`, `fd-fuelmile-inp-${idx}`, '專案 / 部門 / 其他')}
            </div>
-           <span style="font-size:13px">${amtDisplay}</span>`
+           <span id="fuel-mile-amt-${idx}" style="font-size:13px">${amtDisplay}</span>`
       }
       <button class="btn btn-danger btn-sm" onclick="removeFuelProj(${idx})">✕</button>
     </div>
@@ -2155,13 +2166,42 @@ function setFuelFRRound(idx, fi, val) {
   if (fp?.fieldRows?.[fi]) fp.fieldRows[fi].isRound = val;
   document.getElementById(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
   document.getElementById(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
-  // 立即更新公里數文字顯示
+  // 立即更新單筆公里數文字
   const km   = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || 0;
   const rate = getMileageRate(document.getElementById('global-month')?.value || '');
   const amt  = km ? Math.round(km * (val ? 2 : 1) * rate) : 0;
   const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
   if (txtEl && km) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
   saveFuelFRs(idx);
+  // 即時更新「核算 $xxx」badge
+  _updateMileRowAmt(idx);
+  updateStats();
+}
+
+// 即時更新 fuel-mile-row-${idx} 裡「核算 $xxx」badge，不重繪整列
+function _updateMileRowAmt(idx) {
+  const fp   = window._fuelProjList[idx];
+  if (!fp) return;
+  const rate    = getMileageRate(document.getElementById('global-month')?.value || '');
+  const frList  = fp.fieldRows || [];
+  const mileAmt = frList.reduce((s, fr) => {
+    const km = parseFloat(fr.km) || 0;
+    return s + Math.round(km * (fr.isRound !== false ? 2 : 1) * rate);
+  }, 0);
+  // 找 row header 裡的 amtDisplay span（第一個 gold span）
+  const row = document.getElementById(`fuel-mile-row-${idx}`);
+  if (!row) return;
+  const amtSpan = row.querySelector('.badge.bd-blue + span, span[style*="gold"]') ||
+                  row.querySelector(`span[style*="color:var(--gold)"]`);
+  // 更新 fuel-mile-amt-{idx} 元素（統一用 id 定位）
+  const amtEl = document.getElementById(`fuel-mile-amt-${idx}`);
+  if (amtEl) {
+    if (mileAmt > 0) {
+      amtEl.innerHTML = `<span style="color:var(--gold);font-weight:800">核算 $${mileAmt.toLocaleString()}</span><span style="color:var(--muted);font-size:12px">（${rate} 元/km）</span>`;
+    } else {
+      amtEl.innerHTML = `<span style="color:var(--muted);font-size:12px">填入終點後自動計算（${rate} 元/km）</span>`;
+    }
+  }
 }
 
 function saveFuelFRs(idx) {
@@ -2175,8 +2215,10 @@ function saveFuelFRs(idx) {
     fr.km      = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || fr.km;
     fr.isRound = document.getElementById(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
   });
+  _updateMileRowAmt(idx);  // 即時更新「核算 $xxx」badge
   updateFuelDiff();
-  syncFuelProjToSheet(idx); // 即時寫入
+  updateStats();
+  syncFuelProjToSheet(idx);
 }
 
 // ── 即時寫入 FuelProjects sheet ─────────────────────────────
@@ -2261,8 +2303,9 @@ async function queryFuelMaps(idx, fi) {
     const amt = Math.round(km * (isRound ? 2 : 1) * rate);
     if (txtEl) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
     saveFuelFRs(idx);
+    _updateMileRowAmt(idx); // 即時更新「核算 $xxx」badge
     updateFuelDiff();
-    updateStats(); // 即時更新 tab 金額
+    updateStats();
   } catch(e) {
     if (txtEl) txtEl.textContent = '查詢失敗';
     toast('❌ Maps 查詢失敗：' + e.message);
@@ -2424,15 +2467,19 @@ function rcHTML(r) {
       ];
       fdInit(`fd-pkattr-${rid}`, pkItems, item => {
         upR(rid, 'parkAttr', item.id);
-        // 設定歸屬後自動勾選
-        const chkEl = document.getElementById('rck-' + rid);
-        if (chkEl && !chkEl.classList.contains('on')) {
-          chkEl.classList.add('on');
-          syncAllOcrChk();
-          updateStats();
+        // 設定歸屬後：判斷是否全部停車費都已設定，若是才全勾，否則只勾這筆
+        const parkAll = S.receipts.filter(r => r.category === 'parking');
+        const nowAllHasAttr = parkAll.length > 0 && parkAll.every(r => !!r.parkAttr);
+        if (nowAllHasAttr) {
+          parkAll.forEach(r => { document.getElementById('rck-' + r.id)?.classList.add('on'); });
+        } else {
+          document.getElementById('rck-' + rid)?.classList.add('on');
         }
-        // 更新 badge 顯示
-        const badgeEl = document.querySelector(`#park-row-${rid} .badge`);
+        syncAllOcrChk();
+        updateStats();
+        // 更新 badge 顯示（找到此筆的 badge 並更新）
+        const allBadges = document.querySelectorAll(`#park-row-${rid} .badge`);
+        const badgeEl = allBadges[allBadges.length - 1];
         if (badgeEl) {
           const proj = (S.config.projects||[]).find(p => p.id === item.id);
           const dept = (S.config.departments||[]).find(d => d.code === item.id);
@@ -3105,17 +3152,49 @@ async function _doExport(skipStash = false) {
     }
   });
 
-  // 組裝 receipts，注入外勤
+  // 組裝 receipts，注入外勤 + 確保 attribution 正確
   const receiptsWithFieldRows = S.receipts.map(r => {
     const liveFieldRows = (r.category === 'fuel' && r.projectId)
       ? (fuelProjFieldRows[r.projectId] || r.fieldRows || [])
       : [];
-    return { ...r, liveFieldRows };
+
+    // 確保 attribution 欄位正確（從 _fuelProjList 補齊油資的歸屬）
+    let attribution = r.attribution || '';
+    let projectId   = r.projectId   || '';
+    let dept        = r.dept        || '';
+
+    if (r.category === 'fuel') {
+      // 從 _fuelProjList 找對應的專案
+      const fp = window._fuelProjList.find(fp2 =>
+        (fp2.projId && fp2.projId === r.projectId) ||
+        (!r.projectId && fp2.type === 'mile')
+      );
+      if (fp) {
+        if (fp.type === 'quota' || fp.attrType === 'project') {
+          attribution = 'project';
+          projectId   = fp.projId || projectId;
+        } else if (fp.attrType === 'dept') {
+          attribution = 'dept';
+          dept        = fp.deptId || dept;
+        }
+      }
+      if (!attribution) attribution = 'project';
+    } else if (r.category === 'parking') {
+      attribution = 'parking';
+    } else if (r.category === 'other') {
+      attribution = attribution || 'dept';
+    }
+
+    return { ...r, liveFieldRows, attribution, projectId, dept };
   });
 
-  const receiptsToExport = receiptsWithFieldRows;
+  // 只匯出勾選中的憑證
+  const receiptsToExport = receiptsWithFieldRows.filter(r => {
+    const chk = document.getElementById('rck-' + r.id);
+    return chk && chk.classList.contains('on');
+  });
 
-  if (!receiptsToExport.length) { toast('⚠️ 無可匯出的憑證'); return; }
+  if (!receiptsToExport.length) { toast('⚠️ 請先勾選要匯出的憑證'); return; }
 
   // ── 先暫存，再匯出 ──────────────────────────────────────
   if (!skipStash) {
