@@ -3940,43 +3940,68 @@ function errorRow(cols, msg='❌ 載入失敗，請重試') {
 // DEBUG SNAPSHOT — 傳送前端狀態到 GAS DebugLog sheet
 // ════════════════════════════════════════════════════════════
 async function sendDebugSnapshot() {
+  const CHUNK = 1800; // 每片最大字數（GAS cell 上限 ~50000，保守切小讓 Sheet 易讀）
   const statusEl = document.getElementById('debugSnapStatus');
-  if (statusEl) statusEl.textContent = '傳送中...';
+  if (statusEl) statusEl.textContent = '準備快照...';
 
+  // ── 完整快照（不壓縮，保留所有欄位方便 debug）──
   const fuelSummary = (window._fuelProjList || []).map((fp, idx) => ({
     idx,
-    uid:       fp.uid,
-    attrType:  fp.attrType,
-    type:      fp.type,
-    projId:    fp.projId,
-    deptId:    fp.deptId,
-    frCount:   (fp.fieldRows || []).length,
-    frKms:     (fp.fieldRows || []).map(fr => fr.km || '?').join(','),
+    uid:      fp.uid,
+    attrType: fp.attrType,
+    type:     fp.type,
+    projId:   fp.projId,
+    deptId:   fp.deptId,
+    fieldRows:(fp.fieldRows || []).map(fr => ({
+      date:    fr.date,
+      reason:  fr.reason,
+      end:     fr.end,
+      km:      fr.km,
+      isRound: fr.isRound,
+    })),
   }));
 
   const receiptSummary = S.receipts.map(r => ({
     id:        r.id,
     cat:       r.category,
-    vendor:    (r.vendor || '').slice(0,12),
+    vendor:    r.vendor,
     amount:    r.amount,
+    date:      r.date,
+    invoiceNo: r.invoiceNo,
     ocrKey:    r.ocrKey,
-    parkAttr:  r.parkAttr || '',
+    parkAttr:  r.parkAttr  || '',
     projectId: r.projectId || '',
-    supplement:(r.supplement || '').slice(0,30),
+    dept:      r.dept      || '',
+    supplement:r.supplement|| '',
+    _isNew:    r._isNew,
+    _isDup:    r._isDuplicate,
   }));
 
-  const msg = JSON.stringify({
-    ts:       new Date().toISOString(),
-    user:     S.user?.name || '?',
-    month:    document.getElementById('global-month')?.value || '?',
-    fuelProj: fuelSummary,
-    receipts: receiptSummary,
-  });
+  const full = JSON.stringify({
+    ts:        new Date().toISOString(),
+    user:      S.user?.name || '?',
+    month:     document.getElementById('global-month')?.value || '?',
+    fuelProj:  fuelSummary,
+    receipts:  receiptSummary,
+  }, null, 0);  // 不縮排，節省字數
+
+  // ── 切片 ──
+  const chunks = [];
+  for (let i = 0; i < full.length; i += CHUNK) {
+    chunks.push(full.slice(i, i + CHUNK));
+  }
+
+  if (statusEl) statusEl.textContent = `傳送中（共 ${chunks.length} 片）...`;
 
   try {
-    const res = await callGAS({ action: 'debugSnapshot', msg });
-    if (statusEl) statusEl.textContent = res.success ? '✅ 已傳送' : '❌ ' + res.error;
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000);
+    const res = await callGAS({ action: 'debugSnapshot', chunks });
+    if (res.success) {
+      if (statusEl) statusEl.textContent =
+        `✅ 已寫入 ${res.written} 列（共 ${full.length} 字）`;
+    } else {
+      if (statusEl) statusEl.textContent = '❌ ' + (res.error || '未知錯誤');
+    }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 6000);
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ ' + e.message;
   }
