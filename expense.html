@@ -290,6 +290,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
         <span id="fuelLastSyncLabel" style="font-size:11px;color:var(--muted);display:none"></span>
       </div>
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted);width:100%"
+          onclick="sendDebugSnapshot()" title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug 快照</button>
+        <div id="debugSnapStatus" style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center"></div>
+      </div>
     </div>
   </div>
 
@@ -868,15 +873,31 @@ async function restoreFuelProjList(rows) {
   const todayStr = new Date().toISOString().slice(0,10);
   window._fuelProjList = [];
 
-  // 去重：同 attrType + attrTarget 只保留最後一筆（陣列末端優先）
+  // 去重：同 attrType + attrTarget，保留「最有資料」的一筆
+  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）> 最新更新時間
   const seen = new Map();
-  [...rows].reverse().forEach(row => {
+  rows.forEach(row => {
     const key = (row.attrType || '') + '|' + (row.attrTarget || '');
-    if (!seen.has(key)) seen.set(key, row);
+    if (!seen.has(key)) {
+      seen.set(key, row);
+    } else {
+      const prev = seen.get(key);
+      const prevAmt     = parseFloat(prev.amount    || 0);
+      const currAmt     = parseFloat(row.amount     || 0);
+      const prevSupp    = (prev.supplement || '').length;
+      const currSupp    = (row.supplement  || '').length;
+      const prevUpdated = prev.updatedAt || prev.month || '';
+      const currUpdated = row.updatedAt  || row.month  || '';
+      // 更新時間較新優先；相同時間再看金額與 supplement 長度
+      const currNewer = currUpdated > prevUpdated;
+      const sameTime  = currUpdated === prevUpdated;
+      if (currNewer || (sameTime && currAmt > prevAmt) || (sameTime && currAmt === prevAmt && currSupp > prevSupp)) {
+        seen.set(key, row);
+      }
+    }
   });
-  const dedupedRows = [...seen.values()].reverse(); // 恢復原始順序
 
-  dedupedRows.forEach(row => {
+  seen.forEach((row) => {
     const attrType   = row.attrType   || '';
     const attrTarget = row.attrTarget || '';
     const proj = (attrType !== 'dept' && attrType !== 'other')
@@ -896,8 +917,6 @@ async function restoreFuelProjList(rows) {
       type:      attrType === 'quota' ? 'quota' : 'mile',
       fieldRows,
       _isExpired: isExpired,
-      // 結案/過濾後 S.config.projects 找不到時，以 Sheet 金額備援（月定額用）
-      _restoredAmount: attrType === 'quota' ? (Number(row.amount) || 0) : 0,
     });
   });
 }
@@ -1783,17 +1802,13 @@ function renderFuelTab(fuelReceipts) {
         <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;min-height:20px">
           ${quotaList.map((fp) => {
             const proj = S.config.projects.find(p => p.id === fp.projId);
+            if (!proj) return '';
             const idx = window._fuelProjList.indexOf(fp);
-            // proj 可能因結案被 getConfig 日期過濾掉，以 fp 資料降級顯示
-            const projId   = proj?.id   || fp.projId || '—';
-            const projName = proj?.name || '';
-            const subsidy  = proj?.subsidy || fp._restoredAmount || 0;
-            const expLabel = (fp._isExpired || !proj) ? '（已結案）' : '';
-            if (!fp.projId) return '';
+            const expLabel = fp._isExpired ? '（已結案）' : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
               background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
-              ${projId} ${projName}${expLabel}${subsidy ? ' $' + subsidy.toLocaleString() + '/月' : ''}
+              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
                 style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
             </span>`;
@@ -1832,8 +1847,7 @@ function calcFuelApplyTotal() {
   return window._fuelProjList.reduce((sum, fp) => {
     if (fp.type === 'quota') {
       const proj = S.config.projects.find(p => p.id === fp.projId);
-      // 若專案已結案被 getConfig 過濾，改用 Sheet 還原的金額備援
-      return sum + (proj?.subsidy || fp._restoredAmount || 0);
+      return sum + (proj?.subsidy || 0);
     }
     // 里程實報 / 部門 / 其他
     const frList = fp.fieldRows || [];
@@ -2231,9 +2245,15 @@ function saveFuelFRs(idx) {
 }
 
 // ── 即時寫入 FuelProjects sheet ─────────────────────────────
-// debounce map：同一 key 300ms 內只送最後一次，防止快速操作產生並行重複列
-const _syncFuelDebounce = {};
-async function syncFuelProjToSheet(idx) {
+// debounce map：同一個 uid 500ms 內只送一次
+const _fuelSyncTimers = {};
+function syncFuelProjToSheet(idx) {
+  const fp = window._fuelProjList[idx];
+  if (!fp) return;
+  clearTimeout(_fuelSyncTimers[fp.uid]);
+  _fuelSyncTimers[fp.uid] = setTimeout(() => _syncFuelProjToSheet(idx), 500);
+}
+async function _syncFuelProjToSheet(idx) {
   const fp     = window._fuelProjList[idx];
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month')?.value || '';
@@ -2242,11 +2262,21 @@ async function syncFuelProjToSheet(idx) {
   const rate = getMileageRate(month);
 
   // 決定歸屬
-  let attrType   = fp.type === 'quota' ? 'quota' : (fp.attrType || 'mile');
+  let attrType   = fp.type === 'quota' ? 'quota' : (fp.attrType || '');
   let attrTarget = '';
-  if (fp.projId)            attrTarget = fp.projId;
-  else if (fp.deptId)       attrTarget = fp.deptId;
+  if (fp.projId)                 attrTarget = fp.projId;
+  else if (fp.deptId)            attrTarget = fp.deptId;
   else if (attrType === 'other') attrTarget = '其他';
+
+  // ── Guard：歸屬尚未確定，不寫入（防廢行污染 Sheet）──
+  if (!attrType) {
+    debugLog && console.debug('[syncFuel] attrType 空，略過 idx=' + idx);
+    return;
+  }
+  if (fp.type !== 'quota' && !attrTarget) {
+    debugLog && console.debug('[syncFuel] attrTarget 空（里程實報未選），略過 idx=' + idx);
+    return;
+  }
 
   // ── 前端去重：若 _fuelProjList 中已有相同 key，合併到那筆、移除本筆 ──
   const myKey = attrType + '|' + attrTarget;
@@ -2286,21 +2316,16 @@ async function syncFuelProjToSheet(idx) {
 
   // key = attrType|attrTarget，讓 GAS 端以此 upsert（覆蓋舊筆）
   const fuelProjKey = attrType + '|' + attrTarget;
-  // ── Debounce：同一 key 300ms 內的重複呼叫只送最後一次，防止並行產生重複列 ──
-  clearTimeout(_syncFuelDebounce[fuelProjKey]);
-  _syncFuelDebounce[fuelProjKey] = setTimeout(async () => {
-    try {
-      await callGAS({
-        action: 'saveFuelProject',
-        month, person, attrType, attrTarget, amount, supplement,
-        key: fuelProjKey,
-      });
-    } catch(_) { /* 靜默 */ }
-    delete _syncFuelDebounce[fuelProjKey];
-  }, 300);
+  try {
+    await callGAS({
+      action: 'saveFuelProject',
+      month, person, attrType, attrTarget, amount, supplement,
+      key: fuelProjKey,   // GAS 端以此 key 比對覆蓋
+    });
+  } catch(_) { /* 靜默 */ }
 }
 
-// 全量暫存 _fuelProjList（🔄 前呼叫）— 循序執行，避免並行寫入造成重複 key
+// 全量暫存 _fuelProjList（🔄 前呼叫）
 async function saveFuelProjToSheet(silent = false) {
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month')?.value || '';
@@ -2310,10 +2335,10 @@ async function saveFuelProjToSheet(silent = false) {
   if (!silent && btn) { btn.disabled = true; btn.innerHTML = '<div class="spin" style="border-top-color:var(--text)"></div>'; }
 
   try {
-    // 循序（非並行）寫入，防止 key 重複競爭
-    for (let idx = 0; idx < window._fuelProjList.length; idx++) {
-      await syncFuelProjToSheet(idx);
-    }
+    // 全量寫入時直接呼叫（跳過 debounce，確保立即送出）
+    await Promise.all(
+      window._fuelProjList.map((_, idx) => _syncFuelProjToSheet(idx))
+    );
   } catch(_) { /* 靜默 */ } finally {
     if (!silent && btn) { btn.disabled = false; btn.innerHTML = '🔄'; }
   }
@@ -2691,11 +2716,9 @@ async function stashSingle(id) {
     ? (window._fuelProjList.find(fp => fp.projId === r.projectId)
        || window._fuelProjList.find(fp => fp.projId))
     : null;
-  // 停車費：attribution 依 parkAttr 判斷是專案還是部門
-  const parkIsProj = r.category === 'parking' && r.parkAttr &&
-    (S.config.projects||[]).some(p => p.id === r.parkAttr);
-  const attribution = r.category === 'parking'
-    ? (parkIsProj ? 'project' : (r.parkAttr ? 'dept' : 'parking'))
+  // attribution：停車費固定用 'parking'（GAS exportAll 從 parkAttr 取真正歸屬）
+  // 油資固定 'project'，其他固定 'dept'
+  const attribution = r.category === 'parking' ? 'parking'
     : r.category === 'fuel'    ? 'project'
     : 'dept';
   const attributionTarget = r.category === 'parking' ? (r.parkAttr || '')
@@ -2707,14 +2730,11 @@ async function stashSingle(id) {
        : r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '')
     : undefined;
   const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
-  // key：優先用 ocrKey，次用 invoiceNo（trim 後），最後以 r.id 中的 sheet key 拆解
-  const _rawKey = r.ocrKey
-    || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '')
-    || (r.id && r.id.startsWith('sheet_') ? r.id.slice(6) : '');
+  const _stashKey = (r.ocrKey || '').trim() || (r.invoiceNo || '').trim() || '';
+  if (!_stashKey) { /* 無有效 key，跳過暫存 */ return; }
   try {
-    const res = await callGAS({ action: 'stashSelected', updates: [{
-      key:      _rawKey,
-      fileName: r.source || '',   // GAS 端備援查找用
+    await callGAS({ action: 'stashSelected', updates: [{
+      key: _stashKey,
       attribution, attributionTarget,
       vendor: r.vendor, amount: r.amount, date: r.date,
       invoiceNo: r.invoiceNo, category: r.category,
@@ -2722,11 +2742,6 @@ async function stashSingle(id) {
       ...(fieldRows  !== undefined ? { fieldRows }  : {}),
       ...(supplement !== undefined ? { supplement } : {}),
     }]});
-    // 若 GAS 回報 updated=0（key 完全比對失敗），提示使用者
-    if (res && res.success && res.updated === 0) {
-      console.warn('[stashSingle] GAS updated=0, key not matched:', _rawKey, r.source);
-      toast('⚠️ 暫存未寫入 Sheet，請按 🔄 重新整理後再試');
-    }
   } catch(_) { /* 靜默 */ }
 }
 
@@ -3247,38 +3262,31 @@ async function _doExport(skipStash = false) {
       }
       if (!attribution) attribution = 'project';
     } else if (r.category === 'parking') {
-      attribution = 'parking';
+      // 停車費：歸屬依 parkAttr 判斷專案或部門
+      const _pkIsProj = r.parkAttr && (S.config.projects||[]).some(p => p.id === r.parkAttr);
+      attribution = _pkIsProj ? 'project' : (r.parkAttr ? 'dept' : 'parking');
+      if (_pkIsProj) projectId = r.parkAttr;
+      else if (r.parkAttr) dept = r.parkAttr;
     } else if (r.category === 'other') {
       attribution = attribution || 'dept';
     }
 
-    return { ...r, liveFieldRows, attribution, projectId, dept };
+    return {
+      ...r,
+      liveFieldRows, attribution, projectId, dept,
+      // 確保停車費事由、申請說明完整帶出
+      supplement: r.supplement || '',
+      parkAttr:   r.parkAttr   || '',
+    };
   });
 
-  // 勾選中的憑證（油資：尊重勾選；停車費/其他：全部納入匯出）
+  // 只匯出勾選中的憑證
   const receiptsToExport = receiptsWithFieldRows.filter(r => {
-    if (r.category === 'parking' || r.category === 'other') return true; // 停車費/其他全部匯出
     const chk = document.getElementById('rck-' + r.id);
     return chk && chk.classList.contains('on');
   });
 
-  // 油資申請專案（_fuelProjList）全數帶入，讓 GAS 無論有無油資發票都能產月定額/里程申請表
-  const fuelProjListForExport = window._fuelProjList.map(fp => {
-    const rate = mRate;
-    return {
-      attrType:   fp.type === 'quota' ? 'quota' : (fp.attrType || 'mile'),
-      attrTarget: fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''),
-      projId:     fp.projId  || '',
-      deptId:     fp.deptId  || '',
-      type:       fp.type    || 'mile',
-      fieldRows:  (fp.fieldRows || []).map(fr => ({ ...fr, rate })),
-    };
-  });
-
-  if (!receiptsToExport.length && !fuelProjListForExport.length) {
-    toast('⚠️ 請先勾選要匯出的憑證');
-    return;
-  }
+  if (!receiptsToExport.length) { toast('⚠️ 請先勾選要匯出的憑證'); return; }
 
   // ── 先暫存，再匯出 ──────────────────────────────────────
   if (!skipStash) {
@@ -3298,9 +3306,7 @@ async function _doExport(skipStash = false) {
   const fuelTotal  = sortedForExport.filter(r=>r.category==='fuel').reduce((s,r)=>s+r.amount,0);
   const parkTotal  = sortedForExport.filter(r=>r.category==='parking').reduce((s,r)=>s+r.amount,0);
   const otherTotal = sortedForExport.filter(r=>r.category!=='fuel'&&r.category!=='parking').reduce((s,r)=>s+r.amount,0);
-  // 油資申請總額（含月定額）
-  const fuelApplyTotal = calcFuelApplyTotal();
-  const grandTotal = fuelApplyTotal + parkTotal + otherTotal;
+  const grandTotal = fuelTotal + parkTotal + otherTotal;
 
   toast(`⏳ 產生 PDF 中（${sortedForExport.length} 筆，合計 $${grandTotal.toLocaleString()}）...`);
   try {
@@ -3308,9 +3314,8 @@ async function _doExport(skipStash = false) {
       action: 'exportAll', person, month,
       receipts: sortedForExport,
       projects: S.config.projects,
-      fuelProjList: fuelProjListForExport,  // ← 新增：油資申請專案全量
       merged: true,          // 告知 GAS 合併成單一 PDF
-      fuelTotal: fuelApplyTotal, parkTotal, otherTotal, grandTotal,
+      fuelTotal, parkTotal, otherTotal, grandTotal,
     });
     if (res.success) {
       // GAS 回傳單一 PDF（merged=true 時 urls/labels 只有一筆）
@@ -3338,18 +3343,6 @@ function nav(name) {
       const doneBar = document.getElementById('ocrDoneBar');
       if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:8px;flex-wrap:wrap';
       setStep(3);
-      // ── 若 _fuelProjList 尚未從 sheet 載入，補拉一次 ──
-      const _navPerson   = S.user?.name || '';
-      const _navMonthVal = document.getElementById('global-month')?.value || '';
-      const _navHasFuel  = S.receipts.some(r => r.category === 'fuel');
-      if (_navHasFuel && _navPerson && _navMonthVal && !(window._fuelProjList && window._fuelProjList.length)) {
-        callGAS({ action: 'getFuelProjects', month: _navMonthVal, person: _navPerson })
-          .then(res => {
-            if (res.success && res.rows && res.rows.length) return restoreFuelProjList(res.rows);
-          })
-          .then(() => { renderOCRResults(); updateStats(); })
-          .catch(() => {});
-      }
     }
   }
   if (name==='history') {
@@ -3700,11 +3693,8 @@ async function doStashAll(silent = false) {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
     const fuelFp = r.category === 'fuel' ? fuelProjForReceipt(r) : null;
-    // 停車費：依 parkAttr 判斷歸屬專案或部門
-    const _parkIsProj = r.category === 'parking' && r.parkAttr &&
-      (S.config.projects||[]).some(p => p.id === r.parkAttr);
-    const attribution = r.category === 'parking'
-      ? (_parkIsProj ? 'project' : (r.parkAttr ? 'dept' : 'parking'))
+    // 停車費：attribution 固定 'parking'，GAS exportAll 從 parkAttr 取真正歸屬
+    const attribution = r.category === 'parking' ? 'parking'
       : r.category === 'fuel'    ? 'project'
       : 'dept';
     const attributionTarget = r.category === 'parking' ? (r.parkAttr   || '')
@@ -3768,11 +3758,11 @@ async function loadExportHistory(showToast) {
       tbody.innerHTML = rows.map(r => `<tr>
         <td style="font-size:14px;font-weight:700">
           ${r.pdfUrl
-            ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||r.fileName||'PDF'}</a>`
-            : `<span style="color:var(--muted)">📄 ${r.label||r.fileName||'PDF'}</span>`}
+            ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
+            : `<span style="color:var(--muted)">📄 ${r.label||'PDF'}</span>`}
         </td>
-        <td style="font-size:13px;color:var(--muted)">${r.exportedAt||r.date||''}</td>
-        <td style="font-size:13px;color:var(--muted)">${r.projectId||r.project||'—'}</td>
+        <td style="font-size:13px;color:var(--muted)">${r.exportedAt||''}</td>
+        <td style="font-size:13px;color:var(--muted)">${r.project||r.person||'—'}</td>
         <td>${r.pdfUrl
           ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-ghost btn-sm">↗ 開啟</a>`
           : ''}</td>
@@ -3946,6 +3936,52 @@ function emptyRow(cols, msg='尚無資料') {
 function errorRow(cols, msg='❌ 載入失敗，請重試') {
   return `<tr><td colspan="${cols}" style="text-align:center;color:var(--red);padding:28px;font-size:15px">${msg}</td></tr>`;
 }
+// ════════════════════════════════════════════════════════════
+// DEBUG SNAPSHOT — 傳送前端狀態到 GAS DebugLog sheet
+// ════════════════════════════════════════════════════════════
+async function sendDebugSnapshot() {
+  const statusEl = document.getElementById('debugSnapStatus');
+  if (statusEl) statusEl.textContent = '傳送中...';
+
+  const fuelSummary = (window._fuelProjList || []).map((fp, idx) => ({
+    idx,
+    uid:       fp.uid,
+    attrType:  fp.attrType,
+    type:      fp.type,
+    projId:    fp.projId,
+    deptId:    fp.deptId,
+    frCount:   (fp.fieldRows || []).length,
+    frKms:     (fp.fieldRows || []).map(fr => fr.km || '?').join(','),
+  }));
+
+  const receiptSummary = S.receipts.map(r => ({
+    id:        r.id,
+    cat:       r.category,
+    vendor:    (r.vendor || '').slice(0,12),
+    amount:    r.amount,
+    ocrKey:    r.ocrKey,
+    parkAttr:  r.parkAttr || '',
+    projectId: r.projectId || '',
+    supplement:(r.supplement || '').slice(0,30),
+  }));
+
+  const msg = JSON.stringify({
+    ts:       new Date().toISOString(),
+    user:     S.user?.name || '?',
+    month:    document.getElementById('global-month')?.value || '?',
+    fuelProj: fuelSummary,
+    receipts: receiptSummary,
+  });
+
+  try {
+    const res = await callGAS({ action: 'debugSnapshot', msg });
+    if (statusEl) statusEl.textContent = res.success ? '✅ 已傳送' : '❌ ' + res.error;
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000);
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function now()   { return new Date().toLocaleTimeString('zh-TW'); }
 </script>
