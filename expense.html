@@ -898,7 +898,9 @@ async function restoreFuelProjList(rows) {
   });
 
   seen.forEach((row) => {
-    const attrType   = row.attrType   || '';
+    const rawAttrType = row.attrType || '';
+    // 正規化：舊版本存 'mile'，統一對應到 'project'
+    const attrType   = rawAttrType === 'mile' ? 'project' : rawAttrType;
     const attrTarget = row.attrTarget || '';
     const proj = (attrType !== 'dept' && attrType !== 'other')
       ? S.config.projects.find(p => p.id === attrTarget)
@@ -1031,25 +1033,16 @@ async function loadOcrResults(auto = false) {
   renderQueue();
   renderOCRResults();
 
-  // 若有油資資料，非同步還原 _fuelProjList，完成後強制重繪 fuel tab
-  const hasFuelReceipts = S.receipts.some(r => r.category === 'fuel');
-  if (hasFuelReceipts) {
-    const person = S.user?.name || '';
-    const monthVal = document.getElementById('global-month')?.value || '';
-    if (person && monthVal) {
-      callGAS({ action: 'getFuelProjects', month: monthVal, person })
-        .then(res => {
-          if (res.success && res.rows?.length) {
-            return restoreFuelProjList(res.rows);
-          }
-        })
-        .then(() => {
-          // 無論目前 tab 為何都重繪（切回 fuel tab 時才顯示申請專案）
-          renderOCRResults();
-          updateStats();
-        })
-        .catch(() => {});
-    }
+  // 非同步還原 _fuelProjList（不管有無油資發票，Sheet 可能已有申請專案資料）
+  const _fpPerson = S.user?.name || '';
+  const _fpMonth  = document.getElementById('global-month')?.value || '';
+  if (_fpPerson && _fpMonth) {
+    callGAS({ action: 'getFuelProjects', month: _fpMonth, person: _fpPerson })
+      .then(res => {
+        if (res.success && res.rows?.length) return restoreFuelProjList(res.rows);
+      })
+      .then(() => { renderOCRResults(); updateStats(); })
+      .catch(() => {});
   }
   if (added > 0) {
     setStep(3);
@@ -1240,7 +1233,7 @@ function renderDriveFiles() {
       : '';
     const driveHref = f.driveUrl || f.url || '#';
     return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
-      <td style="width:36px"><div class="chkbox" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
+      <td style="width:36px"><div class="chkbox ${isNew?'on':''}" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
       <td style="font-size:14px">${f.name}${newTag}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
       <td>${driveHref !== '#'
@@ -1249,6 +1242,11 @@ function renderDriveFiles() {
       }</td>
     </tr>`;
   }).join('') || emptyRow(4, '此月份無憑證紀錄');
+
+  // 若有新上傳檔案，自動啟用辨識按鈕
+  if (newNames.size > 0) {
+    document.getElementById('btnSendOCR').disabled = false;
+  }
 
   // 更新計數（card 已預設顯示，不需再 display:block）
   const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
@@ -1943,7 +1941,7 @@ function initFuelProjDropdowns() {
         uid: 'fp_' + Date.now(),
         projId:   item.type === 'mile' ? item.id : '',
         deptId:   item.type === 'dept' ? item.id : '',
-        attrType: item.type,
+        attrType: item.type === 'mile' ? 'project' : item.type,  // 統一用 'project' 而非 'mile'
         type:     'mile',
         fieldRows: [{ date:'', reason:'', isRound:true, end:'', km:'', remark:'' }],
       };
@@ -2285,7 +2283,7 @@ async function _syncFuelProjToSheet(idx) {
   const myKey = attrType + '|' + attrTarget;
   const dupIdx = window._fuelProjList.findIndex((x, i) =>
     i !== idx &&
-    (x.type === 'quota' ? 'quota' : (x.attrType || 'mile')) + '|' +
+    (x.type === 'quota' ? 'quota' : (x.attrType || 'project')) + '|' +
     (x.projId || x.deptId || (x.attrType==='other'?'其他':'')) === myKey
   );
   if (dupIdx !== -1) {
@@ -3026,11 +3024,11 @@ function updateStats() {
   const hdMono = document.querySelector('#ocrResults .card-hd .mono');
   if (hdMono)  hdMono.textContent = '總額 $' + fuelInvAmt.toLocaleString();
 
-  se('tab-fuel-amt',  '$'+fuelAmt.toLocaleString());
-  se('tab-park-cnt',  parkCnt  + ' 張');
-  se('tab-park-amt',  '$'+parkAmt.toLocaleString());
-  se('tab-other-cnt', otherCnt + ' 張');
-  se('tab-other-amt', '$'+otherAmt.toLocaleString());
+  se('tab-fuel-amt',     '$'+fuelAmt.toLocaleString());
+  se('tab-parking-cnt',  parkCnt  + ' 張');
+  se('tab-parking-amt',  '$'+parkAmt.toLocaleString());
+  se('tab-other-cnt',    otherCnt + ' 張');
+  se('tab-other-amt',    '$'+otherAmt.toLocaleString());
 }
 
 // ════════════════════════════════════════════════════════════
