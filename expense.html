@@ -1694,6 +1694,7 @@ function updateParkApplyBtn() {
 function applyParkAttr() {
   if (!_parkSelectedItem) return;
   const item = _parkSelectedItem;
+  // 套用歸屬到所有已勾選的停車費發票
   S.receipts
     .filter(r => r.category === 'parking' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
     .forEach(r => {
@@ -1705,7 +1706,22 @@ function applyParkAttr() {
   _parkSelectedItem = null;
   const btn = document.getElementById('btn-park-apply');
   if (btn) btn.disabled = true;
+
+  // 套用後重新檢查：若還有未設定歸屬的停車費，取消全部勾選讓使用者繼續設定
+  // 若全部已設定，則全選
+  const parkAll = S.receipts.filter(r => r.category === 'parking');
+  const unset   = parkAll.filter(r => !r.parkAttr);
+  parkAll.forEach(r => {
+    const chk = document.getElementById('rck-' + r.id);
+    if (!chk) return;
+    const shouldCheck = unset.length === 0; // 全設定完才全選，否則全取消
+    if (shouldCheck)  { if (!chk.classList.contains('on')) chk.classList.add('on'); }
+    else              { chk.classList.remove('on'); }
+    upR(r.id, '_checked', chk.classList.contains('on'));
+  });
+
   renderOCRResults();
+  updateStats();
 }
 
 function renderFuelTab(fuelReceipts) {
@@ -2737,12 +2753,12 @@ async function stashSingle(id) {
        || window._fuelProjList.find(fp => fp.projId))
     : null;
   // attribution：停車費固定用 'parking'（GAS exportAll 從 parkAttr 取真正歸屬）
-  // 油資固定 'project'，其他固定 'dept'
+  // 油資歸屬只存 FuelProjects sheet，不回寫 OCRResults K/L 欄 → 傳空字串
   const attribution = r.category === 'parking' ? 'parking'
-    : r.category === 'fuel'    ? 'project'
+    : r.category === 'fuel'    ? ''
     : 'dept';
   const attributionTarget = r.category === 'parking' ? (r.parkAttr || '')
-    : r.category === 'fuel'    ? (fuelFp?.projId || r.projectId || '')
+    : r.category === 'fuel'    ? ''
     : (r.dept || '');
   // 補充欄：油資存外勤JSON，停車/其他存文字補充
   const fieldRows  = r.category === 'fuel'
