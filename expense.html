@@ -1037,12 +1037,19 @@ async function loadOcrResults(auto = false) {
   const _fpPerson = S.user?.name || '';
   const _fpMonth  = document.getElementById('global-month')?.value || '';
   if (_fpPerson && _fpMonth) {
+    console.debug(`[getFuelProjs] call month=${_fpMonth} person=${_fpPerson}`);
     callGAS({ action: 'getFuelProjects', month: _fpMonth, person: _fpPerson })
       .then(res => {
-        if (res.success && res.rows?.length) return restoreFuelProjList(res.rows);
+        console.debug(`[getFuelProjs] res success=${res.success} rows=${res.rows?.length ?? 'none'}`, JSON.stringify(res.rows?.slice(0,3)));
+        if (!res.success) { console.warn(`[getFuelProjs] GAS error=${res.error}`); return; }
+        if (res.rows?.length) return restoreFuelProjList(res.rows);
+        console.debug('[getFuelProjs] rows empty → _fuelProjList stays []');
       })
-      .then(() => { renderOCRResults(); updateStats(); })
-      .catch(() => {});
+      .then(() => {
+        console.debug('[getFuelProjs] after restore _fuelProjList=', JSON.stringify(window._fuelProjList.map(fp=>({type:fp.type,attrType:fp.attrType,projId:fp.projId,deptId:fp.deptId,fieldRows:fp.fieldRows?.length}))));
+        renderOCRResults(); updateStats();
+      })
+      .catch(e => { console.error('[getFuelProjs] catch', e); });
   }
   if (added > 0) {
     setStep(3);
@@ -2251,14 +2258,19 @@ const _fuelSyncTimers = {};
 function syncFuelProjToSheet(idx) {
   const fp = window._fuelProjList[idx];
   if (!fp) return;
+  console.debug(`[syncFuel:debounce] SET idx=${idx} uid=${fp.uid} key=${fp.type==='quota'?'quota':(fp.attrType||'')}|${fp.projId||fp.deptId||''}`);
   clearTimeout(_fuelSyncTimers[fp.uid]);
-  _fuelSyncTimers[fp.uid] = setTimeout(() => _syncFuelProjToSheet(idx), 500);
+  _fuelSyncTimers[fp.uid] = setTimeout(() => {
+    console.debug(`[syncFuel:debounce] FIRE idx=${idx} uid=${fp.uid}`);
+    _syncFuelProjToSheet(idx);
+  }, 500);
 }
 async function _syncFuelProjToSheet(idx) {
   const fp     = window._fuelProjList[idx];
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month')?.value || '';
-  if (!fp || !person || !month) return;
+  console.debug(`[_syncFuel] START idx=${idx} uid=${fp?.uid} key=${fp?.attrType||''}|${fp?.projId||fp?.deptId||''} caller=${new Error().stack?.split('\n')[2]?.trim()?.slice(0,60)}`);
+  if (!fp || !person || !month) { console.debug(`[_syncFuel] SKIP idx=${idx} fp=${!!fp} person=${!!person} month=${!!month}`); return; }
 
   const rate = getMileageRate(month);
 
@@ -2336,10 +2348,16 @@ async function saveFuelProjToSheet(silent = false) {
   if (!silent && btn) { btn.disabled = true; btn.innerHTML = '<div class="spin" style="border-top-color:var(--text)"></div>'; }
 
   try {
-    // 全量寫入時直接呼叫（跳過 debounce，確保立即送出）
-    await Promise.all(
-      window._fuelProjList.map((_, idx) => _syncFuelProjToSheet(idx))
-    );
+    // 全量寫入前先清掉所有 pending debounce，避免「循序送完又被 timer 重送」造成重複
+    Object.keys(_fuelSyncTimers).forEach(uid => clearTimeout(_fuelSyncTimers[uid]));
+    Object.keys(_fuelSyncTimers).forEach(uid => delete _fuelSyncTimers[uid]);
+    console.debug(`[saveFuelProj] START total=${window._fuelProjList.length} list=${window._fuelProjList.map((fp,i)=>i+':'+(fp.attrType||'')+'|'+(fp.projId||fp.deptId||'')).join(', ')}`);
+    // 循序執行（避免並行 race condition 造成 GAS 端重複 appendRow）
+    for (let idx = 0; idx < window._fuelProjList.length; idx++) {
+      console.debug(`[saveFuelProj] sending idx=${idx}/${window._fuelProjList.length}`);
+      await _syncFuelProjToSheet(idx);
+    }
+    console.debug(`[saveFuelProj] DONE`);
   } catch(_) { /* 靜默 */ } finally {
     if (!silent && btn) { btn.disabled = false; btn.innerHTML = '🔄'; }
   }
