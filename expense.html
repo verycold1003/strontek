@@ -1037,16 +1037,12 @@ async function loadOcrResults(auto = false) {
   const _fpPerson = S.user?.name || '';
   const _fpMonth  = document.getElementById('global-month')?.value || '';
   if (_fpPerson && _fpMonth) {
-    console.debug(`[getFuelProjs] call month=${_fpMonth} person=${_fpPerson}`);
     callGAS({ action: 'getFuelProjects', month: _fpMonth, person: _fpPerson })
       .then(res => {
-        console.debug(`[getFuelProjs] res success=${res.success} rows=${res.rows?.length ?? 'none'}`, JSON.stringify(res.rows?.slice(0,3)));
-        if (!res.success) { console.warn(`[getFuelProjs] GAS error=${res.error}`); return; }
+        if (!res.success) { console.error('[getFuelProjs] GAS error=', res.error); return; }
         if (res.rows?.length) return restoreFuelProjList(res.rows);
-        console.debug('[getFuelProjs] rows empty → _fuelProjList stays []');
       })
       .then(() => {
-        console.debug('[getFuelProjs] after restore _fuelProjList=', JSON.stringify(window._fuelProjList.map(fp=>({type:fp.type,attrType:fp.attrType,projId:fp.projId,deptId:fp.deptId,fieldRows:fp.fieldRows?.length}))));
         renderOCRResults(); updateStats();
       })
       .catch(e => { console.error('[getFuelProjs] catch', e); });
@@ -1322,16 +1318,25 @@ function renderQueue() {
     c.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:15px">佇列為空</div>';
     return;
   }
-  c.innerHTML = S.ocrQueue.map((f, i) => `
+  c.innerHTML = S.ocrQueue.map((f, i) => {
+    // 縮圖：Drive fileId 可組 thumbnail URL；非圖片（PDF）用預設圖示
+    const isPdf = (f.mimeType||f.name||'').includes('pdf');
+    const thumbHtml = f.id && !isPdf
+      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
+             style="width:44px;height:44px;object-fit:cover;border-radius:6px"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:22px'}))">`
+      : `<span style="font-size:22px">${isPdf ? '📄' : '🖼️'}</span>`;
+    return `
     <div class="file-item" style="gap:10px">
-      <div style="font-size:22px">🖼️</div>
+      <div class="file-thumb">${thumbHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
           f.status==='done' ? '✅ 完成' : f.status==='error' ? '❌ 失敗' : '⏳ 待辨識'}</span>
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeQueue(${i})">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function removeQueue(i) { S.ocrQueue.splice(i,1); renderQueue(); badge('nb-ocr', S.ocrQueue.length); }
@@ -2270,14 +2275,12 @@ function saveFuelFRs(idx) {
 
 // ── 即時寫入 FuelProjects sheet ─────────────────────────────
 // debounce map：同一個 uid 500ms 內只送一次
-const _fuelSyncTimers = {};
+let _fuelSyncTimers = {};
 function syncFuelProjToSheet(idx) {
   const fp = window._fuelProjList[idx];
   if (!fp) return;
-  console.debug(`[syncFuel:debounce] SET idx=${idx} uid=${fp.uid} key=${fp.type==='quota'?'quota':(fp.attrType||'')}|${fp.projId||fp.deptId||''}`);
   clearTimeout(_fuelSyncTimers[fp.uid]);
   _fuelSyncTimers[fp.uid] = setTimeout(() => {
-    console.debug(`[syncFuel:debounce] FIRE idx=${idx} uid=${fp.uid}`);
     _syncFuelProjToSheet(idx);
   }, 500);
 }
@@ -2285,8 +2288,7 @@ async function _syncFuelProjToSheet(idx) {
   const fp     = window._fuelProjList[idx];
   const person = S.user?.name || '';
   const month  = document.getElementById('global-month')?.value || '';
-  console.debug(`[_syncFuel] START idx=${idx} uid=${fp?.uid} key=${fp?.attrType||''}|${fp?.projId||fp?.deptId||''} caller=${new Error().stack?.split('\n')[2]?.trim()?.slice(0,60)}`);
-  if (!fp || !person || !month) { console.debug(`[_syncFuel] SKIP idx=${idx} fp=${!!fp} person=${!!person} month=${!!month}`); return; }
+  if (!fp || !person || !month) return;
 
   const rate = getMileageRate(month);
 
@@ -2299,12 +2301,10 @@ async function _syncFuelProjToSheet(idx) {
 
   // ── Guard：歸屬尚未確定，不寫入（防廢行污染 Sheet）──
   if (!attrType) {
-    debugLog && console.debug('[syncFuel] attrType 空，略過 idx=' + idx);
-    return;
+    debugLog &&    return;
   }
   if (fp.type !== 'quota' && !attrTarget) {
-    debugLog && console.debug('[syncFuel] attrTarget 空（里程實報未選），略過 idx=' + idx);
-    return;
+    debugLog &&    return;
   }
 
   // ── 前端去重：若 _fuelProjList 中已有相同 key，合併到那筆、移除本筆 ──
@@ -2366,14 +2366,11 @@ async function saveFuelProjToSheet(silent = false) {
   try {
     // 全量寫入前先清掉所有 pending debounce，避免「循序送完又被 timer 重送」造成重複
     Object.keys(_fuelSyncTimers).forEach(uid => clearTimeout(_fuelSyncTimers[uid]));
-    Object.keys(_fuelSyncTimers).forEach(uid => delete _fuelSyncTimers[uid]);
-    console.debug(`[saveFuelProj] START total=${window._fuelProjList.length} list=${window._fuelProjList.map((fp,i)=>i+':'+(fp.attrType||'')+'|'+(fp.projId||fp.deptId||'')).join(', ')}`);
+    _fuelSyncTimers = {};
     // 循序執行（避免並行 race condition 造成 GAS 端重複 appendRow）
     for (let idx = 0; idx < window._fuelProjList.length; idx++) {
-      console.debug(`[saveFuelProj] sending idx=${idx}/${window._fuelProjList.length}`);
       await _syncFuelProjToSheet(idx);
     }
-    console.debug(`[saveFuelProj] DONE`);
   } catch(_) { /* 靜默 */ } finally {
     if (!silent && btn) { btn.disabled = false; btn.innerHTML = '🔄'; }
   }
@@ -2409,6 +2406,61 @@ async function queryFuelMaps(idx, fi) {
 }
 
 function rcHTML(r) {
+  // ── 辨識失敗：顯示專用卡片，提醒使用者重新辨識或手動填寫 ──
+  if (r.status === 'error') {
+    return `
+    <div id="rc-${r.id}" style="border:2px solid var(--red,#e53935);border-radius:12px;margin-bottom:12px;background:#fff8f8;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#ffebee">
+        <span style="font-size:22px">❌</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;color:#c62828;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
+          ${r.error ? `<div style="font-size:11px;color:#b71c1c;margin-top:3px">錯誤：${r.error}</div>` : ''}
+        </div>
+        <button onclick="retryOCR('${r.id}')"
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#1565c0;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔄 重新辨識
+        </button>
+        <button onclick="editErrorReceipt('${r.id}')"
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#f5f5f5;color:#333;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #ddd">
+          ✏️ 手動填寫
+        </button>
+        <button onclick="removeErrorReceipt('${r.id}')"
+          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#b71c1c;font-size:16px;cursor:pointer" title="移除">
+          🗑
+        </button>
+      </div>
+      <div id="rc-edit-${r.id}" style="display:none;padding:14px;border-top:1px solid #ffcdd2;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px">
+            <label class="lbl">廠商/說明</label>
+            <input class="inp" id="err-vendor-${r.id}" value="${r.vendor==='辨識失敗'?'':r.vendor}" placeholder="輸入廠商或說明"
+              oninput="upR('${r.id}','vendor',this.value)">
+          </div>
+          <div style="width:110px">
+            <label class="lbl">金額</label>
+            <input class="inp" id="err-amt-${r.id}" type="number" value="${r.amount||''}" placeholder="0"
+              onchange="upR('${r.id}','amount',+this.value);updateStats();stashSingle('${r.id}')">
+          </div>
+          <div style="width:140px">
+            <label class="lbl">日期</label>
+            <input class="inp" id="err-date-${r.id}" type="date" value="${r.date||''}"
+              onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')">
+          </div>
+        </div>
+        <div>
+          <label class="lbl">申請說明</label>
+          <input class="inp" id="err-notes-${r.id}" value="${r.supplement||''}" placeholder="說明費用與公務的關聯"
+            onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn" onclick="document.getElementById('rc-edit-${r.id}').style.display='none'">取消</button>
+          <button class="btn btn-primary" onclick="confirmEditError('${r.id}')">✅ 確認填寫</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
   if (r._checked === undefined) r._checked = true; // 其他 tab 預設全勾
   const isNew = !!r._isNew;
   const newTag = isNew
@@ -3341,6 +3393,8 @@ async function _doExport(skipStash = false) {
     const res = await callGAS({
       action:   'exportAll',
       person,   month,
+      personDept:  (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.dept  || S.user?.dept  || ''),
+      personTitle: (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.title || S.user?.title || ''),
       // 新格式：直接傳結構化資料，GAS 不需再 groupBy
       fuelProjData,          // [{ fp, attribution, projectId, deptId, fieldRows, receipts }]
       parkReceipts,
@@ -4040,6 +4094,56 @@ async function sendDebugSnapshot() {
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ ' + e.message;
   }
+}
+
+// ── 辨識失敗卡片的操作函式 ──────────────────────────────────
+
+// 重新辨識：把失敗 receipt 對應的原始檔加回 ocrQueue
+function retryOCR(rcId) {
+  const r = S.receipts.find(x => x.id === rcId);
+  if (!r) return;
+  // source 即原始檔名，找 ocrQueue 有無對應（避免重複加）
+  const alreadyQueued = S.ocrQueue.find(q => q.name === r.source);
+  if (!alreadyQueued) {
+    S.ocrQueue.push({ id: rcId.replace('_err',''), name: r.source || rcId, status: 'pending', qAttribution: 'project' });
+    badge('nb-ocr', S.ocrQueue.length);
+    renderQueue();
+  }
+  // 移除失敗卡片，等重新辨識結果
+  S.receipts = S.receipts.filter(x => x.id !== rcId);
+  renderOCRResults();
+  updateStats();
+  toast('已加回佇列，請切換到「辨識」頁重新辨識');
+}
+
+// 展開手動填寫區塊
+function editErrorReceipt(rcId) {
+  const el = document.getElementById('rc-edit-' + rcId);
+  if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+// 確認手動填寫：清除 error 狀態，設 category 為 other
+function confirmEditError(rcId) {
+  const r = S.receipts.find(x => x.id === rcId);
+  if (!r) return;
+  r.status   = 'manual';
+  r.vendor   = document.getElementById('err-vendor-' + rcId)?.value || r.vendor;
+  r.amount   = +(document.getElementById('err-amt-'    + rcId)?.value || 0);
+  r.date     = document.getElementById('err-date-'   + rcId)?.value || '';
+  r.supplement = document.getElementById('err-notes-' + rcId)?.value || '';
+  r.category = 'other';
+  r._checked = true;
+  stashSingle(rcId);
+  renderOCRResults();
+  updateStats();
+  toast('✅ 已手動填寫完成，請記得勾選後匯出');
+}
+
+// 移除失敗項目
+function removeErrorReceipt(rcId) {
+  S.receipts = S.receipts.filter(x => x.id !== rcId);
+  renderOCRResults();
+  updateStats();
 }
 
 function todayStr() { return new Date().toISOString().slice(0,10); }
