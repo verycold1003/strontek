@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>手寫辨識</title>
+<title>工程請款辨識</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -16,7 +16,6 @@
   --yellow:#f5c518; --red:#ff4d6a;
   --purple:#a78bfa;
   --text:#eef0f5; --text2:#9aa0b5; --text3:#5a6278;
-  --line-green:#00b900;
   --r:14px; --r-sm:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -29,107 +28,1210 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',
   overflow:hidden;position:relative;display:flex;flex-direction:column;}
 .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;
   background:#0a0c12;border-radius:0 0 20px 20px;z-index:50;}
-.phone-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding-top:34px;scrollbar-width:none;}
+.phone-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding-top:34px;padding-bottom:20px;scrollbar-width:none;}
 .phone-inner::-webkit-scrollbar{display:none;}
 
-/* ── 手寫 ── */
-.vendor-ocr-wrap{display:flex;flex-direction:column;gap:12px;}
-.handwrite-zone{background:var(--card);border:2px dashed var(--border2);border-radius:var(--r);
-  padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;
-  cursor:pointer;min-height:130px;justify-content:center;transition:border-color .2s;}
-.handwrite-zone:hover{border-color:var(--accent);}
-.handwrite-preview{background:var(--bg3);border-radius:var(--r-sm);padding:12px;
-  font-size:13px;color:var(--text2);line-height:1.8;border:1px solid var(--border);
-  font-family:'JetBrains Mono',monospace;white-space:pre-wrap;}
-.result-table{width:100%;border-collapse:collapse;font-size:13px;}
-.result-table th{padding:7px 9px;background:var(--card2);color:var(--accent);
-  font-size:10px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;
-  text-align:left;border-bottom:1px solid var(--border2);}
-.result-table td{padding:8px 9px;border-bottom:1px solid var(--border);color:var(--text2);}
-.result-table tr:last-child td{border-bottom:none;}
-.result-input{background:transparent;border:none;color:var(--text);font-size:13px;
-  width:100%;outline:none;font-family:'Sora',sans-serif;}
-.result-input:focus{color:var(--accent);}
-/* ── Modal ── */
-.modal-label{font-size:11px;font-weight:700;color:var(--text2);font-family:'JetBrains Mono',monospace;
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.modal-input{width:100%;background:var(--card);border:2px solid var(--border2);border-radius:var(--r-sm);
-  padding:12px 13px;color:var(--text);font-size:15px;outline:none;font-family:'Sora',sans-serif;transition:border-color .2s;}
-.modal-input:focus{border-color:var(--accent);}
-select.modal-input{cursor:pointer;-webkit-appearance:none;}
-.modal-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;
-  border-radius:var(--r-sm);font-size:16px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;margin-top:4px;}
-.modal-btn-sec{width:100%;padding:12px;background:var(--card);color:var(--text2);
-  border:1px solid var(--border2);border-radius:var(--r-sm);font-size:15px;
-  font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;margin-top:8px;}
+/* ── Header ── */
+.section-head{display:flex;align-items:center;gap:10px;padding:18px 20px 10px;}
+.section-label{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.8px;padding:4px 10px;border-radius:6px;}
+.section-label.vendor{background:rgba(255,125,59,.12);color:var(--accent);}
 
-/* toast */
+
+/* ── Upload zone ── */
+.upload-zone{margin:0 16px 14px;background:var(--card);border:2px dashed var(--border2);
+  border-radius:var(--r);padding:28px 20px;display:flex;flex-direction:column;
+  align-items:center;gap:8px;cursor:pointer;min-height:120px;justify-content:center;
+  transition:border-color .2s;position:relative;}
+.upload-zone:hover,.upload-zone.over{border-color:var(--accent);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.upload-zone .icon{font-size:36px;}
+.upload-zone .hint{font-size:14px;color:var(--text2);text-align:center;line-height:1.5;}
+.upload-zone .sub{font-size:12px;color:var(--text3);}
+
+/* ── Preview Strip ── */
+.preview-strip{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none;}
+.preview-strip::-webkit-scrollbar{display:none;}
+.prev-thumb{position:relative;flex-shrink:0;width:72px;height:72px;border-radius:10px;
+  background:var(--card2);overflow:hidden;border:2px solid var(--border);}
+.prev-thumb img{width:100%;height:100%;object-fit:cover;}
+.prev-thumb .del{position:absolute;top:3px;right:3px;width:18px;height:18px;
+  border-radius:50%;background:rgba(255,77,106,.9);color:white;border:none;
+  font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  line-height:1;font-weight:700;}
+.prev-thumb.active{border-color:var(--accent);}
+
+/* ── Progress ── */
+.prog-wrap{margin:0 16px 10px;display:none;}
+.prog-bar{height:4px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:6px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--yellow));border-radius:99px;transition:width .3s;}
+.prog-label{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+/* ── OCR Btn ── */
+.ocr-btn-wrap{padding:0 16px 14px;}
+.ocr-btn{width:100%;padding:14px;background:var(--accent);color:#000;border:none;
+  border-radius:var(--r-sm);font-size:15px;font-weight:700;cursor:pointer;
+  font-family:'Sora',sans-serif;transition:opacity .2s;display:flex;align-items:center;
+  justify-content:center;gap:8px;}
+.ocr-btn:disabled{opacity:.4;cursor:not-allowed;}
+.ocr-btn.secondary{background:var(--card);color:var(--text2);border:1px solid var(--border2);margin-top:8px;}
+
+/* ── Raw Text ── */
+.raw-section{margin:0 16px 12px;}
+.raw-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.raw-box{background:var(--bg3);border-radius:var(--r-sm);padding:12px;
+  font-size:12px;color:var(--text2);line-height:1.7;border:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;white-space:pre-wrap;max-height:160px;overflow-y:auto;}
+
+/* ── Result Section ── */
+.result-section{margin:0 16px 12px;}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.result-label{font-size:10px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.6px;}
+.result-total{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--yellow);font-weight:600;}
+
+/* ── Result Card ── */
+.res-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);
+  margin-bottom:10px;overflow:hidden;}
+.res-card-head{padding:10px 12px;background:var(--card2);display:flex;align-items:center;
+  justify-content:space-between;gap:8px;cursor:pointer;user-select:none;}
+.res-card-title{font-size:13px;font-weight:700;color:var(--text);flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-card-amt{font-size:13px;font-weight:700;color:var(--yellow);font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.res-card-del{width:22px;height:22px;border:none;background:rgba(255,77,106,.15);color:var(--red);
+  border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.res-body{padding:12px;display:none;border-top:1px solid var(--border);}
+.res-body.open{display:block;}
+.field-row{margin-bottom:10px;}
+.field-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.field-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  padding:8px 10px;color:var(--text);font-size:13px;outline:none;
+  font-family:'Sora',sans-serif;transition:border-color .2s;}
+.field-input:focus{border-color:var(--accent);}
+.field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+
+/* ── Items Table ── */
+.items-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.items-table th{padding:6px 8px;background:var(--bg3);color:var(--accent);
+  font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;
+  text-align:left;border-bottom:1px solid var(--border2);}
+.items-table td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text2);}
+.items-table tr:last-child td{border-bottom:none;}
+.items-table .inp-cell{background:transparent;border:none;color:var(--text);
+  font-size:12px;width:100%;outline:none;font-family:'Sora',sans-serif;}
+.items-table .inp-cell:focus{color:var(--accent);}
+.items-table .amt-cell{text-align:right;font-family:'JetBrains Mono',monospace;}
+.items-table .total-row td{background:var(--card2);font-weight:700;color:var(--accent);}
+.add-item-row{display:flex;gap:6px;margin-top:8px;}
+.add-item-inp{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;
+  padding:6px 8px;color:var(--text);font-size:12px;outline:none;font-family:'Sora',sans-serif;}
+.add-item-inp:focus{border-color:var(--accent);}
+.add-item-btn{background:var(--card2);color:var(--text2);border:1px solid var(--border2);
+  border-radius:5px;padding:6px 10px;font-size:12px;cursor:pointer;}
+
+/* ── Meta Row ── */
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+
+/* ── Export Area ── */
+.export-section{margin:0 16px 16px;}
+.export-summary{background:var(--card2);border-radius:var(--r-sm);padding:14px;margin-bottom:10px;}
+.sum-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;}
+.sum-row:last-child{margin-bottom:0;}
+.sum-label{color:var(--text2);}
+.sum-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--yellow);}
+.sum-val.green{color:var(--green);}
+.export-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;
+  border-radius:var(--r-sm);font-size:15px;font-weight:700;cursor:pointer;
+  font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;}
+.export-btn:disabled{opacity:.4;cursor:not-allowed;}
+.export-btn.outline{background:var(--card);color:var(--text2);border:1px solid var(--border2);margin-top:8px;}
+
+/* ── Empty State ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-state .emo{font-size:48px;margin-bottom:12px;}
+.empty-state .msg{font-size:14px;line-height:1.6;}
+
+/* ── Vendor Info ── */
+.vendor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+
+/* ── Spinner ── */
+.spin{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(0,0,0,.2);
+  border-top-color:#000;border-radius:50%;animation:rot .7s linear infinite;}
+@keyframes rot{to{transform:rotate(360deg)}}
+.spin-light{border-color:rgba(255,255,255,.2);border-top-color:var(--accent);}
+
+/* ── Toast ── */
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
   background:rgba(36,41,54,.98);border:1px solid var(--border2);border-radius:10px;
   padding:11px 18px;font-size:13px;color:var(--text);opacity:0;
   transition:transform .3s,opacity .3s;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
 
-/* wf badge */
-.wf-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 6px;
-  border-radius:8px;background:rgba(255,125,59,.1);color:var(--accent);
-  font-family:'JetBrains Mono',monospace;margin-left:5px;vertical-align:middle;}
+/* ── Badge ── */
+.badge-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;
+  border-radius:8px;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.badge-blue{background:rgba(59,141,255,.15);color:var(--blue);}
+.badge-green{background:rgba(46,204,138,.12);color:var(--green);}
+.badge-orange{background:rgba(255,125,59,.12);color:var(--accent);}
+.badge-red{background:rgba(255,77,106,.12);color:var(--red);}
+
+/* ── Divider ── */
+.divider{height:1px;background:var(--border);margin:10px 16px;}
+
+/* ── 廠商模板選擇 ── */
+.tpl-select-wrap{margin:0 16px 14px;}
+.tpl-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.tpl-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.tpl-pill{flex:1;min-width:120px;padding:11px 8px;background:var(--card);border:2px solid var(--border2);
+  border-radius:var(--r-sm);cursor:pointer;text-align:center;transition:all .18s;user-select:none;}
+.tpl-pill:hover{border-color:var(--accent);}
+.tpl-pill.active{border-color:var(--accent);background:rgba(255,125,59,.1);}
+.tpl-pill .tpl-name{font-size:13px;font-weight:700;color:var(--text);display:block;}
+.tpl-pill .tpl-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px;display:block;}
+
+/* ── PDF Preview Modal ── */
+.pdf-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;
+  display:none;flex-direction:column;}
+.pdf-modal-overlay.open{display:flex;}
+.pdf-modal-bar{background:#13161f;padding:12px 16px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;flex-shrink:0;border-bottom:1px solid #2a2e3d;}
+.pdf-modal-title{font-size:14px;font-weight:700;color:#eef0f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pdf-modal-actions{display:flex;gap:8px;flex-shrink:0;}
+.pdf-act-btn{padding:8px 16px;border:none;border-radius:7px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'Sora',sans-serif;}
+.pdf-act-btn.primary{background:#2ecc8a;color:#000;}
+.pdf-act-btn.sec{background:#2c3244;color:#9aa0b5;border:1px solid #3f4a60;}
+.pdf-frame-wrap{flex:1;overflow:auto;display:flex;justify-content:center;
+  align-items:flex-start;padding:16px 8px;background:#2a2a2a;}
+#pdfPreviewFrame{background:#fff;width:100%;max-width:760px;min-height:900px;
+  transform-origin:top center;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+
+/* ── Print ── */
+@media print{
+  body>*{display:none!important;}
+  #pdfPrintTarget{display:block!important;position:static;width:100%;padding:0;margin:0;}
+  @page{size:A4 portrait;margin:12mm 14mm;}
+}
+#pdfPrintTarget{display:none;}
+
+/* ── PDF 文件樣式 ── */
+.pdf-doc{font-family:'標楷體','DFKai-SB','AR PL UKai TW',serif;font-size:12px;
+  color:#000;background:#fff;padding:14px 16px;width:100%;box-sizing:border-box;}
+.pdf-doc *{box-sizing:border-box;}
+
+/* 銘松 */
+.ms-outer{border:2px solid #000;}
+.ms-company{font-size:20px;font-weight:900;text-align:center;padding:7px 8px;border-bottom:1px solid #000;
+  font-family:'標楷體','DFKai-SB',serif;letter-spacing:2px;}
+.ms-addr-row{display:flex;border-bottom:1px solid #000;font-size:11px;}
+.ms-addr-row div:first-child{flex:1;padding:3px 8px;border-right:1px solid #000;}
+.ms-addr-row div:last-child{padding:3px 8px;}
+.ms-title{font-size:17px;font-weight:900;text-align:center;padding:6px;border-bottom:1px solid #000;letter-spacing:6px;}
+.ms-meta{display:flex;justify-content:space-between;padding:5px 8px;font-size:11px;border-bottom:1px solid #000;}
+
+/* 昱暉 */
+.yh-header{background:#b8cfe8;border:2px solid #000;padding:7px 12px;
+  display:flex;align-items:center;justify-content:space-between;}
+.yh-left{font-size:11px;color:#333;}
+.yh-center{font-size:17px;font-weight:900;text-align:center;}
+.yh-right{text-align:right;font-size:11px;}
+.yh-meta-row{display:flex;border:1px solid #000;border-top:none;font-size:11px;}
+.yh-meta-row div{flex:1;padding:3px 8px;border-right:1px solid #ccc;}
+.yh-meta-row div:last-child{border-right:none;}
+
+/* 共用表格 */
+.pdf-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;}
+.pdf-table th{border:1px solid #000;padding:4px 5px;background:#e0e0e0;font-weight:700;
+  text-align:center;font-size:10px;}
+.pdf-table td{border:1px solid #000;padding:4px 5px;}
+.pdf-table td.r{text-align:right;font-family:monospace;}
+.pdf-table td.c{text-align:center;}
+.pdf-table .tr-sub{background:#f5f5f5;}
+.pdf-table .tr-sub td{font-weight:700;}
+.pdf-table .tr-grand td{background:#ddd;font-weight:900;font-size:12px;}
+.pdf-notes-box{font-size:10px;color:#333;margin-top:8px;line-height:1.8;
+  border-top:1px solid #ccc;padding-top:6px;}
+.pdf-sign-row{display:flex;justify-content:flex-end;margin-top:10px;gap:12px;}
+.pdf-sign-box{border:1px solid #000;width:100px;height:50px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;text-align:center;}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--card);border-radius:var(--r) var(--r) 0 0;padding:24px 20px;
+  width:100%;max-width:550px;max-height:80vh;overflow-y:auto;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;}
+.modal-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.modal-input{width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r-sm);
+  padding:11px 12px;color:var(--text);font-size:14px;outline:none;font-family:'Sora',sans-serif;
+  transition:border-color .2s;margin-bottom:12px;}
+.modal-input:focus{border-color:var(--accent);}
+.modal-btn{width:100%;padding:13px;background:var(--green);color:#000;border:none;
+  border-radius:var(--r-sm);font-size:15px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;margin-top:4px;}
+.modal-btn.sec{background:var(--card2);color:var(--text2);border:1px solid var(--border2);margin-top:8px;}
 </style>
 </head>
 <body>
 <div class="phone-shell">
 <div class="phone-frame">
-  <div class="phone-inner">
+  <div class="notch"></div>
+  <div class="phone-inner" id="phoneInner">
 
-    <div class="screen" id="screen-vendor-ocr">
-      <div class="section-head">
-        <span class="section-label vendor">手寫辨識</span>
+    <!-- Header -->
+    <div class="section-head">
+      <span class="section-label vendor">🏗 工程請款辨識</span>
+      <span id="resultCount" style="margin-left:auto;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;"></span>
+    </div>
+
+    <!-- 廠商模板選擇 -->
+    <div class="tpl-select-wrap">
+      <div class="tpl-label">選擇廠商模板</div>
+      <div class="tpl-pills">
+        <div class="tpl-pill" id="tpl-none" onclick="selectTpl('none')">
+          <span class="tpl-name">📋 通用</span>
+          <span class="tpl-sub">不套用模板</span>
+        </div>
+        <div class="tpl-pill" id="tpl-mingsong" onclick="selectTpl('mingsong')">
+          <span class="tpl-name">🔧 銘松水電</span>
+          <span class="tpl-sub">水電工程報價單</span>
+        </div>
+        <div class="tpl-pill" id="tpl-yuhui" onclick="selectTpl('yuhui')">
+          <span class="tpl-name">⚡ 昱暉企業社</span>
+          <span class="tpl-sub">工程估價單</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept="image/*,application/pdf" multiple
+             onchange="onFileChange(this.files); this.value='';">
+      <div class="icon">📷</div>
+      <div class="hint">拍攝或選取請款單<br><span class="sub">支援 JPG · PNG · WEBP · PDF</span></div>
+    </div>
+
+    <!-- 預覽縮圖列 -->
+    <div class="preview-strip" id="previewStrip" style="display:none;"></div>
+
+    <!-- 進度 -->
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-label" id="progLabel">準備中...</div>
+    </div>
+
+    <!-- OCR 辨識按鈕 -->
+    <div class="ocr-btn-wrap">
+      <button class="ocr-btn" id="btnOcr" disabled onclick="runOcr()">
+        🤖 Gemini 辨識
+      </button>
+      <button class="ocr-btn secondary" id="btnClear" style="display:none" onclick="clearAll()">
+        🗑 清除全部
+      </button>
+    </div>
+
+    <!-- AI 辨識原文 -->
+    <div class="raw-section" id="rawSection" style="display:none;">
+      <div class="raw-label">AI 辨識原始文字</div>
+      <div class="raw-box" id="rawBox"></div>
+    </div>
+
+    <!-- 辨識結果 -->
+    <div class="result-section" id="resultSection" style="display:none;">
+      <div class="result-header">
+        <span class="result-label">📋 轉換結果（可修改）</span>
+        <span class="result-total" id="resultTotal"></span>
+      </div>
+      <div id="resultCards"></div>
+      <button onclick="addNewCard()" style="width:100%;padding:10px;background:var(--card);
+        color:var(--text3);border:1px dashed var(--border2);border-radius:var(--r-sm);
+        font-size:13px;cursor:pointer;margin-top:4px;">＋ 新增品項</button>
+    </div>
+
+    <!-- 廠商 & 匯出 -->
+    <div class="export-section" id="exportSection" style="display:none;">
+      <div class="divider" style="margin:0 0 14px;"></div>
+
+      <!-- 廠商資訊 -->
+      <div class="raw-label" style="margin-bottom:8px;">廠商資訊</div>
+      <div class="vendor-grid">
+        <div>
+          <div class="field-label">廠商名稱</div>
+          <input class="field-input" id="metaVendor" placeholder="請款廠商" />
+        </div>
+        <div>
+          <div class="field-label">統一編號</div>
+          <input class="field-input" id="metaTaxId" placeholder="12345678" />
+        </div>
+      </div>
+      <div class="vendor-grid">
+        <div>
+          <div class="field-label">單據日期</div>
+          <input class="field-input" id="metaDate" type="date" />
+        </div>
+        <div>
+          <div class="field-label">發票/收據號碼</div>
+          <input class="field-input" id="metaInvoice" placeholder="XX-00000000" />
+        </div>
       </div>
 
-      <div class="vendor-ocr-wrap">
-        <div class="handwrite-zone" onclick="showToast('開啟相機拍攝手寫內容')">
-          <div style="font-size:38px;">✍️</div>
-          <div style="font-size:15px;color:var(--text2);text-align:center;">拍攝手寫內容<br><span style="font-size:12px;color:var(--text3);">支援手寫中文、數字、表格</span></div>
+      <!-- 申請資訊 -->
+      <div class="raw-label" style="margin:8px 0 8px;">申請資訊</div>
+      <div class="vendor-grid">
+        <div>
+          <div class="field-label">申請人</div>
+          <input class="field-input" id="metaPerson" placeholder="姓名" />
         </div>
-
-        <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">AI 辨識原始文字</div>
-        <div class="handwrite-preview">冷凍機組安裝工程請款
-店家：精冷工程行
-日期：114年5月8日
-
-1. 冷媒管路施工  28,000
-2. 保溫材料安裝   8,500
-3. 電氣配線工程  15,000
-4. 試運轉調試     3,500
-
-合計：55,000元整
-統編：12345678</div>
-
-        <div style="font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">轉換結果（可修改）</div>
-        <table class="result-table">
-          <thead><tr><th>品項名稱</th><th style="width:86px;text-align:right;">金額</th></tr></thead>
-          <tbody>
-            <tr><td><input class="result-input" value="冷媒管路施工"/></td><td style="text-align:right;"><input class="result-input" value="28,000" style="text-align:right;width:76px;"/></td></tr>
-            <tr><td><input class="result-input" value="保溫材料安裝"/></td><td style="text-align:right;"><input class="result-input" value="8,500" style="text-align:right;width:76px;"/></td></tr>
-            <tr><td><input class="result-input" value="電氣配線工程"/></td><td style="text-align:right;"><input class="result-input" value="15,000" style="text-align:right;width:76px;"/></td></tr>
-            <tr><td><input class="result-input" value="試運轉調試"/></td><td style="text-align:right;"><input class="result-input" value="3,500" style="text-align:right;width:76px;"/></td></tr>
-            <tr style="background:var(--card2);"><td style="font-weight:700;color:var(--accent);">合計</td><td style="text-align:right;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">55,000</td></tr>
-          </tbody>
-        </table>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px;">
-          <div><div class="modal-label">店家名稱</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="精冷工程行"/></div>
-          <div><div class="modal-label">統編</div><input class="modal-input" style="padding:10px 12px;font-size:14px;" value="12345678"/></div>
+        <div>
+          <div class="field-label">申請月份</div>
+          <input class="field-input" id="metaMonth" type="month" />
         </div>
-        <button class="modal-btn" style="margin-top:6px;" onclick="showToast('手寫內容已轉換，匯出')">確認匯出</button>
       </div>
+      <div>
+        <div class="field-label">工程說明 / 備註</div>
+        <input class="field-input" id="metaNotes" placeholder="例：冷凍機組安裝工程第一期款" />
+      </div>
+
+      <!-- 合計摘要 -->
+      <div class="export-summary" style="margin-top:14px;">
+        <div class="sum-row">
+          <span class="sum-label">品項數</span>
+          <span class="sum-val green" id="sumItemCnt">—</span>
+        </div>
+        <div class="sum-row">
+          <span class="sum-label">合計金額</span>
+          <span class="sum-val" id="sumTotal">—</span>
+        </div>
+      </div>
+
+      <button class="export-btn" id="btnExport" onclick="doExport()">
+        ✅ 確認匯出至系統
+      </button>
+      <button class="export-btn" id="btnPdf" onclick="openPdfPreview()"
+        style="background:var(--blue);margin-top:8px;">
+        📄 預覽 / 列印 PDF
+      </button>
+      <button class="export-btn outline" onclick="copyResult()">
+        📋 複製為文字
+      </button>
     </div>
 
   </div><!-- phone-inner -->
 </div><!-- phone-frame -->
 </div><!-- phone-shell -->
+
+<!-- PDF Preview Modal -->
+<div class="pdf-modal-overlay" id="pdfModal">
+  <div class="pdf-modal-bar">
+    <div class="pdf-modal-title" id="pdfModalTitle">報價單預覽</div>
+    <div class="pdf-modal-actions">
+      <button class="pdf-act-btn sec" onclick="closePdfModal()">✕ 關閉</button>
+      <button class="pdf-act-btn primary" onclick="printPdf()">🖨 列印 / PDF</button>
+    </div>
+  </div>
+  <div class="pdf-frame-wrap">
+    <div id="pdfPreviewFrame"></div>
+  </div>
+</div>
+
+<!-- Print target -->
+<div id="pdfPrintTarget"></div>
+
 <div id="toast"></div>
 
+<!-- Modal：新增品項 -->
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal-box">
+    <div class="modal-title">＋ 新增品項</div>
+    <div class="modal-label">品項名稱</div>
+    <input class="modal-input" id="newItemName" placeholder="例：電氣配線工程" />
+    <div class="modal-label">金額（元）</div>
+    <input class="modal-input" id="newItemAmt" type="number" placeholder="0" />
+    <button class="modal-btn" onclick="confirmAddItem()">新增</button>
+    <button class="modal-btn sec" onclick="closeModal()">取消</button>
+  </div>
+</div>
+
 <script>
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const CFG = {
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec',
+};
+
+async function callGAS(payload) {
+  if (!CFG.GAS_URL) throw new Error('GAS 網址未設定');
+  const res = await fetch(CFG.GAS_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body:    JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return JSON.parse(await res.text());
+}
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let _files      = [];
+let _cards      = [];
+let _rawText    = '';
+let _ocrRunning = false;
+let _activeTpl  = 'none';   // 'none' | 'mingsong' | 'yuhui'
+
+// ════════════════════════════════════════════════════════════
+// 廠商模板
+// ════════════════════════════════════════════════════════════
+const VENDOR_TPL = {
+  none: {
+    label: '通用',
+    vendor: '', taxId: '', notes: '',
+  },
+  mingsong: {
+    label: '銘松水電工程有限公司',
+    vendor: '銘松水電工程有限公司',
+    taxId:  '12457174',
+    notes: '水電工程',
+    contact: '地址：新北市三重區　電話：',
+    remarkLines: ['1.報價有效期限為 7天', '2.電線價格以施作時間再詢問漲降價'],
+  },
+  yuhui: {
+    label: '昱暉企業社',
+    vendor: '昱暉企業社',
+    taxId:  '85331403',
+    contact: '吳先生 0920-902123',
+    addr: '新北市貢寮區孝清街10巷13號4樓',
+    notes: '工程估價',
+    remarkLines: [
+      '1 首次配合現金交易，現金票，簽章回傳',
+      '2 商品保固依公司規定',
+      '3 本報價單經買方確認後即生效，報價單即生效為買賣契約',
+      '4 尚未付清所有款項前所有商品、產品、材料所有權屬本公司（昱暉企業社）',
+      '5 工程確定收定3成款項、設備入場收定6成款項、驗收完工收尾款1成款項',
+    ],
+    validDays: 14,
+  },
+};
+
+function selectTpl(key) {
+  _activeTpl = key;
+  // 更新 pill 樣式
+  document.querySelectorAll('.tpl-pill').forEach(el => el.classList.remove('active'));
+  document.getElementById('tpl-' + key)?.classList.add('active');
+
+  const tpl = VENDOR_TPL[key];
+  if (!tpl) return;
+
+  // 自動填入廠商欄位（只填空白的）
+  const vendorEl = document.getElementById('metaVendor');
+  const taxIdEl  = document.getElementById('metaTaxId');
+  const notesEl  = document.getElementById('metaNotes');
+
+  if (key !== 'none') {
+    if (tpl.vendor) vendorEl.value = tpl.vendor;
+    if (tpl.taxId)  taxIdEl.value  = tpl.taxId;
+    if (!notesEl.value && tpl.notes) notesEl.value = tpl.notes;
+    showToast('✅ 已套用 ' + tpl.label + ' 模板');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// PDF 預覽
+// ════════════════════════════════════════════════════════════
+function openPdfPreview() {
+  if (!_cards.length) { showToast('⚠️ 尚無品項可預覽'); return; }
+  const html = buildPdfHtml();
+  const frame = document.getElementById('pdfPreviewFrame');
+  frame.innerHTML = html;
+  const title = VENDOR_TPL[_activeTpl]?.label || '工程報價單';
+  document.getElementById('pdfModalTitle').textContent = title + ' — 預覽';
+  document.getElementById('pdfModal').classList.add('open');
+  // 縮放適應寬度
+  scalePreview();
+}
+
+function scalePreview() {
+  const frame = document.getElementById('pdfPreviewFrame');
+  const wrap  = document.querySelector('.pdf-frame-wrap');
+  if (!frame || !wrap) return;
+  const wrapW = wrap.clientWidth - 32;
+  const docW  = 760;
+  const scale = wrapW < docW ? wrapW / docW : 1;
+  frame.style.transform = `scale(${scale})`;
+  frame.style.transformOrigin = 'top center';
+  if (scale < 1) {
+    frame.style.marginBottom = `-${docW * (1 - scale) * (frame.offsetHeight / docW)}px`;
+  }
+}
+
+function closePdfModal() {
+  document.getElementById('pdfModal').classList.remove('open');
+}
+
+function printPdf() {
+  const html = buildPdfHtml();
+  const printTarget = document.getElementById('pdfPrintTarget');
+  printTarget.innerHTML = html;
+  window.print();
+  setTimeout(() => { printTarget.innerHTML = ''; }, 1000);
+}
+
+function buildPdfHtml() {
+  const tpl       = _activeTpl;
+  const vendor    = document.getElementById('metaVendor').value.trim();
+  const taxId     = document.getElementById('metaTaxId').value.trim();
+  const date      = document.getElementById('metaDate').value || todayStr();
+  const invoiceNo = document.getElementById('metaInvoice').value.trim();
+  const person    = document.getElementById('metaPerson').value.trim();
+  const notes     = document.getElementById('metaNotes').value.trim();
+
+  const items  = _cards.map(c => ({ name: c.name, amount: parseFloat(c.amount) || 0 }));
+  const subTotal = items.reduce((s, it) => s + it.amount, 0);
+  const tax      = Math.round(subTotal * 0.05);
+  const total    = subTotal + tax;
+
+  if (tpl === 'mingsong') return buildMingsongPdf(vendor, taxId, date, invoiceNo, notes, items, subTotal, tax, total);
+  if (tpl === 'yuhui')    return buildYuhuiPdf(vendor, taxId, date, invoiceNo, notes, items, subTotal, tax, total);
+  return buildGenericPdf(vendor, taxId, date, invoiceNo, person, notes, items, subTotal, tax, total);
+}
+
+// ── 銘松 PDF ─────────────────────────────────────────────────
+function buildMingsongPdf(vendor, taxId, date, invoiceNo, notes, items, subTotal, tax, total) {
+  const tplData = VENDOR_TPL.mingsong;
+  const rows = items.map((it, i) => `
+    <tr>
+      <td class="c">${i + 1}</td>
+      <td>${esc(it.name)}</td>
+      <td class="c"></td>
+      <td class="c"></td>
+      <td class="r"></td>
+      <td class="r">${it.amount ? it.amount.toLocaleString() : ''}</td>
+      <td></td>
+    </tr>`).join('');
+
+  const totalInWords = numToWords(total);
+
+  return `<div class="pdf-doc">
+  <div class="ms-outer">
+    <div class="ms-company">銘松水電工程有限公司</div>
+    <div class="ms-addr-row">
+      <div>地址：${tplData.contact.split('電話')[0].replace('地址：','').trim()}</div>
+      <div>電話：</div>
+    </div>
+    <div class="ms-title">報 價 單</div>
+    <div class="ms-meta">
+      <span>案件名稱：${esc(notes)}</span>
+      <span>報價日期：${date}</span>
+    </div>
+    <table class="pdf-table" style="margin-top:0;border-top:none;">
+      <thead><tr>
+        <th style="width:32px;">項次</th>
+        <th>名　稱</th>
+        <th style="width:40px;">單位</th>
+        <th style="width:40px;">數量</th>
+        <th style="width:70px;">單　價</th>
+        <th style="width:80px;">總　額</th>
+        <th>備　註</th>
+      </tr></thead>
+      <tbody>
+        ${rows}
+        <tr class="tr-sub">
+          <td colspan="5" class="r">合計</td>
+          <td class="r">${subTotal.toLocaleString()}</td>
+          <td></td>
+        </tr>
+        <tr class="tr-sub">
+          <td colspan="5" class="r">稅金</td>
+          <td class="r">${tax.toLocaleString()}</td>
+          <td></td>
+        </tr>
+        <tr class="tr-grand">
+          <td colspan="1" class="c">總　價</td>
+          <td colspan="4">新台幣 ${totalInWords}元整</td>
+          <td class="r">NT$${total.toLocaleString()}</td>
+          <td class="c">含稅</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="padding:6px 8px;font-size:10px;border-top:1px solid #000;">
+      <strong>備註：</strong><br>
+      ${tplData.remarkLines.map(l => `<span style="color:#c00;">${esc(l)}</span>`).join('<br>')}
+    </div>
+  </div>
+</div>`;
+}
+
+// ── 昱暉 PDF ─────────────────────────────────────────────────
+function buildYuhuiPdf(vendor, taxId, date, invoiceNo, notes, items, subTotal, tax, total) {
+  const tplData = VENDOR_TPL.yuhui;
+  const rows = items.map((it, i) => `
+    <tr>
+      <td class="c">${i + 1}</td>
+      <td>${esc(it.name)}</td>
+      <td></td>
+      <td class="c"></td>
+      <td class="r"></td>
+      <td class="r">$${it.amount ? it.amount.toLocaleString() : '0'}</td>
+      <td></td>
+    </tr>`).join('');
+
+  return `<div class="pdf-doc">
+  <div class="yh-header">
+    <div class="yh-left">統一編號：${tplData.taxId}<br>${tplData.addr}</div>
+    <div class="yh-center">昱暉企業社<br><span style="font-size:12px;">${tplData.contact}</span></div>
+    <div class="yh-right">報價日期：${date}</div>
+  </div>
+  <div class="yh-meta-row" style="border:1px solid #000;border-top:none;">
+    <div>工程名稱：${esc(notes)}</div>
+    <div>地址：</div>
+  </div>
+  <table class="pdf-table">
+    <thead><tr>
+      <th style="width:32px;">序號</th>
+      <th>項目名稱</th>
+      <th style="width:90px;">型號（規格）</th>
+      <th style="width:40px;">數量</th>
+      <th style="width:60px;">單價</th>
+      <th style="width:80px;">總價</th>
+      <th>備註</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="tr-sub">
+        <td colspan="5" class="r">小　計</td>
+        <td class="r">$${subTotal.toLocaleString()}</td>
+        <td></td>
+      </tr>
+      <tr class="tr-sub">
+        <td colspan="5" class="r">稅　金</td>
+        <td class="r">$${tax.toLocaleString()}</td>
+        <td></td>
+      </tr>
+      <tr class="tr-grand">
+        <td colspan="5" class="r">總合計（含稅）</td>
+        <td class="r">$${total.toLocaleString()}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:6px;font-size:10px;">本估價單有效天數為 ${tplData.validDays} 天</div>
+  <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:10px;">
+    ${tplData.remarkLines.map((l, i) => `<tr><td style="width:20px;vertical-align:top;">${i+1}</td><td>${esc(l)}</td></tr>`).join('')}
+  </table>
+  <div class="pdf-sign-row">
+    <div class="pdf-sign-box">簽章回傳</div>
+  </div>
+</div>`;
+}
+
+// ── 通用 PDF ─────────────────────────────────────────────────
+function buildGenericPdf(vendor, taxId, date, invoiceNo, person, notes, items, subTotal, tax, total) {
+  const rows = items.map((it, i) => `
+    <tr>
+      <td class="c">${i + 1}</td>
+      <td>${esc(it.name)}</td>
+      <td class="r">$${it.amount.toLocaleString()}</td>
+    </tr>`).join('');
+
+  return `<div class="pdf-doc" style="font-family:sans-serif;">
+  <div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:10px;">
+    工程請款單
+  </div>
+  <table style="width:100%;font-size:11px;margin-bottom:10px;border-collapse:collapse;">
+    <tr>
+      <td style="width:50%;padding:3px 0;"><strong>廠商：</strong>${esc(vendor)}</td>
+      <td><strong>統編：</strong>${esc(taxId)}</td>
+    </tr>
+    <tr>
+      <td><strong>日期：</strong>${date}</td>
+      <td><strong>發票號碼：</strong>${esc(invoiceNo)}</td>
+    </tr>
+    <tr>
+      <td><strong>申請人：</strong>${esc(person)}</td>
+      <td><strong>工程說明：</strong>${esc(notes)}</td>
+    </tr>
+  </table>
+  <table class="pdf-table">
+    <thead><tr><th style="width:32px;">項次</th><th>品項名稱</th><th style="width:100px;">金額</th></tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="tr-sub"><td colspan="2" class="r">小計</td><td class="r">$${subTotal.toLocaleString()}</td></tr>
+      <tr class="tr-sub"><td colspan="2" class="r">稅金 5%</td><td class="r">$${tax.toLocaleString()}</td></tr>
+      <tr class="tr-grand"><td colspan="2" class="r">合計（含稅）</td><td class="r">$${total.toLocaleString()}</td></tr>
+    </tbody>
+  </table>
+</div>`;
+}
+
+// 數字轉中文大寫（簡）
+function numToWords(n) {
+  if (!n) return '零';
+  const units = ['','十','百','千','萬','十萬','百萬'];
+  const digits = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const str = String(Math.floor(n));
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const d = parseInt(str[i]);
+    const u = units[str.length - 1 - i];
+    if (d !== 0) result += digits[d] + u;
+    else if (result && result[result.length-1] !== '零') result += '零';
+  }
+  return result.replace(/零$/, '') || '零';
+}
+
+function onFileChange(fileList) {
+  if (!fileList || !fileList.length) return;
+  const arr = Array.from(fileList).filter(f =>
+    f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+  );
+  if (!arr.length) { showToast('⚠️ 請選擇圖片或 PDF 檔案'); return; }
+
+  arr.forEach(f => {
+    const id = 'f' + Date.now() + Math.random().toString(36).slice(2,6);
+    const url = f.type.startsWith('image/') ? URL.createObjectURL(f) : null;
+    _files.push({ id, file: f, previewUrl: url, name: f.name });
+  });
+  renderPreview();
+  document.getElementById('btnOcr').disabled = false;
+}
+
+function renderPreview() {
+  const strip = document.getElementById('previewStrip');
+  if (!_files.length) { strip.style.display = 'none'; return; }
+  strip.style.display = 'flex';
+  strip.innerHTML = _files.map((f, i) => `
+    <div class="prev-thumb ${i===0?'active':''}" id="prev-${f.id}">
+      ${f.previewUrl
+        ? `<img src="${f.previewUrl}">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;">📄</div>`}
+      <button class="del" onclick="removeFile('${f.id}',event)">×</button>
+    </div>
+  `).join('');
+}
+
+function removeFile(id, e) {
+  e && e.stopPropagation();
+  _files = _files.filter(f => f.id !== id);
+  renderPreview();
+  if (!_files.length) {
+    document.getElementById('btnOcr').disabled = true;
+    document.getElementById('btnClear').style.display = 'none';
+    hideResults();
+  }
+}
+
+function clearAll() {
+  _files = [];
+  _cards = [];
+  _rawText = '';
+  renderPreview();
+  hideResults();
+  document.getElementById('btnOcr').disabled = true;
+  document.getElementById('btnClear').style.display = 'none';
+}
+
+function hideResults() {
+  document.getElementById('rawSection').style.display    = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('exportSection').style.display = 'none';
+  document.getElementById('resultCount').textContent      = '';
+}
+
+// ════════════════════════════════════════════════════════════
+// FILE → BASE64
+// ════════════════════════════════════════════════════════════
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = e => res(e.target.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function compressIfNeeded(file) {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size <= 2 * 1024 * 1024) return file;
+  try {
+    const blob = await toJpegViaCanvas(file, 0.82);
+    return blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file;
+  } catch { return file; }
+}
+
+function toJpegViaCanvas(file, quality = 0.88) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 2400;
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('圖片載入失敗')); };
+    img.src = url;
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// OCR — Gemini via GAS
+// ════════════════════════════════════════════════════════════
+async function runOcr() {
+  if (_ocrRunning) return;
+  if (!_files.length) { showToast('⚠️ 請先選擇圖片'); return; }
+    _ocrRunning = true;
+  const btn = document.getElementById('btnOcr');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> 辨識中...';
+
+  const progWrap = document.getElementById('progWrap');
+  const progFill = document.getElementById('progFill');
+  const progLbl  = document.getElementById('progLabel');
+  progWrap.style.display = 'block';
+
+  _cards = [];
+  _rawText = '';
+
+  const allItems = [];    // 收集所有辨識結果
+  const allRaws  = [];
+
+  try {
+    for (let i = 0; i < _files.length; i++) {
+      const f = _files[i];
+      progLbl.textContent = `正在辨識第 ${i+1}/${_files.length} 張：${f.name}`;
+      progFill.style.width = ((i / _files.length) * 60) + '%';
+
+      const compressed = await compressIfNeeded(f.file);
+      const b64 = await fileToBase64(compressed);
+      const mime = compressed.type || 'image/jpeg';
+
+      // Step 1: upload
+      const person = document.getElementById('metaPerson').value.trim() || 'ocr_user';
+      const month  = document.getElementById('metaMonth').value || todayStr().slice(0,7);
+
+      let fileId = '', driveUrl = '';
+      try {
+        progLbl.textContent = `上傳中 ${i+1}/${_files.length}：${f.name}`;
+        const upRes = await callGAS({
+          action:   'uploadFile',
+          fileName: f.name,
+          mimeType: mime,
+          base64:   b64,
+          person,
+          month,
+        });
+        if (upRes.success) { fileId = upRes.fileId; driveUrl = upRes.fileUrl; }
+      } catch(e) {
+        // 上傳失敗不阻擋 OCR，fileId 留空
+        console.warn('uploadFile 失敗:', e.message);
+      }
+
+      // Step 2: OCR — 使用工程請款專用 prompt
+      progLbl.textContent = `Gemini 辨識中 ${i+1}/${_files.length}...`;
+      progFill.style.width = ((i / _files.length) * 60 + 40) + '%';
+
+      const ocrRes = await callGAS({
+        action:   'ocrEngineering',   // 工程專用 action
+        fileName: f.name,
+        base64:   b64,
+        mimeType: mime,
+        fileId,
+      });
+
+      if (ocrRes.rawText) allRaws.push(ocrRes.rawText);
+
+      if (ocrRes.success && ocrRes.items?.length) {
+        allItems.push(...ocrRes.items);
+        // 自動填入廠商資訊（取第一筆）
+        if (i === 0 && ocrRes.meta) {
+          // 若已選模板，廠商名/統編優先用模板；其他欄位從 OCR 取
+          const tpl = VENDOR_TPL[_activeTpl];
+          const useVendorFromOcr = _activeTpl === 'none';
+          if (useVendorFromOcr && ocrRes.meta.vendor && !document.getElementById('metaVendor').value)
+            document.getElementById('metaVendor').value  = ocrRes.meta.vendor;
+          if (useVendorFromOcr && ocrRes.meta.taxId && !document.getElementById('metaTaxId').value)
+            document.getElementById('metaTaxId').value   = ocrRes.meta.taxId;
+          if (ocrRes.meta.date    && !document.getElementById('metaDate').value.trim())
+            document.getElementById('metaDate').value    = ocrRes.meta.date;
+          if (ocrRes.meta.invoiceNo && !document.getElementById('metaInvoice').value)
+            document.getElementById('metaInvoice').value = ocrRes.meta.invoiceNo;
+          if (ocrRes.meta.notes   && !document.getElementById('metaNotes').value)
+            document.getElementById('metaNotes').value   = ocrRes.meta.notes;
+        }
+      } else if (!ocrRes.success) {
+        showToast(`⚠️ 第 ${i+1} 張辨識失敗：${ocrRes.error || '未知錯誤'}`);
+      }
+    }
+
+    progFill.style.width = '100%';
+    progLbl.textContent  = '✅ 辨識完成';
+    setTimeout(() => { progWrap.style.display = 'none'; }, 1500);
+
+    // 建立 cards
+    _rawText = allRaws.join('\n---\n');
+    _cards   = allItems.map((item, idx) => ({
+      id:     'c' + idx,
+      name:   item.name   || '（未辨識）',
+      amount: parseFloat(item.amount) || 0,
+      open:   true,
+    }));
+
+    renderAll();
+    document.getElementById('btnClear').style.display = 'block';
+    showToast(`✅ 辨識完成：共 ${_cards.length} 個品項`);
+
+  } catch(err) {
+    progWrap.style.display = 'none';
+    showToast('❌ 辨識失敗：' + err.message);
+    console.error(err);
+  } finally {
+    _ocrRunning = false;
+    btn.disabled = false;
+    btn.innerHTML = '🤖 Gemini 辨識';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════
+function renderAll() {
+  renderRaw();
+  renderCards();
+  renderExport();
+  updateSummary();
+}
+
+function renderRaw() {
+  if (!_rawText) return;
+  const sec = document.getElementById('rawSection');
+  const box = document.getElementById('rawBox');
+  sec.style.display = 'block';
+  box.textContent   = _rawText;
+}
+
+function renderCards() {
+  const sec   = document.getElementById('resultSection');
+  const cards = document.getElementById('resultCards');
+  if (!_cards.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  const total = _cards.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+  document.getElementById('resultTotal').textContent = '合計 $' + total.toLocaleString();
+  document.getElementById('resultCount').textContent = _cards.length + ' 項';
+
+  cards.innerHTML = _cards.map((c, i) => `
+    <div class="res-card" id="card-${c.id}">
+      <div class="res-card-head" onclick="toggleCard('${c.id}')">
+        <span class="res-card-title">${esc(c.name)}</span>
+        <span class="res-card-amt">$${(parseFloat(c.amount)||0).toLocaleString()}</span>
+        <button class="res-card-del" onclick="deleteCard('${c.id}',event)" title="刪除">×</button>
+      </div>
+      <div class="res-body ${c.open?'open':''}" id="body-${c.id}">
+        <div class="field-row">
+          <div class="field-label">品項名稱</div>
+          <input class="field-input" value="${esc(c.name)}"
+            oninput="updateCard('${c.id}','name',this.value)" />
+        </div>
+        <div class="field-row">
+          <div class="field-label">金額（元）</div>
+          <input class="field-input" type="number" value="${c.amount}"
+            oninput="updateCard('${c.id}','amount',this.value)" />
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderExport() {
+  document.getElementById('exportSection').style.display = _cards.length ? 'block' : 'none';
+  updateSummary();
+}
+
+function updateSummary() {
+  const total = _cards.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+  document.getElementById('sumItemCnt').textContent = _cards.length + ' 項';
+  document.getElementById('sumTotal').textContent   = '$' + total.toLocaleString();
+}
+
+// ════════════════════════════════════════════════════════════
+// CARD ACTIONS
+// ════════════════════════════════════════════════════════════
+function toggleCard(id) {
+  const c = _cards.find(x => x.id === id);
+  if (!c) return;
+  c.open = !c.open;
+  const body = document.getElementById('body-' + id);
+  if (body) body.classList.toggle('open', c.open);
+}
+
+function updateCard(id, field, value) {
+  const c = _cards.find(x => x.id === id);
+  if (!c) return;
+  c[field] = field === 'amount' ? parseFloat(value) || 0 : value;
+  // 更新 header 顯示
+  const card = document.getElementById('card-' + id);
+  if (card) {
+    const amtEl  = card.querySelector('.res-card-amt');
+    const nameEl = card.querySelector('.res-card-title');
+    if (amtEl  && field === 'amount') amtEl.textContent  = '$' + (c.amount||0).toLocaleString();
+    if (nameEl && field === 'name')   nameEl.textContent  = c.name || '（未命名）';
+  }
+  const total = _cards.reduce((s, x) => s + (x.amount||0), 0);
+  document.getElementById('resultTotal').textContent = '合計 $' + total.toLocaleString();
+  updateSummary();
+}
+
+function deleteCard(id, e) {
+  e && e.stopPropagation();
+  _cards = _cards.filter(c => c.id !== id);
+  renderCards();
+  renderExport();
+}
+
+function addNewCard() {
+  document.getElementById('newItemName').value = '';
+  document.getElementById('newItemAmt').value  = '';
+  document.getElementById('addItemModal').classList.add('open');
+  setTimeout(() => document.getElementById('newItemName').focus(), 100);
+}
+
+function confirmAddItem() {
+  const name = document.getElementById('newItemName').value.trim();
+  const amt  = parseFloat(document.getElementById('newItemAmt').value) || 0;
+  if (!name) { showToast('⚠️ 請輸入品項名稱'); return; }
+  _cards.push({ id: 'c'+Date.now(), name, amount: amt, open: true });
+  closeModal();
+  renderCards();
+  renderExport();
+  showToast('✅ 已新增品項：' + name);
+}
+
+function closeModal() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════
+async function doExport() {
+  if (!_cards.length) { showToast('⚠️ 沒有可匯出的品項'); return; }
+
+  const vendor    = document.getElementById('metaVendor').value.trim();
+  const taxId     = document.getElementById('metaTaxId').value.trim();
+  const date      = document.getElementById('metaDate').value;
+  const invoiceNo = document.getElementById('metaInvoice').value.trim();
+  const person    = document.getElementById('metaPerson').value.trim();
+  const month     = document.getElementById('metaMonth').value;
+  const notes     = document.getElementById('metaNotes').value.trim();
+  const total     = _cards.reduce((s, c) => s + (c.amount||0), 0);
+
+  if (!person) { showToast('⚠️ 請填入申請人姓名'); return; }
+  if (!vendor) { showToast('⚠️ 請填入廠商名稱');   return; }
+
+  const btn = document.getElementById('btnExport');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> 匯出中...';
+
+  try {
+    const payload = {
+      action: 'saveEngineeringOcr',
+      vendor, taxId, date, invoiceNo, person, month, notes, total,
+      items: _cards.map(c => ({ name: c.name, amount: c.amount })),
+    };
+
+    if (CFG.GAS_URL) {
+      const res = await callGAS(payload);
+      if (res.success) {
+        showToast('✅ 匯出成功！已寫入系統');
+      } else {
+        showToast('⚠️ 匯出回應：' + (res.error || '請確認 GAS 端有 saveEngineeringOcr action'));
+      }
+    } else {
+      showToast('⚠️ GAS 未設定，資料僅在本頁顯示');
+    }
+
+    // 無論 GAS 是否成功都顯示摘要
+    const summary = buildSummaryText(vendor, taxId, date, invoiceNo, person, notes, total);
+    showExportSummary(summary);
+
+  } catch(err) {
+    showToast('❌ 匯出失敗：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✅ 確認匯出至系統';
+  }
+}
+
+function buildSummaryText(vendor, taxId, date, invoiceNo, person, notes, total) {
+  const lines = [
+    `【工程請款辨識匯出】`,
+    `廠商：${vendor}${taxId ? ' (' + taxId + ')' : ''}`,
+    `日期：${date}${invoiceNo ? '  發票：' + invoiceNo : ''}`,
+    `申請人：${person}`,
+    notes ? `說明：${notes}` : '',
+    ``,
+    `品項明細：`,
+    ..._cards.map((c, i) => `  ${i+1}. ${c.name}　$${(c.amount||0).toLocaleString()}`),
+    ``,
+    `合計：$${total.toLocaleString()}`,
+  ].filter(l => l !== null);
+  return lines.join('\n');
+}
+
+function showExportSummary(text) {
+  const div = document.createElement('div');
+  div.style.cssText = `
+    margin:0 16px 16px;background:var(--bg3);border:1px solid var(--green);
+    border-radius:var(--r-sm);padding:14px;font-size:12px;color:var(--text2);
+    font-family:'JetBrains Mono',monospace;white-space:pre-wrap;line-height:1.7;
+  `;
+  div.textContent = text;
+  const exportSec = document.getElementById('exportSection');
+  // 移除舊的摘要
+  exportSec.parentNode.querySelectorAll('.export-result-box').forEach(el => el.remove());
+  div.classList.add('export-result-box');
+  exportSec.after(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function copyResult() {
+  const vendor    = document.getElementById('metaVendor').value.trim() || '（未填）';
+  const taxId     = document.getElementById('metaTaxId').value.trim();
+  const date      = document.getElementById('metaDate').value;
+  const invoiceNo = document.getElementById('metaInvoice').value.trim();
+  const person    = document.getElementById('metaPerson').value.trim() || '（未填）';
+  const notes     = document.getElementById('metaNotes').value.trim();
+  const total     = _cards.reduce((s, c) => s + (c.amount||0), 0);
+  const text      = buildSummaryText(vendor, taxId, date, invoiceNo, person, notes, total);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ 已複製到剪貼簿');
+  } catch {
+    showToast('⚠️ 無法存取剪貼簿，請手動複製');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -139,8 +1241,21 @@ function showToast(msg) {
   t._t = setTimeout(() => {
     t.style.opacity = '0';
     t.style.transform = 'translateX(-50%) translateY(80px)';
-  }, 2800);
+  }, 3000);
 }
+
+// 點擊 overlay 關閉 modal
+document.getElementById('addItemModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// PDF modal 點擊 bar 以外區域不關閉（防誤觸）
+window.addEventListener('resize', () => {
+  if (document.getElementById('pdfModal').classList.contains('open')) scalePreview();
+});
+
+// 預設選通用模板
+document.getElementById('tpl-none').classList.add('active');
 </script>
 </body>
 </html>
