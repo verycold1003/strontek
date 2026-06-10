@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>工程報價辨識</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-<!-- html2canvas for PNG generation -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root {
   --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
@@ -152,24 +150,12 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 .spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
   border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle}
 
-/* ── 離屏渲染畫布（A4 比例 794px 寬）── */
-#renderCanvas{
-  position:absolute;
-  left:0; top:0;
-  width:794px;
-  background:#fff;
-  opacity:0;
-  pointer-events:none;
-  z-index:-1;
-}
+
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
-
-<!-- 離屏渲染目標 -->
-<div id="renderCanvas"></div>
 
 <div class="shell">
 
@@ -469,250 +455,345 @@ async function runOcr() {
 }
 
 // ════════════════════════════════════════════════════════════
-// 顯示結果 → 渲染卡片 → 轉 PNG
+// 顯示結果 → Canvas 2D 手繪 A4 報價單 → JPEG dataURL
 // ════════════════════════════════════════════════════════════
 async function showResult() {
   const total = _items.reduce((s, it) => s + (it.amount || 0), 0);
   document.getElementById('resultTotal').textContent = '$' + total.toLocaleString();
 
   const wrap = document.getElementById('imgPreviewWrap');
-  wrap.innerHTML = `<div class="img-placeholder">⏳ 圖片生成中，請稍候...</div>`;
+  wrap.innerHTML = `<div class="img-placeholder">⏳ 圖片生成中...</div>`;
   show('resultSection');
 
-  // 讓 resultSection 先完成 layout
-  await sleep(100);
-
-  // 注入卡片 HTML 到渲染畫布
-  const canvas = document.getElementById('renderCanvas');
-  canvas.innerHTML = buildCardHtml();
-
-  // 等 DOM layout 穩定
-  await sleep(500);
+  await sleep(80);
 
   try {
-    const bitmap = await html2canvas(canvas, {
-      scale: 2,
-      useCORS: false,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: 794,
-      windowWidth: 794,
-      logging: false,
-      imageTimeout: 0,
-      removeContainer: false,
-    });
-
-    if (bitmap.width === 0 || bitmap.height === 0) {
-      throw new Error('canvas 尺寸為零，html2canvas 渲染失敗');
-    }
-
-    _imgDataUrl = bitmap.toDataURL('image/jpeg', 0.93);
-    wrap.innerHTML = `<img src="${_imgDataUrl}" alt="報價單預覽" style="width:100%;display:block;border-radius:12px">`;
-
+    _imgDataUrl = drawCard();
+    wrap.innerHTML = `<img src="${_imgDataUrl}" alt="報價單" style="width:100%;display:block;border-radius:12px">`;
   } catch(err) {
     wrap.innerHTML = `<div class="img-placeholder" style="color:var(--red);font-size:12px;padding:16px;text-align:left;">
-      ❌ 圖片生成失敗<br><br>
-      <strong>錯誤：</strong>${esc(err.message)}<br><br>
-      <strong>html2canvas：</strong>${typeof html2canvas !== 'undefined' ? '已載入' : '未載入'}<br>
-      <strong>畫布寬度：</strong>${canvas.offsetWidth}px<br>
-      <strong>內容長度：</strong>${canvas.innerHTML.length} chars
-    </div>`;
-  } finally {
-    canvas.innerHTML = '';
+      ❌ 圖片生成失敗：${esc(err.message)}</div>`;
   }
 }
 
 // ════════════════════════════════════════════════════════════
-// 卡片 HTML（A4 比例 794px 寬）
+// Canvas 2D 繪圖引擎（A4 比例 794×1123px，scale=2 高解析）
 // ════════════════════════════════════════════════════════════
-function buildCardHtml() {
-  const sub   = _items.reduce((s,it) => s + (it.amount||0), 0);
-  const tax   = Math.round(sub * 0.05);
-  const total = sub + tax;
-  const m     = _meta;
+function drawCard() {
+  const W = 794, SCALE = 2;
+  const cv = document.createElement('canvas');
+  cv.width  = W * SCALE;
+  // 先用足夠高度，之後 crop
+  cv.height = 1600 * SCALE;
+  const ctx = cv.getContext('2d');
+  ctx.scale(SCALE, SCALE);
 
-  if (_vendor === 'mingsong') return cardMingsong(sub, tax, total, m);
-  if (_vendor === 'yuhui')    return cardYuhui(sub, tax, total, m);
-  return cardGeneric(sub, tax, total, m);
+  // 白底
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, 1600);
+
+  let y = 0;
+  if (_vendor === 'mingsong') y = drawMingsong(ctx, W);
+  else if (_vendor === 'yuhui') y = drawYuhui(ctx, W);
+  else y = drawGeneric(ctx, W);
+
+  // Crop 到實際內容高度（加 padding）
+  const finalH = y + 40;
+  const out = document.createElement('canvas');
+  out.width  = W * SCALE;
+  out.height = finalH * SCALE;
+  out.getContext('2d').drawImage(cv, 0, 0);
+  return out.toDataURL('image/jpeg', 0.93);
 }
 
-// ── 共用樣式字串 ───────────────────────────────────────────
-const CARD_STYLE = `
-<style>
-* { box-sizing:border-box; margin:0; padding:0; }
-body, div, td, th, span {
-  font-family: '標楷體', 'DFKai-SB', 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif;
-  color: #111;
+// ── 共用繪圖工具 ──────────────────────────────────────────
+function ctxFont(ctx, size, weight='normal') {
+  ctx.font = `${weight} ${size}px "PingFang TC","Microsoft JhengHei","Heiti TC",Arial,sans-serif`;
 }
-.doc { background:#fff; width:794px; padding:28px 32px; font-size:13px; line-height:1.7; }
-.co-name { font-size:22px; font-weight:900; text-align:center; letter-spacing:3px; margin-bottom:4px; }
-.co-info { text-align:center; font-size:12px; color:#333; margin-bottom:2px; }
-.doc-title { font-size:17px; font-weight:900; text-align:center; letter-spacing:8px;
-  border-top:2px solid #111; border-bottom:2px solid #111; padding:5px 0; margin:8px 0; }
-.meta-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; padding:0 2px; }
-table { width:100%; border-collapse:collapse; margin-top:4px; }
-th, td { border:1px solid #555; padding:5px 8px; font-size:12px; }
-th { background:#e8e8e8; font-weight:700; text-align:center; }
-td.r { text-align:right; font-family:monospace; }
-td.c { text-align:center; }
-.tr-sub td { background:#f0f0f0; font-weight:700; }
-.tr-total td { background:#d8d8d8; font-weight:900; font-size:13px; }
-.remarks { margin-top:10px; font-size:11px; color:#444; line-height:1.9; }
-.stamp-area { text-align:right; margin-top:12px; font-size:11px; color:#888; }
-.yh-header { background:#b8cfe8; border:2px solid #111; padding:8px 12px;
-  display:flex; align-items:center; justify-content:space-between; }
-.yh-co { font-size:18px; font-weight:900; text-align:center; }
-.yh-info { font-size:11px; line-height:1.7; }
-.yh-date { font-size:12px; text-align:right; }
-.yh-meta-row { border:1px solid #111; border-top:none; display:flex; font-size:12px; }
-.yh-meta-row div { flex:1; padding:4px 8px; border-right:1px solid #ccc; }
-.yh-meta-row div:last-child { border-right:none; }
-</style>
-`;
 
-// ── 銘松卡片 ──────────────────────────────────────────────
-function cardMingsong(sub, tax, total, m) {
+function drawHLine(ctx, x, y, w, lw=0.8) {
+  ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w,y); ctx.stroke(); ctx.restore();
+}
+
+function drawVLine(ctx, x, y1, y2, lw=0.8) {
+  ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke(); ctx.restore();
+}
+
+function drawRect(ctx, x, y, w, h, fill=null, stroke='#555', lw=0.8) {
+  ctx.save();
+  if (fill) { ctx.fillStyle=fill; ctx.fillRect(x,y,w,h); }
+  ctx.strokeStyle=stroke; ctx.lineWidth=lw;
+  ctx.strokeRect(x,y,w,h); ctx.restore();
+}
+
+function fillCell(ctx, text, x, y, w, h, align='left', color='#111', size=12) {
+  ctx.save();
+  ctxFont(ctx, size);
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  const ty = y + h/2;
+  if (align === 'center') {
+    ctx.textAlign = 'center'; ctx.fillText(text, x + w/2, ty);
+  } else if (align === 'right') {
+    ctx.textAlign = 'right'; ctx.fillText(text, x + w - 6, ty);
+  } else {
+    ctx.textAlign = 'left'; ctx.fillText(text, x + 6, ty);
+  }
+  ctx.restore();
+}
+
+// ── 銘松 ──────────────────────────────────────────────────
+function drawMingsong(ctx, W) {
   const tpl = VENDORS.mingsong;
-  const addr    = m.address  || '';
-  const phone   = m.phone    || '';
-  const caseName = m.notes   || '';
-  const date    = m.date     || '';
+  const m   = _meta;
+  const PAD = 28, ROW = 22, HDR = 26;
+  let y = PAD;
 
-  return CARD_STYLE + `<div class="doc">
-  <div class="co-name">銘松水電工程有限公司</div>
-  <div class="co-info">地址：${esc(addr)}　　電話：${esc(phone)}</div>
-  <div class="doc-title">報　價　單</div>
-  <div class="meta-row">
-    <span>案件名稱：<strong>${esc(caseName)}</strong></span>
-    <span>報價日期：<strong>${esc(date)}</strong></span>
-  </div>
-  <table>
-    <thead><tr>
-      <th style="width:36px">項次</th>
-      <th>名　稱</th>
-      <th style="width:44px">單位</th>
-      <th style="width:50px">數量</th>
-      <th style="width:72px">單　價</th>
-      <th style="width:88px">總　額</th>
-      <th style="width:80px">備　註</th>
-    </tr></thead>
-    <tbody>
-      ${_items.map((it,i)=>`<tr>
-        <td class="c">${i+1}</td>
-        <td>${esc(it.name)}</td>
-        <td></td><td></td><td></td>
-        <td class="r">${it.amount ? it.amount.toLocaleString() : ''}</td>
-        <td></td>
-      </tr>`).join('')}
-      <tr class="tr-sub">
-        <td colspan="5" class="r">合　計</td>
-        <td class="r">${sub.toLocaleString()}</td><td></td>
-      </tr>
-      <tr class="tr-sub">
-        <td colspan="5" class="r">稅　金</td>
-        <td class="r">${tax.toLocaleString()}</td><td></td>
-      </tr>
-      <tr class="tr-total">
-        <td class="c">總　價</td>
-        <td colspan="4">新台幣 ${numTW(total)} 元整</td>
-        <td class="r">NT$${total.toLocaleString()}</td>
-        <td class="c">含稅</td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="remarks"><strong>備註：</strong><br>
-    ${tpl.remarks.map(r=>`<span style="color:#c00">${esc(r)}</span>`).join('<br>')}
-  </div>
-  <div class="stamp-area">（蓋章處）</div>
-</div>`;
+  // 公司名
+  ctxFont(ctx, 20, 'bold');
+  ctx.fillStyle='#111'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('銘松水電工程有限公司', W/2, y+20); y+=28;
+
+  // 地址電話
+  ctxFont(ctx, 11);
+  const addr  = m.address || '';
+  const phone = m.phone   || '';
+  ctx.fillText(`地址：${addr}　　電話：${phone}`, W/2, y+12); y+=20;
+
+  // 報價單標題
+  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=4;
+  ctxFont(ctx, 16, 'bold');
+  ctx.fillText('報　價　單', W/2, y+16); y+=24;
+  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=10;
+
+  // 案件名稱 / 報價日期
+  ctxFont(ctx, 12);
+  ctx.textAlign='left';
+  ctx.fillStyle='#111';
+  ctx.fillText(`案件名稱：${m.notes||''}`, PAD, y+14);
+  ctx.textAlign='right';
+  ctx.fillText(`報價日期：${m.date||''}`, W-PAD, y+14);
+  y+=28;
+
+  // 表頭
+  const cols = [
+    {label:'項次', w:36, align:'center'},
+    {label:'名　稱', w:0, align:'left'},   // flex
+    {label:'單位', w:40, align:'center'},
+    {label:'數量', w:44, align:'center'},
+    {label:'單　價', w:70, align:'right'},
+    {label:'總　額', w:84, align:'right'},
+    {label:'備　註', w:70, align:'center'},
+  ];
+  const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
+  cols[1].w = W - PAD*2 - fixedW;
+
+  let x = PAD;
+  drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
+  for (const col of cols) {
+    fillCell(ctx, col.label, x, y, col.w, HDR, col.align, '#111', 11);
+    x += col.w;
+  }
+  y += HDR;
+
+  // 品項行
+  for (const it of _items) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
+    let cx = PAD;
+    const vals = [String(_items.indexOf(it)+1), it.name, '', '', '', it.amount?it.amount.toLocaleString():'', ''];
+    const aligns = ['center','left','center','center','right','right','center'];
+    for (let i=0; i<cols.length; i++) {
+      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, aligns[i]);
+      cx += cols[i].w;
+    }
+    y += ROW;
+  }
+
+  // 合計 / 稅金 / 總價
+  const sub   = _items.reduce((s,it)=>s+(it.amount||0),0);
+  const tax   = Math.round(sub*0.05);
+  const total = sub+tax;
+
+  const subRows = [
+    ['合　計', sub.toLocaleString()],
+    ['稅　金', tax.toLocaleString()],
+  ];
+  for (const [lbl, val] of subRows) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
+    fillCell(ctx, lbl, PAD, y, W-PAD*2-84-70, ROW, 'right', '#111', 12);
+    fillCell(ctx, val, W-PAD-84-70, y, 84, ROW, 'right', '#111', 12);
+    y += ROW;
+  }
+  // 總價行（加粗）
+  drawRect(ctx, PAD, y, W-PAD*2, ROW+4, '#d8d8d8');
+  ctxFont(ctx, 12, 'bold');
+  ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  ctx.textAlign='left';  ctx.fillText('總　價', PAD+6, y+(ROW+4)/2);
+  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+50, y+(ROW+4)/2);
+  ctx.textAlign='right'; ctx.fillText(`NT$${total.toLocaleString()}`, W-PAD-70-6, y+(ROW+4)/2);
+  ctx.textAlign='center';ctx.fillText('含稅', W-PAD-35, y+(ROW+4)/2);
+  y += ROW+4;
+
+  // 備註
+  y+=8;
+  ctxFont(ctx, 11, 'bold'); ctx.fillStyle='#111'; ctx.textAlign='left';
+  ctx.fillText('備註：', PAD, y+11); y+=18;
+  ctx.fillStyle='#cc0000'; ctxFont(ctx, 11);
+  for (const r of tpl.remarks) { ctx.fillText(r, PAD+6, y+11); y+=18; }
+
+  return y+10;
 }
 
-// ── 昱暉卡片 ──────────────────────────────────────────────
-function cardYuhui(sub, tax, total, m) {
+// ── 昱暉 ──────────────────────────────────────────────────
+function drawYuhui(ctx, W) {
   const tpl = VENDORS.yuhui;
-  const caseName = m.notes || '';
-  const date     = m.date  || '';
+  const m   = _meta;
+  const PAD = 28, ROW = 22, HDR = 26;
+  let y = PAD;
 
-  return CARD_STYLE + `<div class="doc">
-  <div class="yh-header">
-    <div class="yh-info">統一編號：${tpl.taxId}<br>${tpl.addr}</div>
-    <div class="yh-co">昱暉企業社<br><span style="font-size:13px">${tpl.contact}</span></div>
-    <div class="yh-date">報價日期：<strong>${esc(date)}</strong></div>
-  </div>
-  <div class="yh-meta-row">
-    <div>工程名稱：<strong>${esc(caseName)}</strong></div>
-    <div>地址：</div>
-  </div>
-  <table>
-    <thead><tr>
-      <th style="width:36px">序號</th>
-      <th>項目名稱</th>
-      <th style="width:90px">型號（規格）</th>
-      <th style="width:44px">數量</th>
-      <th style="width:65px">單價</th>
-      <th style="width:88px">總價</th>
-      <th style="width:72px">備註</th>
-    </tr></thead>
-    <tbody>
-      ${_items.map((it,i)=>`<tr>
-        <td class="c">${i+1}</td>
-        <td>${esc(it.name)}</td>
-        <td></td><td></td><td></td>
-        <td class="r">$${it.amount ? it.amount.toLocaleString() : '0'}</td>
-        <td></td>
-      </tr>`).join('')}
-      <tr class="tr-sub">
-        <td colspan="5" class="r">小　計</td>
-        <td class="r">$${sub.toLocaleString()}</td><td></td>
-      </tr>
-      <tr class="tr-sub">
-        <td colspan="5" class="r">稅　金</td>
-        <td class="r">$${tax.toLocaleString()}</td><td></td>
-      </tr>
-      <tr class="tr-total">
-        <td colspan="5" class="r">總合計（含稅）</td>
-        <td class="r">$${total.toLocaleString()}</td><td></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="remarks">
-    本估價單有效天數為 ${tpl.validDays} 天<br>
-    ${tpl.remarks.map(r=>esc(r)).join('<br>')}
-  </div>
-  <div class="stamp-area">簽章回傳</div>
-</div>`;
+  // 藍色 header 背景
+  drawRect(ctx, PAD, y, W-PAD*2, 54, '#b8cfe8', '#111', 1.5);
+
+  ctxFont(ctx, 11); ctx.fillStyle='#111'; ctx.textBaseline='alphabetic';
+  ctx.textAlign='left';
+  ctx.fillText(`統一編號：${tpl.taxId}`, PAD+8, y+16);
+  ctx.fillText(tpl.addr, PAD+8, y+30);
+
+  ctxFont(ctx, 17, 'bold'); ctx.textAlign='center';
+  ctx.fillText('昱暉企業社', W/2, y+22);
+  ctxFont(ctx, 12); ctx.textAlign='center';
+  ctx.fillText(tpl.contact, W/2, y+40);
+
+  ctxFont(ctx, 11); ctx.textAlign='right';
+  ctx.fillText(`報價日期：${m.date||''}`, W-PAD-8, y+28);
+  y += 54;
+
+  // 工程名稱行
+  drawRect(ctx, PAD, y, W-PAD*2, 24, null, '#111', 1);
+  const halfW = (W-PAD*2)/2;
+  ctxFont(ctx, 12); ctx.fillStyle='#111';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(`工程名稱：${m.notes||''}`, PAD+6, y+12);
+  drawVLine(ctx, PAD+halfW, y, y+24);
+  ctx.fillText('地址：', PAD+halfW+6, y+12);
+  y += 24;
+
+  // 表頭
+  const cols = [
+    {label:'序號', w:36, align:'center'},
+    {label:'項目名稱', w:0, align:'left'},
+    {label:'型號（規格）', w:88, align:'center'},
+    {label:'數量', w:44, align:'center'},
+    {label:'單價', w:65, align:'right'},
+    {label:'總價', w:84, align:'right'},
+    {label:'備註', w:64, align:'center'},
+  ];
+  const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
+  cols[1].w = W - PAD*2 - fixedW;
+
+  let x = PAD;
+  drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
+  for (const col of cols) {
+    fillCell(ctx, col.label, x, y, col.w, HDR, col.align, '#111', 11);
+    x += col.w;
+  }
+  y += HDR;
+
+  for (const it of _items) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
+    let cx = PAD;
+    const vals = [String(_items.indexOf(it)+1), it.name, '', '', '', it.amount?'$'+it.amount.toLocaleString():'$0', ''];
+    const aligns = ['center','left','center','center','right','right','center'];
+    for (let i=0; i<cols.length; i++) {
+      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, aligns[i]);
+      cx += cols[i].w;
+    }
+    y += ROW;
+  }
+
+  const sub   = _items.reduce((s,it)=>s+(it.amount||0),0);
+  const tax   = Math.round(sub*0.05);
+  const total = sub+tax;
+
+  for (const [lbl, val] of [['小　計','$'+sub.toLocaleString()],['稅　金','$'+tax.toLocaleString()]]) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
+    fillCell(ctx, lbl, PAD, y, W-PAD*2-84-64, ROW, 'right');
+    fillCell(ctx, val, W-PAD-84-64, y, 84, ROW, 'right');
+    y += ROW;
+  }
+  drawRect(ctx, PAD, y, W-PAD*2, ROW+4, '#d8d8d8');
+  ctxFont(ctx, 12, 'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  ctx.textAlign='right'; ctx.fillText('總合計（含稅）', W-PAD-84-64-6, y+(ROW+4)/2);
+  ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(), W-PAD-64-6, y+(ROW+4)/2);
+  y += ROW+4;
+
+  y+=8;
+  ctxFont(ctx, 11); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(`本估價單有效天數為 ${tpl.validDays} 天`, PAD, y+12); y+=18;
+  for (const r of tpl.remarks) { ctx.fillText(r, PAD, y+12); y+=17; }
+
+  // 簽章
+  ctx.textAlign='right';
+  ctx.strokeStyle='#555'; ctx.lineWidth=0.8;
+  ctx.strokeRect(W-PAD-90, y+5, 90, 36);
+  ctx.fillText('簽章回傳', W-PAD-45, y+26);
+  y += 50;
+
+  return y;
 }
 
-// ── 通用卡片 ──────────────────────────────────────────────
-function cardGeneric(sub, tax, total, m) {
-  const sub2  = sub;
-  return CARD_STYLE + `<div class="doc">
-  <div class="co-name">${esc(m.vendor || '工程請款單')}</div>
-  ${m.address || m.phone ? `<div class="co-info">${m.address ? '地址：'+esc(m.address) : ''}${m.phone ? '　電話：'+esc(m.phone) : ''}</div>` : ''}
-  <div class="doc-title">報　價　單</div>
-  <div class="meta-row">
-    <span>案件名稱：<strong>${esc(m.notes||'—')}</strong></span>
-    <span>報價日期：<strong>${esc(m.date||'—')}</strong></span>
-  </div>
-  <table>
-    <thead><tr>
-      <th style="width:36px">項次</th>
-      <th>品項名稱</th>
-      <th style="width:100px">金額</th>
-    </tr></thead>
-    <tbody>
-      ${_items.map((it,i)=>`<tr>
-        <td class="c">${i+1}</td>
-        <td>${esc(it.name)}</td>
-        <td class="r">$${it.amount ? it.amount.toLocaleString() : '0'}</td>
-      </tr>`).join('')}
-      <tr class="tr-sub"><td colspan="2" class="r">小計</td><td class="r">$${sub2.toLocaleString()}</td></tr>
-      <tr class="tr-sub"><td colspan="2" class="r">稅金 5%</td><td class="r">$${tax.toLocaleString()}</td></tr>
-      <tr class="tr-total"><td colspan="2" class="r">合計（含稅）</td><td class="r">$${total.toLocaleString()}</td></tr>
-    </tbody>
-  </table>
-  <div class="stamp-area">（蓋章處）</div>
-</div>`;
+// ── 通用 ──────────────────────────────────────────────────
+function drawGeneric(ctx, W) {
+  const m   = _meta;
+  const PAD = 28, ROW = 22, HDR = 26;
+  let y = PAD;
+
+  ctxFont(ctx, 18, 'bold'); ctx.fillStyle='#111';
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(m.vendor||'工程請款單', W/2, y+18); y+=26;
+
+  if (m.address||m.phone) {
+    ctxFont(ctx, 11); ctx.fillText(`${m.address||''}　${m.phone||''}`, W/2, y+12); y+=20;
+  }
+
+  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=4;
+  ctxFont(ctx, 15, 'bold'); ctx.fillText('報　價　單', W/2, y+15); y+=22;
+  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=10;
+
+  ctxFont(ctx, 12); ctx.textAlign='left';
+  ctx.fillText(`案件名稱：${m.notes||'—'}`, PAD, y+14);
+  ctx.textAlign='right'; ctx.fillText(`日期：${m.date||'—'}`, W-PAD, y+14);
+  y+=26;
+
+  const cols = [{label:'項次',w:36,align:'center'},{label:'品項名稱',w:0,align:'left'},{label:'金額',w:100,align:'right'}];
+  cols[1].w = W-PAD*2-136;
+  let x=PAD;
+  drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
+  for (const col of cols) { fillCell(ctx,col.label,x,y,col.w,HDR,col.align,'#111',11); x+=col.w; }
+  y+=HDR;
+
+  for (const it of _items) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
+    let cx=PAD;
+    for (let i=0;i<cols.length;i++) {
+      const v = i===0?String(_items.indexOf(it)+1):i===1?it.name:'$'+(it.amount||0).toLocaleString();
+      fillCell(ctx,v,cx,y,cols[i].w,ROW,cols[i].align);
+      cx+=cols[i].w;
+    }
+    y+=ROW;
+  }
+
+  const sub=_items.reduce((s,it)=>s+(it.amount||0),0), tax=Math.round(sub*.05), total=sub+tax;
+  for (const [lbl,val] of [['小計','$'+sub.toLocaleString()],['稅金 5%','$'+tax.toLocaleString()],['合計（含稅）','$'+total.toLocaleString()]]) {
+    drawRect(ctx, PAD, y, W-PAD*2, ROW, lbl.includes('合計')?'#d8d8d8':'#f0f0f0');
+    fillCell(ctx, lbl, PAD, y, W-PAD*2-100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
+    fillCell(ctx, val, W-PAD-100, y, 100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
+    y+=ROW;
+  }
+
+  return y+20;
 }
 
 // ════════════════════════════════════════════════════════════
