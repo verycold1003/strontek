@@ -2300,12 +2300,8 @@ async function _syncFuelProjToSheet(idx) {
   else if (attrType === 'other') attrTarget = '其他';
 
   // ── Guard：歸屬尚未確定，不寫入（防廢行污染 Sheet）──
-  if (!attrType) {
-    debugLog &&    return;
-  }
-  if (fp.type !== 'quota' && !attrTarget) {
-    debugLog &&    return;
-  }
+  if (!attrType) return;
+  if (fp.type !== 'quota' && !attrTarget) return;
 
   // ── 前端去重：若 _fuelProjList 中已有相同 key，合併到那筆、移除本筆 ──
   const myKey = attrType + '|' + attrTarget;
