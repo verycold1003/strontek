@@ -3,325 +3,281 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>工程請款辨識</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>工程報價辨識</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<!-- html2canvas for PNG generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root {
-  --bg:#111318; --bg2:#181c24; --bg3:#1f2430;
-  --card:#242936; --card2:#2c3244;
-  --border:#333a4d; --border2:#3f4a60;
-  --accent:#ff7d3b; --accent2:#ff5500;
-  --blue:#3b8dff;
-  --green:#2ecc8a; --green2:#1aaa6e;
-  --yellow:#f5c518; --red:#ff4d6a;
-  --text:#eef0f5; --text2:#9aa0b5; --text3:#5a6278;
-  --r:14px; --r-sm:8px;
+  --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
+  --border:#d0d7e8; --border2:#b8c2d8;
+  --text:#1a2236; --muted:#5a6a8a;
+  --accent:#2563eb; --accent2:#7c3aed;
+  --green:#15803d; --red:#dc2626;
+  --line:#06C755;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:16px;overflow:hidden;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans TC',sans-serif;font-size:16px;line-height:1.6}
 
-/* ── 手機外框 ── */
-.phone-shell{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at center,#1a1f2e 0%,#0a0c12 100%);}
-.phone-frame{width:100%;max-width:550px;height:95vh;background:var(--bg);
-  overflow:hidden;position:relative;display:flex;flex-direction:column;}
-.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;
-  background:#0a0c12;border-radius:0 0 20px 20px;z-index:50;}
-.phone-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding:44px 16px 24px;scrollbar-width:none;}
-.phone-inner::-webkit-scrollbar{display:none;}
+/* ── 外框 ── */
+.shell{max-width:520px;margin:0 auto;padding:0 0 48px}
 
-/* ── Header ── */
-.page-hd{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.page-title{font-size:17px;font-weight:800;color:var(--text);}
-.page-tag{font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(255,125,59,.15);
-  color:var(--accent);border:1px solid rgba(255,125,59,.3);padding:2px 8px;border-radius:5px;
-  text-transform:uppercase;letter-spacing:.5px;}
+/* ── 頂欄 ── */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);
+  padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:0;z-index:50}
+.topbar-logo{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent);
+  letter-spacing:.5px;flex:1}
+.topbar-logo span{color:#b45309}
+.topbar-tag{font-size:11px;font-family:'IBM Plex Mono',monospace;
+  background:rgba(37,99,235,.1);color:var(--accent);border-radius:5px;
+  padding:3px 9px;letter-spacing:.5px}
 
-/* ── Step label ── */
-.step-label{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
-  text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+/* ── 步驟區塊 ── */
+.section{padding:20px 16px 0}
+.step-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+.step-num.done{background:var(--green)}
+.step-title{font-size:19px;font-weight:900;color:var(--text)}
+.step-sub{font-size:13px;color:var(--muted);margin-top:1px}
 
-/* ── 廠商 Pills ── */
-.vendor-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
-.v-pill{flex:1;min-width:100px;padding:10px 8px;background:var(--card);
-  border:2px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;
-  text-align:center;transition:all .15s;user-select:none;}
-.v-pill:hover{border-color:var(--accent);}
-.v-pill.active{border-color:var(--accent);background:rgba(255,125,59,.1);}
-.v-pill-name{font-size:13px;font-weight:700;color:var(--text);display:block;}
-.v-pill-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;
-  margin-top:1px;display:block;}
+/* ── 廠商大 Pill ── */
+.vendor-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.v-pill{padding:16px 12px;background:var(--surface);border:2px solid var(--border2);
+  border-radius:12px;cursor:pointer;text-align:center;transition:all .15s;
+  user-select:none;-webkit-user-select:none}
+.v-pill:hover{border-color:var(--accent);background:rgba(37,99,235,.04)}
+.v-pill.active{border-color:var(--accent);background:rgba(37,99,235,.08)}
+.v-pill-icon{font-size:28px;margin-bottom:6px}
+.v-pill-name{font-size:15px;font-weight:800;color:var(--text);display:block}
+.v-pill-sub{font-size:12px;color:var(--muted);display:block;margin-top:2px}
+/* 全寬通用選項 */
+.v-pill.full{grid-column:1/-1;display:flex;align-items:center;justify-content:center;
+  gap:12px;padding:14px}
+.v-pill.full .v-pill-icon{font-size:22px;margin:0}
+.v-pill.full .v-pill-name{font-size:14px}
 
 /* ── 上傳區 ── */
-.upload-zone{background:var(--card);border:2px dashed var(--border2);border-radius:var(--r);
-  padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;
-  cursor:pointer;justify-content:center;transition:border-color .2s;position:relative;
-  margin-bottom:10px;}
-.upload-zone:hover,.upload-zone.over{border-color:var(--accent);}
-.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
-.upload-zone .u-icon{font-size:32px;}
-.upload-zone .u-hint{font-size:14px;color:var(--text2);text-align:center;line-height:1.5;}
-.upload-zone .u-sub{font-size:11px;color:var(--text3);}
+.dz{border:2.5px dashed var(--border2);border-radius:14px;
+  padding:40px 20px;text-align:center;cursor:pointer;
+  background:var(--surface);transition:all .2s;position:relative;margin-bottom:10px}
+.dz:hover,.dz.over{border-color:var(--accent);background:rgba(37,99,235,.04)}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:44px;margin-bottom:10px}
+.dz-hint{font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px}
+.dz-sub{font-size:13px;color:var(--muted)}
 
 /* ── 縮圖列 ── */
-.thumb-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;}
-.thumb-strip:empty{display:none;}
-.thumb-strip::-webkit-scrollbar{display:none;}
-.thumb{position:relative;flex-shrink:0;width:68px;height:68px;border-radius:10px;
-  background:var(--card2);overflow:hidden;border:2px solid var(--border);}
-.thumb img{width:100%;height:100%;object-fit:cover;}
+.thumb-strip{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;
+  padding-bottom:4px;margin-bottom:4px}
+.thumb-strip:empty{display:none}
+.thumb-strip::-webkit-scrollbar{display:none}
+.thumb{position:relative;flex-shrink:0;width:72px;height:72px;border-radius:10px;
+  background:var(--surface2);overflow:hidden;border:2px solid var(--border)}
+.thumb img{width:100%;height:100%;object-fit:cover}
 .thumb .pdf-icon{width:100%;height:100%;display:flex;align-items:center;
-  justify-content:center;font-size:24px;}
-.thumb .x{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;
-  background:rgba(255,77,106,.9);color:#fff;border:none;font-size:10px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;}
+  justify-content:center;font-size:26px}
+.thumb .x{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;
+  background:rgba(220,38,38,.9);color:#fff;border:none;font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1}
 
-/* ── 主要按鈕 ── */
-.main-btn{width:100%;padding:15px;border:none;border-radius:var(--r-sm);font-size:15px;
-  font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;
-  display:flex;align-items:center;justify-content:center;gap:8px;}
-.main-btn.ocr{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
-  box-shadow:0 4px 18px rgba(255,125,59,.3);}
-.main-btn.ocr:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
-.main-btn.pdf{background:var(--blue);color:#fff;margin-top:10px;}
-.main-btn.pdf:disabled{opacity:.4;cursor:not-allowed;}
-.main-btn.clear{background:var(--card);color:var(--text2);border:1px solid var(--border2);margin-top:8px;}
+/* ── 大按鈕 ── */
+.big-btn{width:100%;padding:18px;border:none;border-radius:12px;font-size:18px;
+  font-weight:900;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.big-btn:active{transform:scale(.98)}
+.big-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.big-btn.ocr{background:var(--accent);color:#fff;
+  box-shadow:0 4px 18px rgba(37,99,235,.3)}
+.big-btn.ocr:hover:not(:disabled){background:#1d4ed8}
+.big-btn.line{background:var(--line);color:#fff;
+  box-shadow:0 4px 18px rgba(6,199,85,.3)}
+.big-btn.line:hover:not(:disabled){background:#05a847}
+.big-btn.save{background:var(--surface);color:var(--accent);
+  border:2px solid var(--accent);box-shadow:none}
+.big-btn.reset{background:var(--surface2);color:var(--muted);
+  border:1.5px solid var(--border2);font-size:15px;padding:13px}
 
 /* ── 進度 ── */
-.prog-wrap{margin-bottom:12px;display:none;}
-.prog-wrap.show{display:block;}
-.prog-track{height:4px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:5px;}
-.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--yellow));
-  transition:width .35s ease;width:0%;}
-.prog-lbl{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.prog-wrap{display:none;margin:12px 0}
+.prog-wrap.show{display:block}
+.prog-track{height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;
+  margin-bottom:6px;border:1px solid var(--border)}
+.prog-fill{height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .35s ease;width:0%}
+.prog-lbl{font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
 
-/* ── 錯誤摘要 ── */
-.err-summary{background:rgba(255,77,106,.07);border:1px solid rgba(255,77,106,.3);
-  border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;display:none;}
-.err-summary.show{display:block;}
-.err-summary-title{font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;}
-.err-item{font-size:11px;color:#e08090;font-family:'JetBrains Mono',monospace;
-  line-height:1.7;display:flex;gap:6px;}
-.err-item::before{content:'▸';flex-shrink:0;}
+/* ── 錯誤 ── */
+.err-box{display:none;background:rgba(220,38,38,.06);border:1.5px solid rgba(220,38,38,.25);
+  border-radius:10px;padding:14px 16px;margin:12px 0}
+.err-box.show{display:block}
+.err-title{font-size:13px;font-weight:800;color:var(--red);margin-bottom:6px}
+.err-item{font-size:12px;color:#991b1b;font-family:'IBM Plex Mono',monospace;
+  line-height:1.8;padding-left:12px;position:relative}
+.err-item::before{content:'▸';position:absolute;left:0}
 
-/* ── 預覽結果 ── */
-.result-wrap{margin-bottom:12px;display:none;}
-.result-wrap.show{display:block;}
-.result-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.result-hd-label{font-size:10px;font-weight:700;color:var(--green);
-  font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.6px;}
-.result-hd-total{font-size:12px;font-weight:700;color:var(--yellow);
-  font-family:'JetBrains Mono',monospace;}
+/* ── 結果區 ── */
+.result-section{display:none;padding:20px 16px 0}
+.result-section.show{display:block}
+.result-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.result-hd-icon{font-size:24px}
+.result-hd-title{font-size:19px;font-weight:900;color:var(--green)}
+.result-hd-total{margin-left:auto;font-size:16px;font-weight:800;
+  color:var(--accent);font-family:'IBM Plex Mono',monospace}
 
-/* 廠商 meta 欄位 */
-.meta-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);
-  padding:12px;margin-bottom:10px;}
-.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.meta-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;}
-.fi{display:flex;flex-direction:column;gap:4px;}
-.fl{font-size:10px;font-weight:700;color:var(--text3);font-family:'JetBrains Mono',monospace;
-  text-transform:uppercase;letter-spacing:.4px;}
-.fv{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
-  padding:8px 10px;color:var(--text);font-size:13px;outline:none;
-  font-family:'Sora',sans-serif;transition:border-color .2s;width:100%;}
-.fv:focus{border-color:var(--accent);}
-.fv.mono{font-family:'JetBrains Mono',monospace;}
+/* ── 圖片預覽框 ── */
+.img-preview-wrap{background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;overflow:hidden;margin-bottom:14px;text-align:center;
+  min-height:200px;display:flex;align-items:center;justify-content:center}
+.img-preview-wrap img{width:100%;display:block;border-radius:12px}
+.img-placeholder{font-size:13px;color:var(--muted);padding:24px}
 
-/* 品項表 */
-.items-card{background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r-sm);overflow:hidden;margin-bottom:8px;}
-.items-tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.items-tbl th{padding:7px 10px;background:var(--card2);color:var(--accent);
-  font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;
-  text-align:left;border-bottom:1px solid var(--border2);}
-.items-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
-.items-tbl tr:last-child td{border-bottom:none;}
-.items-tbl .ei{background:transparent;border:none;color:var(--text);font-size:12px;
-  width:100%;outline:none;font-family:'Sora',sans-serif;}
-.items-tbl .ei:focus{color:var(--accent);}
-.items-tbl td.r{text-align:right;font-family:'JetBrains Mono',monospace;}
-.items-tbl .tr-total td{background:var(--card2);font-weight:700;color:var(--accent);}
-.add-row-btn{width:100%;padding:9px;background:none;border:1px dashed var(--border);
-  border-radius:0 0 var(--r-sm) var(--r-sm);color:var(--text3);font-size:12px;
-  cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;}
-.add-row-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-/* ── PDF print ── */
-@media print{
-  body>*{display:none!important;}
-  #pdfTarget{display:block!important;position:static;width:100%;padding:0;margin:0;}
-  @page{size:A4 portrait;margin:12mm 14mm;}
-}
-#pdfTarget{display:none;}
-.pdf-doc{font-family:'標楷體','DFKai-SB',serif;font-size:12px;color:#000;background:#fff;
-  padding:14px 16px;width:100%;box-sizing:border-box;}
-.pdf-doc *{box-sizing:border-box;}
-.ms-outer{border:2px solid #000;}
-.ms-co{font-size:20px;font-weight:900;text-align:center;padding:7px;
-  border-bottom:1px solid #000;letter-spacing:2px;}
-.ms-addr{display:flex;border-bottom:1px solid #000;font-size:11px;}
-.ms-addr div:first-child{flex:1;padding:3px 8px;border-right:1px solid #000;}
-.ms-addr div:last-child{padding:3px 8px;}
-.ms-title{font-size:17px;font-weight:900;text-align:center;padding:5px;
-  border-bottom:1px solid #000;letter-spacing:6px;}
-.ms-meta{display:flex;justify-content:space-between;padding:4px 8px;
-  font-size:11px;border-bottom:1px solid #000;}
-.yh-hd{background:#b8cfe8;border:2px solid #000;padding:6px 12px;
-  display:flex;align-items:center;justify-content:space-between;}
-.yh-hd-c{font-size:17px;font-weight:900;}
-.yh-hd-r{text-align:right;font-size:11px;}
-.yh-meta{display:flex;border:1px solid #000;border-top:none;font-size:11px;}
-.yh-meta div{flex:1;padding:3px 8px;border-right:1px solid #ccc;}
-.yh-meta div:last-child{border-right:none;}
-.pdf-tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.pdf-tbl th{border:1px solid #000;padding:4px 5px;background:#e0e0e0;
-  font-weight:700;text-align:center;font-size:10px;}
-.pdf-tbl td{border:1px solid #000;padding:4px 5px;}
-.pdf-tbl td.r{text-align:right;font-family:monospace;}
-.pdf-tbl td.c{text-align:center;}
-.pdf-tbl .tr-sub td{background:#f5f5f5;font-weight:700;}
-.pdf-tbl .tr-grand td{background:#ddd;font-weight:900;font-size:12px;}
-.pdf-notes{font-size:10px;color:#333;margin-top:6px;line-height:1.8;
-  border-top:1px solid #ccc;padding-top:5px;}
-.pdf-sign{display:flex;justify-content:flex-end;margin-top:10px;}
-.pdf-sign-box{border:1px solid #000;width:100px;height:48px;
-  display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;}
-
-/* ── Spinner ── */
-@keyframes spin{to{transform:rotate(360deg)}}
-.spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.25);
-  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+/* ── 動作按鈕群 ── */
+.action-btns{display:flex;flex-direction:column;gap:10px}
 
 /* ── Toast ── */
-#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:rgba(36,41,54,.98);border:1px solid var(--border2);border-radius:10px;
-  padding:11px 18px;font-size:13px;color:var(--text);opacity:0;
-  transition:transform .3s,opacity .3s;z-index:200;white-space:nowrap;max-width:88vw;text-align:center;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--text);color:#fff;padding:12px 20px;border-radius:10px;
+  font-size:14px;opacity:0;transition:transform .3s,opacity .3s;
+  z-index:9999;white-space:nowrap;max-width:90vw;text-align:center;
+  pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Spinner ── */
+@keyframes rot{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle}
+
+/* ── 離屏渲染畫布（A4 比例 794×1123px）── */
+#renderCanvas{
+  position:fixed;left:-9999px;top:0;
+  width:794px;
+  font-family:'Noto Sans TC',sans-serif;
+  background:#fff;
+  visibility:hidden;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
-<div class="phone-shell">
-<div class="phone-frame">
-  <div class="notch"></div>
-  <div class="phone-inner">
 
-    <!-- Header -->
-    <div class="page-hd">
-      <div style="font-size:22px">🏗</div>
-      <div class="page-title">工程請款辨識</div>
-      <div class="page-tag">OCR</div>
-    </div>
+<div class="toast" id="toast"></div>
 
-    <!-- Step 1: 廠商 -->
-    <div class="step-label">① 選擇廠商</div>
-    <div class="vendor-pills">
-      <div class="v-pill active" id="vp-none" onclick="selectVendor('none')">
-        <span class="v-pill-name">📋 通用</span>
-        <span class="v-pill-sub">不套用模板</span>
+<!-- 離屏渲染目標 -->
+<div id="renderCanvas"></div>
+
+<div class="shell">
+
+  <!-- 頂欄 -->
+  <div class="topbar">
+    <div class="topbar-logo">工程<span>報價</span>辨識</div>
+    <div class="topbar-tag">OCR</div>
+  </div>
+
+  <!-- ① 選廠商 -->
+  <div class="section" id="secVendor">
+    <div class="step-hd">
+      <div class="step-num" id="stepNum1">1</div>
+      <div>
+        <div class="step-title">選擇廠商</div>
+        <div class="step-sub">請選擇報價單的廠商</div>
       </div>
+    </div>
+    <div class="vendor-grid">
       <div class="v-pill" id="vp-mingsong" onclick="selectVendor('mingsong')">
-        <span class="v-pill-name">🔧 銘松水電</span>
+        <div class="v-pill-icon">🔧</div>
+        <span class="v-pill-name">銘松水電</span>
         <span class="v-pill-sub">水電工程</span>
       </div>
       <div class="v-pill" id="vp-yuhui" onclick="selectVendor('yuhui')">
-        <span class="v-pill-name">⚡ 昱暉企業社</span>
+        <div class="v-pill-icon">⚡</div>
+        <span class="v-pill-name">昱暉企業社</span>
         <span class="v-pill-sub">工程估價</span>
       </div>
+      <div class="v-pill full" id="vp-none" onclick="selectVendor('none')">
+        <div class="v-pill-icon">📋</div>
+        <span class="v-pill-name">其他廠商（通用）</span>
+      </div>
     </div>
+  </div>
 
-    <!-- Step 2: 拍照/上傳 -->
-    <div class="step-label">② 拍照或上傳</div>
-    <div class="upload-zone" id="uploadZone">
+  <!-- ② 拍照上傳 -->
+  <div class="section" id="secUpload" style="margin-top:24px">
+    <div class="step-hd">
+      <div class="step-num" id="stepNum2">2</div>
+      <div>
+        <div class="step-title">拍照上傳</div>
+        <div class="step-sub">對準報價單拍照，盡量拍清楚</div>
+      </div>
+    </div>
+    <div class="dz" id="dz">
       <input type="file" id="fileInput" accept="image/*,application/pdf" multiple
-             onchange="onFilePick(this.files); this.value='';">
-      <div class="u-icon">📷</div>
-      <div class="u-hint">點擊拍照或選取檔案<br><span class="u-sub">JPG · PNG · WEBP · PDF，可多選</span></div>
+             onchange="onFilePick(this.files); this.value=''">
+      <div class="dz-icon">📷</div>
+      <div class="dz-hint">點這裡拍照或選取圖片</div>
+      <div class="dz-sub">可選多張・支援 JPG、PNG、PDF</div>
     </div>
-
-    <!-- 縮圖列 -->
     <div class="thumb-strip" id="thumbStrip"></div>
+  </div>
 
-    <!-- Step 3: 開始辨識 -->
-    <div class="step-label">③ 開始辨識</div>
-    <button class="main-btn ocr" id="btnOcr" onclick="runOcr()" disabled>
+  <!-- ③ 開始辨識 -->
+  <div class="section" style="margin-top:24px">
+    <div class="step-hd">
+      <div class="step-num" id="stepNum3">3</div>
+      <div>
+        <div class="step-title">開始辨識</div>
+        <div class="step-sub">AI 自動讀取報價單內容</div>
+      </div>
+    </div>
+    <button class="big-btn ocr" id="btnOcr" onclick="runOcr()" disabled>
       🤖 開始辨識
     </button>
-
-    <!-- 進度 -->
-    <div class="prog-wrap" id="progWrap" style="margin-top:10px;">
+    <div class="prog-wrap" id="progWrap">
       <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
       <div class="prog-lbl" id="progLbl">準備中...</div>
     </div>
-
-    <!-- 錯誤摘要 -->
-    <div class="err-summary" id="errSummary" style="margin-top:10px;">
-      <div class="err-summary-title">⚠️ 以下檔案辨識失敗</div>
+    <div class="err-box" id="errBox">
+      <div class="err-title">⚠️ 辨識發生問題</div>
       <div id="errList"></div>
     </div>
+  </div>
 
-    <!-- 預覽結果 -->
-    <div class="result-wrap" id="resultWrap" style="margin-top:14px;">
-      <div class="result-hd">
-        <span class="result-hd-label">✅ 辨識結果（可修改）</span>
-        <span class="result-hd-total" id="resultTotal"></span>
+  <!-- ④ 結果 -->
+  <div class="result-section" id="resultSection">
+    <div class="step-hd">
+      <div class="step-num done">✓</div>
+      <div>
+        <div class="result-hd-title">辨識完成</div>
       </div>
-
-      <!-- 廠商 meta -->
-      <div class="meta-card">
-        <div class="meta-grid">
-          <div class="fi">
-            <span class="fl">廠商名稱</span>
-            <input class="fv" id="mVendor" placeholder="—">
-          </div>
-          <div class="fi">
-            <span class="fl">統一編號</span>
-            <input class="fv mono" id="mTaxId" placeholder="—">
-          </div>
-        </div>
-        <div class="meta-grid3">
-          <div class="fi">
-            <span class="fl">單據日期</span>
-            <input class="fv mono" id="mDate" type="date">
-          </div>
-          <div class="fi">
-            <span class="fl">發票號碼</span>
-            <input class="fv mono" id="mInvoice" placeholder="—">
-          </div>
-          <div class="fi">
-            <span class="fl">工程說明</span>
-            <input class="fv" id="mNotes" placeholder="—">
-          </div>
-        </div>
-      </div>
-
-      <!-- 品項表 -->
-      <div class="items-card">
-        <table class="items-tbl">
-          <thead><tr>
-            <th>品項名稱</th>
-            <th style="width:90px;text-align:right;">金額</th>
-            <th style="width:26px;"></th>
-          </tr></thead>
-          <tbody id="itemsTbody"></tbody>
-        </table>
-        <button class="add-row-btn" onclick="addItem()">＋ 新增品項</button>
-      </div>
-
-      <!-- 匯出 PDF -->
-      <button class="main-btn pdf" id="btnPdf" onclick="printPdf()">
-        📄 匯出 PDF
-      </button>
-      <button class="main-btn clear" onclick="resetAll()">
-        🗑 清除重來
-      </button>
+      <div class="result-hd-total" id="resultTotal"></div>
     </div>
 
-  </div><!-- phone-inner -->
-</div><!-- phone-frame -->
-</div><!-- phone-shell -->
+    <!-- 生成的圖片預覽 -->
+    <div class="img-preview-wrap" id="imgPreviewWrap">
+      <div class="img-placeholder">圖片生成中...</div>
+    </div>
 
-<div id="toast"></div>
-<div id="pdfTarget"></div>
+    <!-- 動作按鈕 -->
+    <div class="action-btns">
+      <button class="big-btn save" id="btnSave" onclick="saveImage()">
+        💾 儲存圖片
+      </button>
+      <button class="big-btn line" id="btnLine" onclick="shareToLine()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
+        用 LINE 傳給客戶
+      </button>
+      <button class="big-btn reset" onclick="resetAll()">
+        🗑 清除，重新辨識
+      </button>
+    </div>
+  </div>
+
+  <div style="height:32px"></div>
+</div><!-- shell -->
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -345,46 +301,48 @@ async function callGAS(payload) {
 // 廠商模板
 // ════════════════════════════════════════════════════════════
 const VENDORS = {
-  none:     { label:'通用' },
+  none: { label:'通用', icon:'📋' },
   mingsong: {
-    label:'銘松水電工程有限公司', taxId:'12457174',
-    remarks:['1.報價有效期限為 7天','2.電線價格以施作時間再詢問漲降價'],
+    label:'銘松水電工程有限公司', icon:'🔧',
+    taxId:'12457174',
+    remarks:['1. 報價有效期限為 7 天','2. 電線價格以施作時間再詢問漲降價'],
   },
   yuhui: {
-    label:'昱暉企業社', taxId:'85331403',
+    label:'昱暉企業社', icon:'⚡',
+    taxId:'85331403',
     contact:'吳先生 0920-902123',
     addr:'新北市貢寮區孝清街10巷13號4樓',
     validDays:14,
     remarks:[
-      '1 首次配合現金交易，現金票，簽章回傳',
-      '2 商品保固依公司規定',
-      '3 本報價單經買方確認後即生效，報價單即生效為買賣契約',
-      '4 尚未付清所有款項前所有商品、產品、材料所有權屬本公司（昱暉企業社）',
-      '5 工程確定收定3成款項、設備入場收定6成款項、驗收完工收尾款1成款項',
+      '1. 首次配合現金交易，現金票，簽章回傳',
+      '2. 商品保固依公司規定',
+      '3. 本報價單經買方確認後即生效，報價單即生效為買賣契約',
+      '4. 尚未付清所有款項前所有商品、產品、材料所有權屬本公司（昱暉企業社）',
+      '5. 工程確定收定3成、設備入場收定6成、驗收完工收尾款1成',
     ],
   },
 };
 
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
 let _vendor  = 'none';
-let _files   = [];       // { id, file, previewUrl, name }
-let _items   = [];       // { name, amount }
+let _files   = [];
+let _items   = [];
+let _meta    = {};
 let _running = false;
+let _imgDataUrl = '';
 
+// ════════════════════════════════════════════════════════════
+// 廠商選擇
+// ════════════════════════════════════════════════════════════
 function selectVendor(key) {
   _vendor = key;
   document.querySelectorAll('.v-pill').forEach(el => el.classList.remove('active'));
   document.getElementById('vp-' + key)?.classList.add('active');
-  const tpl = VENDORS[key];
-  if (key !== 'none' && tpl) {
-    if (tpl.label)  setIfEmpty('mVendor', tpl.label);
-    if (tpl.taxId)  setIfEmpty('mTaxId',  tpl.taxId);
-  }
 }
-
-function setIfEmpty(id, val) {
-  const el = document.getElementById(id);
-  if (el && !el.value.trim()) el.value = val;
-}
+// 預設選通用
+selectVendor('none');
 
 // ════════════════════════════════════════════════════════════
 // 檔案處理
@@ -405,9 +363,7 @@ function renderThumbs() {
   const strip = document.getElementById('thumbStrip');
   strip.innerHTML = _files.map(f => `
     <div class="thumb">
-      ${f.previewUrl
-        ? `<img src="${f.previewUrl}">`
-        : `<div class="pdf-icon">📄</div>`}
+      ${f.previewUrl ? `<img src="${f.previewUrl}">` : `<div class="pdf-icon">📄</div>`}
       <button class="x" onclick="removeFile('${f.id}')">×</button>
     </div>`).join('');
 }
@@ -433,9 +389,8 @@ async function runOcr() {
   const btn = document.getElementById('btnOcr');
   btn.innerHTML = '<span class="spin"></span> 辨識中...';
 
-  // 隱藏舊結果
-  hide('resultWrap');
-  hide('errSummary');
+  hide('resultSection');
+  hideElem('errBox');
   show('progWrap');
 
   const progFill = document.getElementById('progFill');
@@ -443,14 +398,13 @@ async function runOcr() {
   progFill.style.width = '0%';
 
   const allItems = [];
-  const errors   = [];  // { name, msg }
+  const errors   = [];
   let   metaFilled = false;
 
   try {
     for (let i = 0; i < _files.length; i++) {
       const f = _files[i];
-      const pct = Math.round((i / _files.length) * 90);
-      progFill.style.width = pct + '%';
+      progFill.style.width = Math.round((i / _files.length) * 85) + '%';
       progLbl.textContent  = `辨識中 ${i+1}/${_files.length}：${f.name}`;
 
       try {
@@ -458,20 +412,17 @@ async function runOcr() {
         const b64  = await fileToBase64(compressed);
         const mime = compressed.type || 'image/jpeg';
 
-        // 上傳（失敗不阻擋）
-        let fileId = '';
-        try {
-          const up = await callGAS({ action:'uploadFile', fileName:f.name, mimeType:mime, base64:b64, person:'ocr_user', month:todayStr().slice(0,7) });
-          if (up.success) fileId = up.fileId;
-        } catch(_) {}
-
-        // OCR
-        const res = await callGAS({ action:'ocrEngineering', fileName:f.name, base64:b64, mimeType:mime, fileId });
+        const res = await callGAS({
+          action: 'ocrEngineering',
+          fileName: f.name,
+          base64: b64,
+          mimeType: mime,
+        });
 
         if (res.success && res.items?.length) {
           allItems.push(...res.items);
           if (!metaFilled && res.meta) {
-            fillMeta(res.meta);
+            _meta = res.meta;
             metaFilled = true;
           }
         } else {
@@ -483,35 +434,31 @@ async function runOcr() {
     }
 
     progFill.style.width = '100%';
-    progLbl.textContent  = '完成';
-    setTimeout(() => hide('progWrap'), 1200);
+    progLbl.textContent  = '完成！';
+    setTimeout(() => hide('progWrap'), 1000);
 
-    // 顯示錯誤摘要
     if (errors.length) {
       document.getElementById('errList').innerHTML =
-        errors.map(e => `<div class="err-item"><span>${esc(e.name)}：${esc(e.msg)}</span></div>`).join('');
-      show('errSummary');
+        errors.map(e => `<div class="err-item">${esc(e.name)}：${esc(e.msg)}</div>`).join('');
+      showElem('errBox');
     }
 
-    // 顯示結果
     if (allItems.length) {
       _items = allItems.map(it => ({
         name:   String(it.name || '（未辨識）').trim(),
         amount: parseFloat(String(it.amount).replace(/,/g,'')) || 0,
       }));
-      renderItems();
-      show('resultWrap');
-      toast(`✅ 完成，共 ${_items.length} 個品項${errors.length ? `，${errors.length} 張失敗` : ''}`);
+      showResult();
+      toast(`✅ 辨識完成，共 ${_items.length} 個品項`);
     } else if (!errors.length) {
       toast('⚠️ 沒有辨識到任何品項');
     }
 
   } catch(e) {
     hide('progWrap');
-    errors.push({ name:'整體錯誤', msg: e.message });
     document.getElementById('errList').innerHTML =
-      `<div class="err-item"><span>${esc(e.message)}</span></div>`;
-    show('errSummary');
+      `<div class="err-item">${esc(e.message)}</div>`;
+    showElem('errBox');
     toast('❌ 辨識失敗：' + e.message);
   } finally {
     _running = false;
@@ -520,192 +467,299 @@ async function runOcr() {
   }
 }
 
-function fillMeta(meta) {
-  if (meta.vendor   && _vendor === 'none') setIfEmpty('mVendor',  meta.vendor);
-  if (meta.taxId    && _vendor === 'none') setIfEmpty('mTaxId',   meta.taxId);
-  if (meta.date)    setIfEmpty('mDate',    meta.date);
-  if (meta.invoiceNo) setIfEmpty('mInvoice', meta.invoiceNo);
-  if (meta.notes)   setIfEmpty('mNotes',   meta.notes);
+// ════════════════════════════════════════════════════════════
+// 顯示結果 → 渲染卡片 → 轉 PNG
+// ════════════════════════════════════════════════════════════
+async function showResult() {
+  const total = _items.reduce((s, it) => s + (it.amount || 0), 0);
+  document.getElementById('resultTotal').textContent = '$' + total.toLocaleString();
+
+  show('resultSection');
+
+  // 渲染離屏 HTML
+  const canvas = document.getElementById('renderCanvas');
+  canvas.innerHTML = buildCardHtml();
+  canvas.style.visibility = 'hidden';
+
+  // 等字體載入
+  await document.fonts.ready;
+  await sleep(300);
+
+  try {
+    const bitmap = await html2canvas(canvas, {
+      scale: 2,           // 2x = 1588×2246px，高解析
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 794,
+      windowWidth: 794,
+    });
+    _imgDataUrl = bitmap.toDataURL('image/jpeg', 0.93);
+
+    const wrap = document.getElementById('imgPreviewWrap');
+    wrap.innerHTML = `<img src="${_imgDataUrl}" alt="報價單預覽" style="width:100%;display:block;border-radius:12px">`;
+  } catch(err) {
+    document.getElementById('imgPreviewWrap').innerHTML =
+      `<div class="img-placeholder">圖片生成失敗：${esc(err.message)}</div>`;
+  }
+
+  canvas.innerHTML = '';
 }
 
 // ════════════════════════════════════════════════════════════
-// 品項渲染
+// 卡片 HTML（A4 比例 794px 寬）
 // ════════════════════════════════════════════════════════════
-function renderItems() {
-  const tbody = document.getElementById('itemsTbody');
-  tbody.innerHTML = _items.map((it, i) => `
-    <tr>
-      <td><input class="ei" value="${esc(it.name)}" oninput="updateItem(${i},'name',this.value)"></td>
-      <td class="r"><input class="ei" style="text-align:right;width:80px;" type="number"
-        value="${it.amount}" oninput="updateItem(${i},'amount',this.value)"></td>
-      <td><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;"
-        onclick="delItem(${i})">✕</button></td>
-    </tr>`).join('') + `
-    <tr class="tr-total">
-      <td style="font-weight:700;color:var(--accent);">合計</td>
-      <td class="r" id="tblTotal" style="font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">
-        $${calcTotal().toLocaleString()}</td>
-      <td></td>
-    </tr>`;
-  updateTotalDisplay();
+function buildCardHtml() {
+  const sub   = _items.reduce((s,it) => s + (it.amount||0), 0);
+  const tax   = Math.round(sub * 0.05);
+  const total = sub + tax;
+  const m     = _meta;
+
+  if (_vendor === 'mingsong') return cardMingsong(sub, tax, total, m);
+  if (_vendor === 'yuhui')    return cardYuhui(sub, tax, total, m);
+  return cardGeneric(sub, tax, total, m);
 }
 
-function updateItem(i, field, val) {
-  if (!_items[i]) return;
-  _items[i][field] = field === 'amount' ? parseFloat(val) || 0 : val;
-  updateTotalDisplay();
+// ── 共用樣式字串 ───────────────────────────────────────────
+const CARD_STYLE = `
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body, div, td, th, span {
+  font-family: 'Noto Sans TC', '標楷體', 'DFKai-SB', sans-serif;
+  color: #111;
 }
+.doc { background:#fff; width:794px; padding:28px 32px; font-size:13px; line-height:1.7; }
+.co-name { font-size:22px; font-weight:900; text-align:center; letter-spacing:3px; margin-bottom:4px; }
+.co-info { text-align:center; font-size:12px; color:#333; margin-bottom:2px; }
+.doc-title { font-size:17px; font-weight:900; text-align:center; letter-spacing:8px;
+  border-top:2px solid #111; border-bottom:2px solid #111; padding:5px 0; margin:8px 0; }
+.meta-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; padding:0 2px; }
+table { width:100%; border-collapse:collapse; margin-top:4px; }
+th, td { border:1px solid #555; padding:5px 8px; font-size:12px; }
+th { background:#e8e8e8; font-weight:700; text-align:center; }
+td.r { text-align:right; font-family:monospace; }
+td.c { text-align:center; }
+.tr-sub td { background:#f0f0f0; font-weight:700; }
+.tr-total td { background:#d8d8d8; font-weight:900; font-size:13px; }
+.remarks { margin-top:10px; font-size:11px; color:#444; line-height:1.9; }
+.stamp-area { text-align:right; margin-top:12px; font-size:11px; color:#888; }
+.yh-header { background:#b8cfe8; border:2px solid #111; padding:8px 12px;
+  display:flex; align-items:center; justify-content:space-between; }
+.yh-co { font-size:18px; font-weight:900; text-align:center; }
+.yh-info { font-size:11px; line-height:1.7; }
+.yh-date { font-size:12px; text-align:right; }
+.yh-meta-row { border:1px solid #111; border-top:none; display:flex; font-size:12px; }
+.yh-meta-row div { flex:1; padding:4px 8px; border-right:1px solid #ccc; }
+.yh-meta-row div:last-child { border-right:none; }
+</style>
+`;
 
-function delItem(i) {
-  _items.splice(i, 1);
-  renderItems();
-}
-
-function addItem() {
-  _items.push({ name: '', amount: 0 });
-  renderItems();
-  // focus 最後一行的 name input
-  const rows = document.querySelectorAll('#itemsTbody tr:not(.tr-total)');
-  if (rows.length) rows[rows.length-1].querySelector('.ei')?.focus();
-}
-
-function calcTotal() {
-  return _items.reduce((s, it) => s + (parseFloat(it.amount) || 0), 0);
-}
-
-function updateTotalDisplay() {
-  const t = calcTotal();
-  const el = document.getElementById('tblTotal');
-  if (el) el.textContent = '$' + t.toLocaleString();
-  const hd = document.getElementById('resultTotal');
-  if (hd) hd.textContent = '合計 $' + t.toLocaleString();
-}
-
-// ════════════════════════════════════════════════════════════
-// PDF 匯出
-// ════════════════════════════════════════════════════════════
-function printPdf() {
-  const html = buildPdfHtml();
-  document.getElementById('pdfTarget').innerHTML = html;
-  window.print();
-  setTimeout(() => { document.getElementById('pdfTarget').innerHTML = ''; }, 800);
-}
-
-function buildPdfHtml() {
-  const vendor  = document.getElementById('mVendor').value.trim();
-  const taxId   = document.getElementById('mTaxId').value.trim();
-  const date    = document.getElementById('mDate').value || todayStr();
-  const invoice = document.getElementById('mInvoice').value.trim();
-  const notes   = document.getElementById('mNotes').value.trim();
-  const sub     = calcTotal();
-  const tax     = Math.round(sub * 0.05);
-  const total   = sub + tax;
-
-  if (_vendor === 'mingsong') return pdfMingsong(vendor, taxId, date, invoice, notes, sub, tax, total);
-  if (_vendor === 'yuhui')    return pdfYuhui(vendor, taxId, date, invoice, notes, sub, tax, total);
-  return pdfGeneric(vendor, taxId, date, invoice, notes, sub, tax, total);
-}
-
-function itemRows(extra = false) {
-  return _items.map((it, i) => `<tr>
-    <td class="c">${i+1}</td>
-    <td>${esc(it.name)}</td>
-    ${extra ? '<td></td><td class="c"></td><td class="r"></td>' : ''}
-    <td class="r">${it.amount ? it.amount.toLocaleString() : ''}</td>
-    <td></td>
-  </tr>`).join('');
-}
-
-function pdfMingsong(vendor, taxId, date, invoice, notes, sub, tax, total) {
+// ── 銘松卡片 ──────────────────────────────────────────────
+function cardMingsong(sub, tax, total, m) {
   const tpl = VENDORS.mingsong;
-  return `<div class="pdf-doc">
-  <div class="ms-outer">
-    <div class="ms-co">銘松水電工程有限公司</div>
-    <div class="ms-addr"><div>地址：</div><div>電話：</div></div>
-    <div class="ms-title">報 價 單</div>
-    <div class="ms-meta"><span>案件名稱：${esc(notes)}</span><span>報價日期：${date}</span></div>
-    <table class="pdf-tbl" style="margin-top:0;border-top:none;">
-      <thead><tr>
-        <th style="width:30px;">項次</th><th>名　稱</th>
-        <th style="width:38px;">單位</th><th style="width:38px;">數量</th>
-        <th style="width:65px;">單　價</th><th style="width:75px;">總　額</th><th>備　註</th>
-      </tr></thead>
-      <tbody>
-        ${itemRows(true)}
-        <tr class="tr-sub"><td colspan="5" class="r">合計</td><td class="r">${sub.toLocaleString()}</td><td></td></tr>
-        <tr class="tr-sub"><td colspan="5" class="r">稅金</td><td class="r">${tax.toLocaleString()}</td><td></td></tr>
-        <tr class="tr-grand"><td class="c">總　價</td><td colspan="4">新台幣 ${numTW(total)}元整</td>
-          <td class="r">NT$${total.toLocaleString()}</td><td class="c">含稅</td></tr>
-      </tbody>
-    </table>
-    <div class="pdf-notes"><strong>備註：</strong><br>
-      ${tpl.remarks.map(r=>`<span style="color:#c00">${esc(r)}</span>`).join('<br>')}</div>
-  </div></div>`;
-}
+  const addr    = m.address  || '';
+  const phone   = m.phone    || '';
+  const caseName = m.notes   || '';
+  const date    = m.date     || '';
 
-function pdfYuhui(vendor, taxId, date, invoice, notes, sub, tax, total) {
-  const tpl = VENDORS.yuhui;
-  return `<div class="pdf-doc">
-  <div class="yh-hd">
-    <div style="font-size:11px;">統一編號：${tpl.taxId}<br>${tpl.addr}</div>
-    <div class="yh-hd-c">昱暉企業社<br><span style="font-size:12px;">${tpl.contact}</span></div>
-    <div class="yh-hd-r">報價日期：${date}</div>
+  return CARD_STYLE + `<div class="doc">
+  <div class="co-name">銘松水電工程有限公司</div>
+  <div class="co-info">地址：${esc(addr)}　　電話：${esc(phone)}</div>
+  <div class="doc-title">報　價　單</div>
+  <div class="meta-row">
+    <span>案件名稱：<strong>${esc(caseName)}</strong></span>
+    <span>報價日期：<strong>${esc(date)}</strong></span>
   </div>
-  <div class="yh-meta" style="border:1px solid #000;border-top:none;">
-    <div>工程名稱：${esc(notes)}</div><div>地址：</div></div>
-  <table class="pdf-tbl">
+  <table>
     <thead><tr>
-      <th style="width:30px;">序號</th><th>項目名稱</th>
-      <th style="width:85px;">型號（規格）</th><th style="width:38px;">數量</th>
-      <th style="width:55px;">單價</th><th style="width:75px;">總價</th><th>備註</th>
+      <th style="width:36px">項次</th>
+      <th>名　稱</th>
+      <th style="width:44px">單位</th>
+      <th style="width:50px">數量</th>
+      <th style="width:72px">單　價</th>
+      <th style="width:88px">總　額</th>
+      <th style="width:80px">備　註</th>
     </tr></thead>
     <tbody>
-      ${itemRows(true)}
-      <tr class="tr-sub"><td colspan="5" class="r">小　計</td><td class="r">$${sub.toLocaleString()}</td><td></td></tr>
-      <tr class="tr-sub"><td colspan="5" class="r">稅　金</td><td class="r">$${tax.toLocaleString()}</td><td></td></tr>
-      <tr class="tr-grand"><td colspan="5" class="r">總合計（含稅）</td><td class="r">$${total.toLocaleString()}</td><td></td></tr>
+      ${_items.map((it,i)=>`<tr>
+        <td class="c">${i+1}</td>
+        <td>${esc(it.name)}</td>
+        <td></td><td></td><td></td>
+        <td class="r">${it.amount ? it.amount.toLocaleString() : ''}</td>
+        <td></td>
+      </tr>`).join('')}
+      <tr class="tr-sub">
+        <td colspan="5" class="r">合　計</td>
+        <td class="r">${sub.toLocaleString()}</td><td></td>
+      </tr>
+      <tr class="tr-sub">
+        <td colspan="5" class="r">稅　金</td>
+        <td class="r">${tax.toLocaleString()}</td><td></td>
+      </tr>
+      <tr class="tr-total">
+        <td class="c">總　價</td>
+        <td colspan="4">新台幣 ${numTW(total)} 元整</td>
+        <td class="r">NT$${total.toLocaleString()}</td>
+        <td class="c">含稅</td>
+      </tr>
     </tbody>
   </table>
-  <div style="font-size:10px;margin-top:5px;">本估價單有效天數為 ${tpl.validDays} 天</div>
-  <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:3px;">
-    ${tpl.remarks.map((r,i)=>`<tr><td style="width:18px;vertical-align:top;">${i+1}</td><td>${esc(r)}</td></tr>`).join('')}
-  </table>
-  <div class="pdf-sign"><div class="pdf-sign-box">簽章回傳</div></div>
+  <div class="remarks"><strong>備註：</strong><br>
+    ${tpl.remarks.map(r=>`<span style="color:#c00">${esc(r)}</span>`).join('<br>')}
+  </div>
+  <div class="stamp-area">（蓋章處）</div>
 </div>`;
 }
 
-function pdfGeneric(vendor, taxId, date, invoice, notes, sub, tax, total) {
-  return `<div class="pdf-doc" style="font-family:sans-serif;">
-  <div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:10px;">工程請款單</div>
-  <table style="width:100%;font-size:11px;margin-bottom:10px;border-collapse:collapse;">
-    <tr><td><strong>廠商：</strong>${esc(vendor)}</td><td><strong>統編：</strong>${esc(taxId)}</td></tr>
-    <tr><td><strong>日期：</strong>${date}</td><td><strong>發票：</strong>${esc(invoice)}</td></tr>
-    <tr><td colspan="2"><strong>說明：</strong>${esc(notes)}</td></tr>
-  </table>
-  <table class="pdf-tbl">
-    <thead><tr><th style="width:30px;">項次</th><th>品項名稱</th><th style="width:90px;">金額</th></tr></thead>
+// ── 昱暉卡片 ──────────────────────────────────────────────
+function cardYuhui(sub, tax, total, m) {
+  const tpl = VENDORS.yuhui;
+  const caseName = m.notes || '';
+  const date     = m.date  || '';
+
+  return CARD_STYLE + `<div class="doc">
+  <div class="yh-header">
+    <div class="yh-info">統一編號：${tpl.taxId}<br>${tpl.addr}</div>
+    <div class="yh-co">昱暉企業社<br><span style="font-size:13px">${tpl.contact}</span></div>
+    <div class="yh-date">報價日期：<strong>${esc(date)}</strong></div>
+  </div>
+  <div class="yh-meta-row">
+    <div>工程名稱：<strong>${esc(caseName)}</strong></div>
+    <div>地址：</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:36px">序號</th>
+      <th>項目名稱</th>
+      <th style="width:90px">型號（規格）</th>
+      <th style="width:44px">數量</th>
+      <th style="width:65px">單價</th>
+      <th style="width:88px">總價</th>
+      <th style="width:72px">備註</th>
+    </tr></thead>
     <tbody>
-      ${_items.map((it,i)=>`<tr><td class="c">${i+1}</td><td>${esc(it.name)}</td><td class="r">$${it.amount.toLocaleString()}</td></tr>`).join('')}
-      <tr class="tr-sub"><td colspan="2" class="r">小計</td><td class="r">$${sub.toLocaleString()}</td></tr>
-      <tr class="tr-sub"><td colspan="2" class="r">稅金 5%</td><td class="r">$${tax.toLocaleString()}</td></tr>
-      <tr class="tr-grand"><td colspan="2" class="r">合計（含稅）</td><td class="r">$${total.toLocaleString()}</td></tr>
+      ${_items.map((it,i)=>`<tr>
+        <td class="c">${i+1}</td>
+        <td>${esc(it.name)}</td>
+        <td></td><td></td><td></td>
+        <td class="r">$${it.amount ? it.amount.toLocaleString() : '0'}</td>
+        <td></td>
+      </tr>`).join('')}
+      <tr class="tr-sub">
+        <td colspan="5" class="r">小　計</td>
+        <td class="r">$${sub.toLocaleString()}</td><td></td>
+      </tr>
+      <tr class="tr-sub">
+        <td colspan="5" class="r">稅　金</td>
+        <td class="r">$${tax.toLocaleString()}</td><td></td>
+      </tr>
+      <tr class="tr-total">
+        <td colspan="5" class="r">總合計（含稅）</td>
+        <td class="r">$${total.toLocaleString()}</td><td></td>
+      </tr>
     </tbody>
   </table>
+  <div class="remarks">
+    本估價單有效天數為 ${tpl.validDays} 天<br>
+    ${tpl.remarks.map(r=>esc(r)).join('<br>')}
+  </div>
+  <div class="stamp-area">簽章回傳</div>
 </div>`;
 }
 
-// 數字轉中文大寫（簡）
-function numTW(n) {
-  const u = ['','十','百','千','萬','十萬','百萬'];
-  const d = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
-  const s = String(Math.floor(n || 0));
-  let r = '';
-  for (let i = 0; i < s.length; i++) {
-    const v = parseInt(s[i]), pu = u[s.length-1-i];
-    if (v) r += d[v] + pu;
-    else if (r && r.slice(-1) !== '零') r += '零';
+// ── 通用卡片 ──────────────────────────────────────────────
+function cardGeneric(sub, tax, total, m) {
+  const sub2  = sub;
+  return CARD_STYLE + `<div class="doc">
+  <div class="co-name">${esc(m.vendor || '工程請款單')}</div>
+  ${m.address || m.phone ? `<div class="co-info">${m.address ? '地址：'+esc(m.address) : ''}${m.phone ? '　電話：'+esc(m.phone) : ''}</div>` : ''}
+  <div class="doc-title">報　價　單</div>
+  <div class="meta-row">
+    <span>案件名稱：<strong>${esc(m.notes||'—')}</strong></span>
+    <span>報價日期：<strong>${esc(m.date||'—')}</strong></span>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:36px">項次</th>
+      <th>品項名稱</th>
+      <th style="width:100px">金額</th>
+    </tr></thead>
+    <tbody>
+      ${_items.map((it,i)=>`<tr>
+        <td class="c">${i+1}</td>
+        <td>${esc(it.name)}</td>
+        <td class="r">$${it.amount ? it.amount.toLocaleString() : '0'}</td>
+      </tr>`).join('')}
+      <tr class="tr-sub"><td colspan="2" class="r">小計</td><td class="r">$${sub2.toLocaleString()}</td></tr>
+      <tr class="tr-sub"><td colspan="2" class="r">稅金 5%</td><td class="r">$${tax.toLocaleString()}</td></tr>
+      <tr class="tr-total"><td colspan="2" class="r">合計（含稅）</td><td class="r">$${total.toLocaleString()}</td></tr>
+    </tbody>
+  </table>
+  <div class="stamp-area">（蓋章處）</div>
+</div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// 儲存圖片
+// ════════════════════════════════════════════════════════════
+function saveImage() {
+  if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
+  const a = document.createElement('a');
+  a.href = _imgDataUrl;
+  const vendor = _meta.vendor || VENDORS[_vendor]?.label || '報價單';
+  const date   = (_meta.date || todayStr()).replace(/-/g, '');
+  a.download = `${vendor}_${date}.jpg`;
+  a.click();
+  toast('✅ 已儲存，請開啟 LINE 傳給客戶');
+}
+
+// ════════════════════════════════════════════════════════════
+// LINE 分享（開啟 LINE 選擇聯絡人）
+// ════════════════════════════════════════════════════════════
+function shareToLine() {
+  if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
+
+  // 先嘗試 Web Share API（iOS Safari / Android Chrome 支援）
+  if (navigator.share && navigator.canShare) {
+    // 將 dataURL 轉為 Blob File
+    const byteStr = atob(_imgDataUrl.split(',')[1]);
+    const arr = new Uint8Array(byteStr.length);
+    for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([arr], { type:'image/jpeg' });
+    const vendor = _meta.vendor || VENDORS[_vendor]?.label || '報價單';
+    const date   = (_meta.date || todayStr()).replace(/-/g, '');
+    const file = new File([blob], `${vendor}_${date}.jpg`, { type:'image/jpeg' });
+
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: vendor })
+        .then(() => toast('✅ 已開啟分享'))
+        .catch(err => { if(err.name !== 'AbortError') fallbackLine(); });
+      return;
+    }
   }
-  return r.replace(/零$/, '') || '零';
+  fallbackLine();
+}
+
+function fallbackLine() {
+  // 無法直接傳圖片，先下載再提示
+  saveImage();
+  setTimeout(() => {
+    window.open('https://line.me/R/', '_blank');
+    toast('💡 圖片已儲存，請在 LINE 中選擇聯絡人後貼上傳送', 5000);
+  }, 800);
+}
+
+// ════════════════════════════════════════════════════════════
+// 重置
+// ════════════════════════════════════════════════════════════
+function resetAll() {
+  _files = []; _items = []; _meta = {}; _imgDataUrl = '';
+  document.getElementById('thumbStrip').innerHTML = '';
+  hide('resultSection');
+  hideElem('errBox');
+  hide('progWrap');
+  refreshOcrBtn();
+  toast('已清除');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -747,29 +801,33 @@ function toJpeg(file, q) {
 // ════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════
-function resetAll() {
-  _files = []; _items = [];
-  document.getElementById('thumbStrip').innerHTML = '';
-  ['mVendor','mTaxId','mDate','mInvoice','mNotes'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.value = '';
-  });
-  hide('resultWrap'); hide('errSummary'); hide('progWrap');
-  refreshOcrBtn();
-  selectVendor('none');
-  toast('已清除');
-}
-
-function show(id) { const el=document.getElementById(id); if(el){el.style.display=''; el.classList.add('show');} }
-function hide(id) { const el=document.getElementById(id); if(el){el.style.display='none'; el.classList.remove('show');} }
-function esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function show(id)     { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
+function hide(id)     { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
+function showElem(id) { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
+function hideElem(id) { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
+function esc(s)       { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function todayStr()   { return new Date().toISOString().slice(0,10); }
+function sleep(ms)    { return new Promise(r => setTimeout(r, ms)); }
 
 function toast(msg, ms=3000) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.style.opacity='1';
-  t.style.transform='translateX(-50%) translateY(0)';
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
   clearTimeout(t._t);
-  t._t=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(80px)';},ms);
+  t._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function numTW(n) {
+  const u = ['','十','百','千','萬','十萬','百萬'];
+  const d = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const s = String(Math.floor(n || 0));
+  let r = '';
+  for (let i = 0; i < s.length; i++) {
+    const v = parseInt(s[i]), pu = u[s.length-1-i];
+    if (v) r += d[v] + pu;
+    else if (r && r.slice(-1) !== '零') r += '零';
+  }
+  return r.replace(/零$/, '') || '零';
 }
 </script>
 </body>
