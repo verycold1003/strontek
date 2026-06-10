@@ -152,14 +152,15 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 .spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
   border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle}
 
-/* ── 離屏渲染畫布（A4 比例 794×1123px）── */
+/* ── 離屏渲染畫布（A4 比例 794px 寬）── */
 #renderCanvas{
-  position:fixed;left:-9999px;top:0;
+  position:absolute;
+  left:0; top:0;
   width:794px;
-  font-family:'Noto Sans TC',sans-serif;
   background:#fff;
-  visibility:hidden;
+  opacity:0;
   pointer-events:none;
+  z-index:-1;
 }
 </style>
 </head>
@@ -474,36 +475,51 @@ async function showResult() {
   const total = _items.reduce((s, it) => s + (it.amount || 0), 0);
   document.getElementById('resultTotal').textContent = '$' + total.toLocaleString();
 
+  const wrap = document.getElementById('imgPreviewWrap');
+  wrap.innerHTML = `<div class="img-placeholder">⏳ 圖片生成中，請稍候...</div>`;
   show('resultSection');
 
-  // 渲染離屏 HTML
+  // 讓 resultSection 先完成 layout
+  await sleep(100);
+
+  // 注入卡片 HTML 到渲染畫布
   const canvas = document.getElementById('renderCanvas');
   canvas.innerHTML = buildCardHtml();
-  canvas.style.visibility = 'hidden';
 
-  // 等字體載入
-  await document.fonts.ready;
-  await sleep(300);
+  // 等 DOM layout 穩定
+  await sleep(500);
 
   try {
     const bitmap = await html2canvas(canvas, {
-      scale: 2,           // 2x = 1588×2246px，高解析
-      useCORS: true,
+      scale: 2,
+      useCORS: false,
       allowTaint: true,
       backgroundColor: '#ffffff',
       width: 794,
       windowWidth: 794,
+      logging: false,
+      imageTimeout: 0,
+      removeContainer: false,
     });
+
+    if (bitmap.width === 0 || bitmap.height === 0) {
+      throw new Error('canvas 尺寸為零，html2canvas 渲染失敗');
+    }
+
     _imgDataUrl = bitmap.toDataURL('image/jpeg', 0.93);
-
-    const wrap = document.getElementById('imgPreviewWrap');
     wrap.innerHTML = `<img src="${_imgDataUrl}" alt="報價單預覽" style="width:100%;display:block;border-radius:12px">`;
-  } catch(err) {
-    document.getElementById('imgPreviewWrap').innerHTML =
-      `<div class="img-placeholder">圖片生成失敗：${esc(err.message)}</div>`;
-  }
 
-  canvas.innerHTML = '';
+  } catch(err) {
+    wrap.innerHTML = `<div class="img-placeholder" style="color:var(--red);font-size:12px;padding:16px;text-align:left;">
+      ❌ 圖片生成失敗<br><br>
+      <strong>錯誤：</strong>${esc(err.message)}<br><br>
+      <strong>html2canvas：</strong>${typeof html2canvas !== 'undefined' ? '已載入' : '未載入'}<br>
+      <strong>畫布寬度：</strong>${canvas.offsetWidth}px<br>
+      <strong>內容長度：</strong>${canvas.innerHTML.length} chars
+    </div>`;
+  } finally {
+    canvas.innerHTML = '';
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -525,7 +541,7 @@ const CARD_STYLE = `
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body, div, td, th, span {
-  font-family: 'Noto Sans TC', '標楷體', 'DFKai-SB', sans-serif;
+  font-family: '標楷體', 'DFKai-SB', 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif;
   color: #111;
 }
 .doc { background:#fff; width:794px; padding:28px 32px; font-size:13px; line-height:1.7; }
