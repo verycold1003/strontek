@@ -122,7 +122,6 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 .result-section{display:none;padding:20px 16px 0}
 .result-section.show{display:block}
 .result-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.result-hd-icon{font-size:24px}
 .result-hd-title{font-size:19px;font-weight:900;color:var(--green)}
 .result-hd-total{margin-left:auto;font-size:16px;font-weight:800;
   color:var(--accent);font-family:'IBM Plex Mono',monospace}
@@ -149,8 +148,6 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 @keyframes rot{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
   border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle}
-
-
 </style>
 </head>
 <body>
@@ -377,7 +374,7 @@ async function runOcr() {
   btn.innerHTML = '<span class="spin"></span> 辨識中...';
 
   hide('resultSection');
-  hideElem('errBox');
+  hide('errBox');
   show('progWrap');
 
   const progFill = document.getElementById('progFill');
@@ -407,11 +404,11 @@ async function runOcr() {
         });
 
         if (res.success && res.items?.length) {
-          allItems.push(...res.items);
-          if (!metaFilled && res.meta) {
-            _meta = res.meta;
-            metaFilled = true;
-          }
+          allItems.push(...res.items.map(it => ({
+            name:   String(it.name||'（未辨識）').trim(),
+            amount: parseFloat(String(it.amount).replace(/,/g,''))||0,
+          })));
+          if (!metaFilled && res.meta) { _meta = res.meta; metaFilled = true; }
         } else {
           errors.push({ name: f.name, msg: res.error || '未知錯誤' });
         }
@@ -427,14 +424,11 @@ async function runOcr() {
     if (errors.length) {
       document.getElementById('errList').innerHTML =
         errors.map(e => `<div class="err-item">${esc(e.name)}：${esc(e.msg)}</div>`).join('');
-      showElem('errBox');
+      show('errBox');
     }
 
     if (allItems.length) {
-      _items = allItems.map(it => ({
-        name:   String(it.name || '（未辨識）').trim(),
-        amount: parseFloat(String(it.amount).replace(/,/g,'')) || 0,
-      }));
+      _items = allItems;
       showResult();
       toast(`✅ 辨識完成，共 ${_items.length} 個品項`);
     } else if (!errors.length) {
@@ -445,7 +439,7 @@ async function runOcr() {
     hide('progWrap');
     document.getElementById('errList').innerHTML =
       `<div class="err-item">${esc(e.message)}</div>`;
-    showElem('errBox');
+    show('errBox');
     toast('❌ 辨識失敗：' + e.message);
   } finally {
     _running = false;
@@ -480,25 +474,25 @@ async function showResult() {
 // Canvas 2D 繪圖引擎（A4 比例 794×1123px，scale=2 高解析）
 // ════════════════════════════════════════════════════════════
 function drawCard() {
-  const W = 794, SCALE = 2;
+  // 直式 A4：595pt × 842pt，scale=2 → 1190×1684px 高解析列印
+  const W = 595, SCALE = 2;
   const cv = document.createElement('canvas');
   cv.width  = W * SCALE;
-  // 先用足夠高度，之後 crop
-  cv.height = 1600 * SCALE;
+  cv.height = 2400 * SCALE;   // 足夠高，之後 crop
   const ctx = cv.getContext('2d');
   ctx.scale(SCALE, SCALE);
 
   // 白底
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, 1600);
+  ctx.fillRect(0, 0, W, 2400);
 
   let y = 0;
   if (_vendor === 'mingsong') y = drawMingsong(ctx, W);
   else if (_vendor === 'yuhui') y = drawYuhui(ctx, W);
   else y = drawGeneric(ctx, W);
 
-  // Crop 到實際內容高度（加 padding）
-  const finalH = y + 40;
+  // Crop 到實際內容高度，最少 842px（一頁）
+  const finalH = Math.max(842, y + 48);
   const out = document.createElement('canvas');
   out.width  = W * SCALE;
   out.height = finalH * SCALE;
@@ -511,14 +505,9 @@ function ctxFont(ctx, size, weight='normal') {
   ctx.font = `${weight} ${size}px "PingFang TC","Microsoft JhengHei","Heiti TC",Arial,sans-serif`;
 }
 
-function drawHLine(ctx, x, y, w, lw=0.8) {
+function drawLine(ctx, x1, y1, x2, y2, lw=0.8) {
   ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw;
-  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w,y); ctx.stroke(); ctx.restore();
-}
-
-function drawVLine(ctx, x, y1, y2, lw=0.8) {
-  ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw;
-  ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke(); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
 }
 
 function drawRect(ctx, x, y, w, h, fill=null, stroke='#555', lw=0.8) {
@@ -563,10 +552,10 @@ function drawMingsong(ctx, W) {
   ctx.fillText(`地址：${addr}　　電話：${phone}`, W/2, y+12); y+=20;
 
   // 報價單標題
-  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=4;
+  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=4;
   ctxFont(ctx, 16, 'bold');
   ctx.fillText('報　價　單', W/2, y+16); y+=24;
-  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=10;
+  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=10;
 
   // 案件名稱 / 報價日期
   ctxFont(ctx, 12);
@@ -577,15 +566,12 @@ function drawMingsong(ctx, W) {
   ctx.fillText(`報價日期：${m.date||''}`, W-PAD, y+14);
   y+=28;
 
-  // 表頭
+  // 表頭 — 直式 A4（595px），拿掉單位/數量/單價欄，加寬名稱欄
   const cols = [
-    {label:'項次', w:36, align:'center'},
+    {label:'項次', w:34, align:'center'},
     {label:'名　稱', w:0, align:'left'},   // flex
-    {label:'單位', w:40, align:'center'},
-    {label:'數量', w:44, align:'center'},
-    {label:'單　價', w:70, align:'right'},
-    {label:'總　額', w:84, align:'right'},
-    {label:'備　註', w:70, align:'center'},
+    {label:'總　額', w:90, align:'right'},
+    {label:'備　註', w:72, align:'center'},
   ];
   const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
   cols[1].w = W - PAD*2 - fixedW;
@@ -602,10 +588,9 @@ function drawMingsong(ctx, W) {
   for (const it of _items) {
     drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
     let cx = PAD;
-    const vals = [String(_items.indexOf(it)+1), it.name, '', '', '', it.amount?it.amount.toLocaleString():'', ''];
-    const aligns = ['center','left','center','center','right','right','center'];
+    const vals = [String(_items.indexOf(it)+1), it.name, it.amount?it.amount.toLocaleString():'', ''];
     for (let i=0; i<cols.length; i++) {
-      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, aligns[i]);
+      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, cols[i].align);
       cx += cols[i].w;
     }
     y += ROW;
@@ -616,25 +601,25 @@ function drawMingsong(ctx, W) {
   const tax   = Math.round(sub*0.05);
   const total = sub+tax;
 
-  const subRows = [
-    ['合　計', sub.toLocaleString()],
-    ['稅　金', tax.toLocaleString()],
-  ];
-  for (const [lbl, val] of subRows) {
+  // 右側對齊金額欄寬 = 總額欄(90) + 備註欄(72)
+  const amtX = W - PAD - 90 - 72;
+  const amtW = 90;
+  for (const [lbl, val] of [['合　計', sub.toLocaleString()],['稅　金', tax.toLocaleString()]]) {
     drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
-    fillCell(ctx, lbl, PAD, y, W-PAD*2-84-70, ROW, 'right', '#111', 12);
-    fillCell(ctx, val, W-PAD-84-70, y, 84, ROW, 'right', '#111', 12);
+    fillCell(ctx, lbl, PAD, y, amtX - PAD, ROW, 'right', '#111', 12);
+    fillCell(ctx, val, amtX, y, amtW, ROW, 'right', '#111', 12);
     y += ROW;
   }
   // 總價行（加粗）
-  drawRect(ctx, PAD, y, W-PAD*2, ROW+4, '#d8d8d8');
-  ctxFont(ctx, 12, 'bold');
+  drawRect(ctx, PAD, y, W-PAD*2, ROW+6, '#d8d8d8');
+  ctxFont(ctx, 13, 'bold');
   ctx.fillStyle='#111'; ctx.textBaseline='middle';
-  ctx.textAlign='left';  ctx.fillText('總　價', PAD+6, y+(ROW+4)/2);
-  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+50, y+(ROW+4)/2);
-  ctx.textAlign='right'; ctx.fillText(`NT$${total.toLocaleString()}`, W-PAD-70-6, y+(ROW+4)/2);
-  ctx.textAlign='center';ctx.fillText('含稅', W-PAD-35, y+(ROW+4)/2);
-  y += ROW+4;
+  const ty = y+(ROW+6)/2;
+  ctx.textAlign='left';  ctx.fillText('總　價', PAD+6, ty);
+  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+52, ty);
+  ctx.textAlign='right'; ctx.fillText(`NT$${total.toLocaleString()}`, W-PAD-72-6, ty);
+  ctx.textAlign='center';ctx.fillText('含稅', W-PAD-36, ty);
+  y += ROW+6;
 
   // 備註
   y+=8;
@@ -676,19 +661,17 @@ function drawYuhui(ctx, W) {
   ctxFont(ctx, 12); ctx.fillStyle='#111';
   ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.fillText(`工程名稱：${m.notes||''}`, PAD+6, y+12);
-  drawVLine(ctx, PAD+halfW, y, y+24);
+  drawLine(ctx, PAD+halfW, y, PAD+halfW, y+24);
   ctx.fillText('地址：', PAD+halfW+6, y+12);
   y += 24;
 
-  // 表頭
+  // 表頭 — 直式 A4（595px），精簡欄位
   const cols = [
-    {label:'序號', w:36, align:'center'},
+    {label:'序號', w:34, align:'center'},
     {label:'項目名稱', w:0, align:'left'},
-    {label:'型號（規格）', w:88, align:'center'},
-    {label:'數量', w:44, align:'center'},
-    {label:'單價', w:65, align:'right'},
-    {label:'總價', w:84, align:'right'},
-    {label:'備註', w:64, align:'center'},
+    {label:'數量', w:40, align:'center'},
+    {label:'總價', w:90, align:'right'},
+    {label:'備註', w:58, align:'center'},
   ];
   const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
   cols[1].w = W - PAD*2 - fixedW;
@@ -704,10 +687,9 @@ function drawYuhui(ctx, W) {
   for (const it of _items) {
     drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
     let cx = PAD;
-    const vals = [String(_items.indexOf(it)+1), it.name, '', '', '', it.amount?'$'+it.amount.toLocaleString():'$0', ''];
-    const aligns = ['center','left','center','center','right','right','center'];
+    const vals = [String(_items.indexOf(it)+1), it.name, '', it.amount?'$'+it.amount.toLocaleString():'$0', ''];
     for (let i=0; i<cols.length; i++) {
-      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, aligns[i]);
+      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, cols[i].align);
       cx += cols[i].w;
     }
     y += ROW;
@@ -717,17 +699,19 @@ function drawYuhui(ctx, W) {
   const tax   = Math.round(sub*0.05);
   const total = sub+tax;
 
+  const amtX = W - PAD - 90 - 58;
+  const amtW = 90;
   for (const [lbl, val] of [['小　計','$'+sub.toLocaleString()],['稅　金','$'+tax.toLocaleString()]]) {
     drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
-    fillCell(ctx, lbl, PAD, y, W-PAD*2-84-64, ROW, 'right');
-    fillCell(ctx, val, W-PAD-84-64, y, 84, ROW, 'right');
+    fillCell(ctx, lbl, PAD, y, amtX - PAD, ROW, 'right');
+    fillCell(ctx, val, amtX, y, amtW, ROW, 'right');
     y += ROW;
   }
-  drawRect(ctx, PAD, y, W-PAD*2, ROW+4, '#d8d8d8');
-  ctxFont(ctx, 12, 'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
-  ctx.textAlign='right'; ctx.fillText('總合計（含稅）', W-PAD-84-64-6, y+(ROW+4)/2);
-  ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(), W-PAD-64-6, y+(ROW+4)/2);
-  y += ROW+4;
+  drawRect(ctx, PAD, y, W-PAD*2, ROW+6, '#d8d8d8');
+  ctxFont(ctx, 13, 'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  ctx.textAlign='right'; ctx.fillText('總合計（含稅）', amtX - 6, y+(ROW+6)/2);
+  ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(), amtX+amtW-6, y+(ROW+6)/2);
+  y += ROW+6;
 
   y+=8;
   ctxFont(ctx, 11); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
@@ -758,17 +742,17 @@ function drawGeneric(ctx, W) {
     ctxFont(ctx, 11); ctx.fillText(`${m.address||''}　${m.phone||''}`, W/2, y+12); y+=20;
   }
 
-  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=4;
+  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=4;
   ctxFont(ctx, 15, 'bold'); ctx.fillText('報　價　單', W/2, y+15); y+=22;
-  drawHLine(ctx, PAD, y, W-PAD*2, 2); y+=10;
+  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=10;
 
   ctxFont(ctx, 12); ctx.textAlign='left';
   ctx.fillText(`案件名稱：${m.notes||'—'}`, PAD, y+14);
   ctx.textAlign='right'; ctx.fillText(`日期：${m.date||'—'}`, W-PAD, y+14);
   y+=26;
 
-  const cols = [{label:'項次',w:36,align:'center'},{label:'品項名稱',w:0,align:'left'},{label:'金額',w:100,align:'right'}];
-  cols[1].w = W-PAD*2-136;
+  const cols = [{label:'項次',w:34,align:'center'},{label:'品項名稱',w:0,align:'left'},{label:'金額',w:100,align:'right'}];
+  cols[1].w = W-PAD*2-134;
   let x=PAD;
   drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
   for (const col of cols) { fillCell(ctx,col.label,x,y,col.w,HDR,col.align,'#111',11); x+=col.w; }
@@ -799,38 +783,28 @@ function drawGeneric(ctx, W) {
 // ════════════════════════════════════════════════════════════
 // 儲存圖片
 // ════════════════════════════════════════════════════════════
+function getFilename() {
+  const vendor = _meta.vendor || VENDORS[_vendor]?.label || '報價單';
+  return `${vendor}_${(_meta.date || todayStr()).replace(/-/g,'')}.jpg`;
+}
+
 function saveImage() {
   if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
-  const a = document.createElement('a');
-  a.href = _imgDataUrl;
-  const vendor = _meta.vendor || VENDORS[_vendor]?.label || '報價單';
-  const date   = (_meta.date || todayStr()).replace(/-/g, '');
-  a.download = `${vendor}_${date}.jpg`;
+  const a = Object.assign(document.createElement('a'), { href:_imgDataUrl, download:getFilename() });
   a.click();
   toast('✅ 已儲存，請開啟 LINE 傳給客戶');
 }
 
-// ════════════════════════════════════════════════════════════
-// LINE 分享（開啟 LINE 選擇聯絡人）
-// ════════════════════════════════════════════════════════════
 function shareToLine() {
   if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
-
-  // 先嘗試 Web Share API（iOS Safari / Android Chrome 支援）
   if (navigator.share && navigator.canShare) {
-    // 將 dataURL 轉為 Blob File
-    const byteStr = atob(_imgDataUrl.split(',')[1]);
-    const arr = new Uint8Array(byteStr.length);
-    for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
-    const blob = new Blob([arr], { type:'image/jpeg' });
-    const vendor = _meta.vendor || VENDORS[_vendor]?.label || '報價單';
-    const date   = (_meta.date || todayStr()).replace(/-/g, '');
-    const file = new File([blob], `${vendor}_${date}.jpg`, { type:'image/jpeg' });
-
-    if (navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: vendor })
-        .then(() => toast('✅ 已開啟分享'))
-        .catch(err => { if(err.name !== 'AbortError') fallbackLine(); });
+    const b64 = _imgDataUrl.split(',')[1];
+    const bytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+    const file = new File([bytes], getFilename(), {type:'image/jpeg'});
+    if (navigator.canShare({files:[file]})) {
+      navigator.share({files:[file], title: getFilename().replace('.jpg','')})
+        .then(()=>toast('✅ 已開啟分享'))
+        .catch(e=>{ if(e.name!=='AbortError') fallbackLine(); });
       return;
     }
   }
@@ -838,10 +812,9 @@ function shareToLine() {
 }
 
 function fallbackLine() {
-  // 無法直接傳圖片，先下載再提示
   saveImage();
-  setTimeout(() => {
-    window.open('https://line.me/R/', '_blank');
+  setTimeout(()=>{
+    window.open('https://line.me/R/','_blank');
     toast('💡 圖片已儲存，請在 LINE 中選擇聯絡人後貼上傳送', 5000);
   }, 800);
 }
@@ -853,7 +826,7 @@ function resetAll() {
   _files = []; _items = []; _meta = {}; _imgDataUrl = '';
   document.getElementById('thumbStrip').innerHTML = '';
   hide('resultSection');
-  hideElem('errBox');
+  hide('errBox');
   hide('progWrap');
   refreshOcrBtn();
   toast('已清除');
@@ -862,46 +835,47 @@ function resetAll() {
 // ════════════════════════════════════════════════════════════
 // 圖片壓縮
 // ════════════════════════════════════════════════════════════
-function fileToBase64(file) {
+// readDataUrl：FileReader → dataURL（不用 createObjectURL，iOS Safari 相容）
+function readDataUrl(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload  = e => res(e.target.result.split(',')[1]);
+    r.onload  = e => res(e.target.result);
     r.onerror = rej;
     r.readAsDataURL(file);
   });
 }
 
+// fileToBase64：取 base64 部分
+async function fileToBase64(file) {
+  return (await readDataUrl(file)).split(',')[1];
+}
+
+// compressIfNeeded：>2MB 圖片縮至 2400px 再壓 JPEG
 async function compressIfNeeded(file) {
   if (!file.type.startsWith('image/') || file.size <= 2*1024*1024) return file;
   try {
-    const blob = await toJpeg(file, 0.82);
-    return blob ? new File([blob], file.name, { type:'image/jpeg' }) : file;
+    const dataUrl = await readDataUrl(file);
+    const blob = await new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX=2400; let {naturalWidth:w,naturalHeight:h}=img;
+        if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        cv.toBlob(b=>res(b),'image/jpeg',0.82);
+      };
+      img.onerror=()=>res(null);
+      img.src=dataUrl;
+    });
+    return blob ? new File([blob], file.name.replace(/\.[^.]+$/, '')+'.jpg', {type:'image/jpeg'}) : file;
   } catch { return file; }
-}
-
-function toJpeg(file, q) {
-  return new Promise((res, rej) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const MAX=2400; let {naturalWidth:w,naturalHeight:h}=img;
-      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
-      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      cv.toBlob(b=>{URL.revokeObjectURL(url);res(b);},'image/jpeg',q);
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej();};
-    img.src=url;
-  });
 }
 
 // ════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════
-function show(id)     { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
-function hide(id)     { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
-function showElem(id) { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
-function hideElem(id) { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
+function show(id) { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
+function hide(id) { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
 function esc(s)       { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function todayStr()   { return new Date().toISOString().slice(0,10); }
 function sleep(ms)    { return new Promise(r => setTimeout(r, ms)); }
