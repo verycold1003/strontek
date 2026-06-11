@@ -1319,16 +1319,8 @@ function renderQueue() {
     return;
   }
   c.innerHTML = S.ocrQueue.map((f, i) => {
-    // 縮圖：Drive fileId 可組 thumbnail URL；非圖片（PDF）用預設圖示
-    const isPdf = (f.mimeType||f.name||'').includes('pdf');
-    const thumbHtml = f.id && !isPdf
-      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
-             style="width:44px;height:44px;object-fit:cover;border-radius:6px"
-             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:22px'}))">`
-      : `<span style="font-size:22px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `
     <div class="file-item" style="gap:10px">
-      <div class="file-thumb">${thumbHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
