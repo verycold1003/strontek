@@ -3,28 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雜支申請</title>
+<title>專案管理</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
-  --border:#d0d7e8; --border2:#b8c2d8;
-  --text:#1a2236; --muted:#5a6a8a;
-  --accent:#2563eb; --accent2:#7c3aed;
-  --gold:#b45309; --green:#15803d; --red:#dc2626; --amber:#d97706;
-  --parking:#c2410c;
+  --bg:#0d0d0f; --surface:#1e1e22; --surface2:#252529;
+  --border:#2e2e34; --border2:#3a3a42;
+  --text:#f1f1f3; --muted:#8e8e9e;
+  --accent:#3b82f6; --accent2:#a78bfa;
+  --gold:#eab308; --green:#22c55e; --red:#ef4444; --amber:#eab308;
+  --parking:#eab308;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.6}
-.mono{font-family:'IBM Plex Mono',monospace}
+.mono{font-family:'JetBrains Mono',monospace}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--surface2)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
 /* Layout */
 .shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+
+/* ── Bottom Tab Bar ── */
+.bottombar{position:fixed;left:0;right:0;bottom:0;height:58px;background:var(--surface);
+  border-top:1px solid var(--border);display:flex;z-index:150;
+  box-shadow:0 -2px 8px rgba(0,0,0,.25)}
+.bottombar-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  font-size:11px;font-weight:600;transition:color .15s}
+.bottombar-btn .bb-ico{font-size:19px;line-height:1}
+.bottombar-btn.active{color:var(--accent)}
+body.has-bottombar .shell{height:calc(100vh - 58px)}
+.app-section{display:none;height:calc(100vh - 56px - 58px);overflow-y:auto;padding:18px}
+.app-section.active{display:block}
+.app-section .pg-title{margin-bottom:14px}
 .topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .sidebar{background:var(--surface);border-right:2px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;box-shadow:2px 0 8px rgba(0,0,0,.04)}
 .main-area{overflow-y:auto;padding:24px;background:var(--bg)}
@@ -38,7 +52,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:15px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
 .nav-item:hover{color:var(--text);background:rgba(37,99,235,.06)}
 .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(37,99,235,.08);font-weight:700}
-.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
+.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'JetBrains Mono',monospace}
 
 /* Cards */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -90,12 +104,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 /* Badges */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
-.bd-blue{background:rgba(37,99,235,.12);color:#1e40af}
-.bd-green{background:rgba(21,128,61,.12);color:#14532d}
-.bd-red{background:rgba(220,38,38,.12);color:#991b1b}
-.bd-orange{background:rgba(194,65,12,.12);color:#9a3412}
-.bd-purple{background:rgba(124,58,237,.12);color:#5b21b6}
-.bd-muted{background:rgba(90,106,138,.12);color:var(--muted)}
+.bd-blue{background:rgba(59,130,246,.15);color:#60a5fa}
+.bd-green{background:rgba(34,197,94,.15);color:#4ade80}
+.bd-red{background:rgba(239,68,68,.15);color:#f87171}
+.bd-orange{background:rgba(234,179,8,.15);color:#fbbf24}
+.bd-purple{background:rgba(167,139,250,.15);color:#c4b5fd}
+.bd-muted{background:rgba(142,142,158,.15);color:var(--muted)}
 
 /* Table */
 .tbl{width:100%;border-collapse:collapse}
@@ -222,7 +236,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div class="login-wrap" id="loginWrap">
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">雜支申請</div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
@@ -252,7 +266,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="topbar">
     <!-- 手機版漢堡選單 -->
     <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1">☰</button>
-    <div class="logo">雜支<span>申請</span></div>
+    <div class="logo">專案<span>管理</span></div>
     <div style="height:18px;width:1px;background:var(--border)"></div>
     <div style="font-size:12px;color:var(--muted)">Expense Management Platform</div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
@@ -280,8 +294,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <input type="month" class="inp" id="global-month" style="font-size:14px;padding:7px 10px"
              onchange="onGlobalMonthChange(this.value)">
     </div>
-
-    <div class="nav-item" data-page="project" onclick="nav('project')">🗂 <span>新增專案</span></div>
 
     <div style="margin-top:auto;padding:12px 16px">
       <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="syncStatus">尚未同步</div>
@@ -445,106 +457,171 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
 
-    <!-- PAGE: PROJECT (新增專案) -->
-    <div class="page" id="page-project">
-      <div class="pg-title">🗂 新增專案</div>
+  </div><!-- /mainArea -->
+</div><!-- /appShell -->
 
-      <div style="display:flex;flex-direction:column;gap:18px">
+<!-- ═══════════ SECTION: 專案 ═══════════ -->
+<div class="app-section" id="sec-project">
+  <div class="pg-title">🗂 專案管理</div>
+  <div id="projBoard"></div>
+</div>
 
-        <!-- 新增專案 card -->
-        <div class="card">
-          <div class="card-hd">➕ 新增專案</div>
-          <div class="card-bd">
-            <div class="fg2" style="margin-bottom:14px">
-              <div>
-                <label class="lbl">專案 ID（代碼）</label>
-                <input class="inp" id="np-id" placeholder="例：P2024001"
-                  onchange="npAutoFill()">
-              </div>
-              <div>
-                <label class="lbl">專案名稱</label>
-                <input class="inp" id="np-name" placeholder="例：台南廠區外勤補助">
-              </div>
+<!-- ═══════════ SECTION: 待辦 ═══════════ -->
+<div class="app-section" id="sec-todo">
+  <div class="pg-title">✅ 待辦事項</div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-bd">
+      <div style="display:flex;gap:8px">
+        <input class="inp" id="td-input" placeholder="輸入待辦事項..." style="flex:1"
+          onkeydown="if(event.key==='Enter')doAddTask()">
+        <button class="btn btn-primary" onclick="doAddTask()">＋ 新增</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      📋 清單
+      <span class="badge bd-muted" id="taskListCnt" style="margin-left:6px"></span>
+    </div>
+    <div id="taskList"></div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: 設定 ═══════════ -->
+<div class="app-section" id="sec-settings">
+  <div class="pg-title">⚙️ 設定</div>
+  <div style="display:flex;flex-direction:column;gap:18px">
+
+    <!-- 新增專案 card -->
+    <div class="card">
+      <div class="card-hd">➕ 新增專案</div>
+      <div class="card-bd">
+        <div class="fg2" style="margin-bottom:14px">
+          <div>
+            <label class="lbl">專案 ID（代碼）</label>
+            <input class="inp" id="np-id" placeholder="例：P2024001"
+              onchange="npAutoFill()">
+          </div>
+          <div>
+            <label class="lbl">專案名稱</label>
+            <input class="inp" id="np-name" placeholder="例：台南廠區外勤補助">
+          </div>
+        </div>
+        <div class="fg2" style="margin-bottom:14px">
+          <div>
+            <label class="lbl">專案代號（合約用）</label>
+            <input class="inp" id="np-code" placeholder="例：A24-015">
+          </div>
+          <div>
+            <label class="lbl">隸屬部門</label>
+            <select class="inp" id="np-dept">
+              <option value="">— 選擇部門 —</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2" style="margin-bottom:14px">
+          <div>
+            <label class="lbl">採月定額</label>
+            <div class="tgl" style="width:180px" id="tgl-np-quota">
+              <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
+              <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
             </div>
-            <div class="fg2" style="margin-bottom:14px">
-              <div>
-                <label class="lbl">隸屬部門</label>
-                <select class="inp" id="np-dept">
-                  <option value="">— 選擇部門 —</option>
-                </select>
-              </div>
-              <div>
-                <label class="lbl">採月定額</label>
-                <div class="tgl" style="width:180px" id="tgl-np-quota">
-                  <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
-                  <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
-                </div>
-                <input type="hidden" id="np-quota" value="true">
-              </div>
+            <input type="hidden" id="np-quota" value="true">
+          </div>
+          <div>
+            <label class="lbl">核定補助（月定額時填寫）</label>
+            <input type="number" class="inp" id="np-subsidy" placeholder="0"
+              min="0" step="100">
+          </div>
+        </div>
+        <div class="fg2" style="margin-bottom:14px">
+          <div>
+            <label class="lbl">生效日</label>
+            <input type="date" class="inp" id="np-effect">
+          </div>
+          <div>
+            <label class="lbl">結案日（可空白）</label>
+            <input type="date" class="inp" id="np-close">
+          </div>
+        </div>
+        <!-- 預收款 -->
+        <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px">
+          <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-np-prepay">
+            <button class="tgl-btn on" onclick="setNpPrepay(false)">不啟用</button>
+            <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
+          </div>
+          <input type="hidden" id="np-prepay-enabled" value="false">
+          <div class="fg2" id="np-prepay-fields" style="display:none">
+            <div>
+              <label class="lbl">預收金額</label>
+              <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
             </div>
-            <div class="fg2" style="margin-bottom:14px">
-              <div>
-                <label class="lbl">核定補助（月定額時填寫）</label>
-                <input type="number" class="inp" id="np-subsidy" placeholder="0"
-                  min="0" step="100">
-              </div>
-              <div></div>
-            </div>
-            <div class="fg2" style="margin-bottom:14px">
-              <div>
-                <label class="lbl">生效日</label>
-                <input type="date" class="inp" id="np-effect">
-              </div>
-              <div>
-                <label class="lbl">結案日（可空白）</label>
-                <input type="date" class="inp" id="np-close">
-              </div>
-            </div>
-            <!-- 按鈕：left bottom -->
-            <div style="margin-top:4px">
-              <button class="btn btn-primary" id="btnAddProj" onclick="doAddProject()">
-                ＋ 新增
-              </button>
-              <span id="npMsg" style="font-size:14px;margin-left:12px"></span>
+            <div>
+              <label class="lbl">每期扣回比例 (%)</label>
+              <input type="number" class="inp" id="np-prepay-deductpct" placeholder="10" min="0" max="100" value="10">
             </div>
           </div>
         </div>
-
-        <!-- 專案列表 card -->
-        <div class="card">
-          <div class="card-hd">
-            📋 專案列表
-            <span class="badge bd-muted" id="projListCnt" style="margin-left:6px"></span>
-            <span id="projListSyncDone" style="font-size:13px;color:var(--green);
-              font-weight:700;display:none;margin-left:6px">✅ 同步完成</span>
-          </div>
-          <div style="overflow-x:auto">
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>專案 ID</th>
-                  <th style="min-width:220px">名稱</th>
-                  <th>部門</th>
-                  <th>類型</th>
-                  <th>核定補助</th>
-                  <th>生效日</th>
-                  <th>結案日</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="projListTbl">
-                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">
-                  點 🔄 載入專案列表
-                </td></tr>
-              </tbody>
-            </table>
-          </div>
+        <!-- 按鈕：left bottom -->
+        <div style="margin-top:4px">
+          <button class="btn btn-primary" id="btnAddProj" onclick="doAddProject()">
+            ＋ 新增
+          </button>
+          <span id="npMsg" style="font-size:14px;margin-left:12px"></span>
         </div>
       </div>
     </div>
 
-  </div><!-- /mainArea -->
-</div><!-- /appShell -->
+    <!-- 專案列表 card -->
+    <div class="card">
+      <div class="card-hd">
+        📋 專案列表
+        <span class="badge bd-muted" id="projListCnt" style="margin-left:6px"></span>
+        <span id="projListSyncDone" style="font-size:13px;color:var(--green);
+          font-weight:700;display:none;margin-left:6px">✅ 同步完成</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>專案 ID</th>
+              <th>代號</th>
+              <th>名稱</th>
+              <th>部門</th>
+              <th>類型</th>
+              <th>核定補助</th>
+              <th>生效日</th>
+              <th>結案日</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="projListTbl">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">
+              點 🔄 載入專案列表
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Bottom Tab Bar ═══════════ -->
+<div class="bottombar" id="bottomBar" style="display:none">
+  <button class="bottombar-btn" data-section="project" onclick="switchSection('project')">
+    <span class="bb-ico">🗂</span><span>專案</span>
+  </button>
+  <button class="bottombar-btn active" data-section="expense" onclick="switchSection('expense')">
+    <span class="bb-ico">💲</span><span>費用</span>
+  </button>
+  <button class="bottombar-btn" data-section="todo" onclick="switchSection('todo')">
+    <span class="bb-ico">✅</span><span>待辦</span>
+  </button>
+  <button class="bottombar-btn" data-section="settings" onclick="switchSection('settings')">
+    <span class="bb-ico">⚙️</span><span>設定</span>
+  </button>
+</div>
+
 
 
 <!-- DUPLICATE INVOICE MODAL -->
@@ -572,9 +649,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 const CFG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec'
 };
-
-// LINE 登入按鈕標籤（兩處共用，避免 SVG 各自維護）
-const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -646,7 +720,7 @@ async function startLineLogin() {
     gasErr = e.message;
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = LINE_BTN_LABEL; }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入'; }
 
   if (!chId) {
     toast('❌ ' + (gasErr ? 'GAS 連線失敗：' + gasErr : 'LINE_CHANNEL_ID 未設定'));
@@ -676,6 +750,7 @@ function handleLineCallback() {
   localStorage.removeItem('line_state');
 
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
+  const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
   const CALLBACK_TIMEOUT_MS = 30000;  // 30 秒 timeout
   const btnLine = document.getElementById('btnLineLogin');
   function restoreLineBtn() {
@@ -723,6 +798,8 @@ function finishLogin(person) {
   document.getElementById('bindNameSection').style.display  = 'none';
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('appShell').style.display  = 'grid';
+  document.body.classList.add('has-bottombar');
+  document.getElementById('bottomBar').style.display = 'flex';
   renderUserBar();
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = document.getElementById('driveFileTbl');
@@ -833,7 +910,6 @@ function doReloadAll() {
   } else if (activePage === 'page-history') {
     loadExportHistory(true);
   } else if (activePage === 'page-project') {
-    loadConfig();
     loadProjectList(true);
   } else {
     loadConfig();
@@ -877,20 +953,24 @@ async function restoreFuelProjList(rows) {
   window._fuelProjList = [];
 
   // 去重：同 attrType + attrTarget，保留「最有資料」的一筆
-  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）
-  // 與 GAS handleGetFuelProjects 的去重邏輯保持一致
+  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）> 最新更新時間
   const seen = new Map();
   rows.forEach(row => {
     const key = (row.attrType || '') + '|' + (row.attrTarget || '');
     if (!seen.has(key)) {
       seen.set(key, row);
     } else {
-      const prev    = seen.get(key);
-      const prevAmt  = parseFloat(prev.amount   || 0);
-      const currAmt  = parseFloat(row.amount    || 0);
-      const prevSupp = (prev.supplement || '').length;
-      const currSupp = (row.supplement  || '').length;
-      if (currAmt > prevAmt || (currAmt === prevAmt && currSupp > prevSupp)) {
+      const prev = seen.get(key);
+      const prevAmt     = parseFloat(prev.amount    || 0);
+      const currAmt     = parseFloat(row.amount     || 0);
+      const prevSupp    = (prev.supplement || '').length;
+      const currSupp    = (row.supplement  || '').length;
+      const prevUpdated = prev.updatedAt || prev.month || '';
+      const currUpdated = row.updatedAt  || row.month  || '';
+      // 更新時間較新優先；相同時間再看金額與 supplement 長度
+      const currNewer = currUpdated > prevUpdated;
+      const sameTime  = currUpdated === prevUpdated;
+      if (currNewer || (sameTime && currAmt > prevAmt) || (sameTime && currAmt === prevAmt && currSupp > prevSupp)) {
         seen.set(key, row);
       }
     }
@@ -980,8 +1060,8 @@ async function loadOcrResults(auto = false) {
     return;
   }
 
-  // 合併到 S.receipts（以 ocrKey 去重，ocrKey 是 Sheet Key 欄的唯一識別）
-  const existKeys = new Set(S.receipts.map(r => r.ocrKey).filter(Boolean));
+  // 合併到 S.receipts（以 key 去重）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
   let added = 0;
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
@@ -1251,11 +1331,13 @@ function renderDriveFiles() {
   }
 
   // 更新計數（card 已預設顯示，不需再 display:block）
-  const _uploadCnt = sorted.length || S._newUploadedNames?.size || 0;
+  const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
   document.getElementById('uploadedCnt').textContent =
-    sorted.length             ? `${sorted.length} 個`
-    : S._newUploadedNames?.size ? `${S._newUploadedNames.size} 個（本次）`
-    : '0 個';
+    sorted.length
+      ? sorted.length + ' 個'
+      : S._newUploadedNames?.size
+        ? S._newUploadedNames.size + ' 個（本次）'
+        : '0 個';
 }
 
 function toggleDriveChk(i) {
@@ -1316,16 +1398,8 @@ function renderQueue() {
     return;
   }
   c.innerHTML = S.ocrQueue.map((f, i) => {
-    // 縮圖：Drive fileId 可組 thumbnail URL；非圖片（PDF）用預設圖示
-    const isPdf = (f.mimeType||f.name||'').includes('pdf');
-    const thumbHtml = f.id && !isPdf
-      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
-             style="width:44px;height:44px;object-fit:cover;border-radius:6px"
-             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:22px'}))">`
-      : `<span style="font-size:22px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `
     <div class="file-item" style="gap:10px">
-      <div class="file-thumb">${thumbHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
@@ -1366,12 +1440,8 @@ async function runOCR() {
     try {
       let b64 = '';
       if (qf.id) {
-        try {
-          const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
-          b64 = fr.base64 || '';
-        } catch(fetchErr) {
-          throw new Error('取得檔案失敗：' + fetchErr.message);
-        }
+        const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
+        b64 = fr.base64 || '';
       }
 
       const res = await callGAS({
@@ -1836,11 +1906,11 @@ function renderFuelTab(fuelReceipts) {
             const idx = window._fuelProjList.indexOf(fp);
             const expLabel = fp._isExpired ? '（已結案）' : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
-              background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
+              background:rgba(167,139,250,.15);color:#c4b5fd;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
               ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
-                style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
+                style="cursor:pointer;font-size:14px;color:#a78bfa;margin-left:2px">✕</span>
             </span>`;
           }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
@@ -1921,13 +1991,13 @@ function updateFuelDiff() {
       if (!proj) return '';
       const idx = window._fuelProjList.indexOf(fp);
       return `<span style="display:inline-flex;align-items:center;gap:6px;
-        background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
+        background:rgba(167,139,250,.15);color:#c4b5fd;border-radius:99px;
         padding:4px 12px;font-size:13px;font-weight:700">
         ${proj.id} ${proj.name}
         <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
           核定 $${(proj.subsidy||0).toLocaleString()}/月</span>
         <span onclick="removeFuelProj(${idx})"
-          style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
+          style="cursor:pointer;font-size:14px;color:#a78bfa;margin-left:2px">✕</span>
       </span>`;
     }).join('');
   }
@@ -1935,7 +2005,7 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode  = S.config.userDeptCode || S.config.userDept || '';
+  const myDeptCode  = S.config.userDeptCode || '';
   const selectedIds = window._fuelProjList
     .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
     .filter(Boolean);
@@ -2120,7 +2190,7 @@ function initFuelMileDropdownAt(idx) {
   const el = document.getElementById(wrapperId);
   if (!el) return;
 
-  const myDeptCode = S.config.userDeptCode || S.config.userDept || '';
+  const myDeptCode = S.config.userDeptCode || '';
   // 所有生效中專案（含月定額和里程實報）+ 部門 + 其他
   const projItems = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode)
     .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
@@ -2406,24 +2476,24 @@ function rcHTML(r) {
   // ── 辨識失敗：顯示專用卡片，提醒使用者重新辨識或手動填寫 ──
   if (r.status === 'error') {
     return `
-    <div id="rc-${r.id}" style="border:2px solid var(--red,#e53935);border-radius:12px;margin-bottom:12px;background:#fff8f8;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#ffebee">
+    <div id="rc-${r.id}" style="border:2px solid var(--red);border-radius:12px;margin-bottom:12px;background:rgba(239,68,68,.06);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(239,68,68,.12)">
         <span style="font-size:22px">❌</span>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;color:#c62828;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
-          <div style="font-size:12px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
-          ${r.error ? `<div style="font-size:11px;color:#b71c1c;margin-top:3px">錯誤：${r.error}</div>` : ''}
+          <div style="font-weight:700;color:#f87171;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
+          ${r.error ? `<div style="font-size:11px;color:#f87171;margin-top:3px">錯誤：${r.error}</div>` : ''}
         </div>
         <button onclick="retryOCR('${r.id}')"
-          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#1565c0;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
           🔄 重新辨識
         </button>
         <button onclick="editErrorReceipt('${r.id}')"
-          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#f5f5f5;color:#333;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #ddd">
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2)">
           ✏️ 手動填寫
         </button>
         <button onclick="removeErrorReceipt('${r.id}')"
-          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#b71c1c;font-size:16px;cursor:pointer" title="移除">
+          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#f87171;font-size:16px;cursor:pointer" title="移除">
           🗑
         </button>
       </div>
@@ -2798,7 +2868,8 @@ async function stashSingle(id) {
   if (!r) return;
   // 油資：projId 優先從 _fuelProjList 取（新版 UI 不一定存在 r.projectId）
   const fuelFp = r.category === 'fuel'
-    ? (window._fuelProjList.find(fp => fp.projId === r.projectId) || null)
+    ? (window._fuelProjList.find(fp => fp.projId === r.projectId)
+       || window._fuelProjList.find(fp => fp.projId))
     : null;
   // attribution：停車費固定用 'parking'（GAS exportAll 從 parkAttr 取真正歸屬）
   // 油資歸屬只存 FuelProjects sheet，不回寫 OCRResults K/L 欄 → 傳空字串
@@ -3188,7 +3259,7 @@ function renderDupModal(r) {
     </div>
     ${isCrossMonth
       ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
-           <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
+           <div style="color:#fbbf24;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
            <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${oldKeyMonth.slice(0,4)}-${oldKeyMonth.slice(4)}</strong> 月份紀錄中。</div>
            <div style="color:var(--muted);margin-top:4px">跨月不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
          </div>`
@@ -3413,6 +3484,33 @@ async function _doExport(skipStash = false) {
 }
 
 // ════════════════════════════════════════════════════════════
+// BOTTOM TAB BAR — 區段切換 (專案／費用／待辦／設定)
+// ════════════════════════════════════════════════════════════
+function switchSection(name) {
+  document.querySelectorAll('.bottombar-btn').forEach(b=>
+    b.classList.toggle('active', b.dataset.section===name));
+
+  document.getElementById('appShell').style.display = (name==='expense') ? 'grid' : 'none';
+  ['project','todo','settings'].forEach(s=>
+    document.getElementById('sec-'+s).classList.toggle('active', s===name));
+
+  // 手機版若 sidebar 仍展開，切換區段時收合
+  document.getElementById('mainSidebar')?.classList.remove('open');
+  document.getElementById('sidebarOverlay')?.classList.remove('open');
+
+  if (name==='settings') {
+    populateNpDept();
+    loadProjectList(false);
+  }
+  if (name==='todo') {
+    loadTasks();
+  }
+  if (name==='project') {
+    loadProjectsForBoard();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
 function nav(name) {
@@ -3432,10 +3530,6 @@ function nav(name) {
   }
   if (name==='history') {
     loadExportHistory(false);
-  }
-  if (name==='project') {
-    populateNpDept();
-    loadProjectList(false);
   }
   // 手機版切頁後關閉 sidebar
   document.getElementById('mainSidebar')?.classList.remove('open');
@@ -3474,15 +3568,29 @@ function setNpQuota(isQuota) {
 // 自動填充（目前僅作 placeholder）
 function npAutoFill() {}
 
+// 預收款 toggle
+function setNpPrepay(enabled) {
+  document.getElementById('np-prepay-enabled').value = enabled ? 'true' : 'false';
+  const tgl = document.getElementById('tgl-np-prepay');
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+    b.classList.toggle('on', i === (enabled ? 1 : 0)));
+  const fields = document.getElementById('np-prepay-fields');
+  if (fields) fields.style.display = enabled ? 'grid' : 'none';
+}
+
 // 新增專案
 async function doAddProject() {
   const id       = document.getElementById('np-id')?.value.trim();
   const name     = document.getElementById('np-name')?.value.trim();
+  const code     = document.getElementById('np-code')?.value.trim();
   const deptCode = document.getElementById('np-dept')?.value;
   const quota    = document.getElementById('np-quota')?.value === 'true';
   const subsidy  = parseFloat(document.getElementById('np-subsidy')?.value) || 0;
   const effect   = document.getElementById('np-effect')?.value;
   const close    = document.getElementById('np-close')?.value;
+  const prepayEnabled = document.getElementById('np-prepay-enabled')?.value === 'true';
+  const prepayAmount  = parseFloat(document.getElementById('np-prepay-amount')?.value) || 0;
+  const prepayPct     = parseFloat(document.getElementById('np-prepay-deductpct')?.value) || 0;
   const msg      = document.getElementById('npMsg');
 
   if (!id || !name || !effect) {
@@ -3497,21 +3605,26 @@ async function doAddProject() {
   try {
     const res = await callGAS({
       action: 'addProject',
-      id, name, quota, subsidy,
+      id, code, name, quota, subsidy,
       effectDate: effect,
       closeDate:  close || '',
       deptCode:   deptCode || '',
+      client:  [],
+      vendors: [],
+      prepay:  { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
       addedBy:    S.user?.name || '',
     });
     if (res.success) {
       if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
       // 清空表單
-      ['np-id','np-name','np-subsidy','np-effect','np-close'].forEach(id => {
+      ['np-id','np-name','np-code','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      document.getElementById('np-prepay-deductpct').value = '10';
       document.getElementById('np-dept').value = '';
       setNpQuota(true);
+      setNpPrepay(false);
       setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
       // 重新載入列表
       loadProjectList(true);
@@ -3550,7 +3663,7 @@ function renderProjectList(rows) {
   const tbody = document.getElementById('projListTbl');
   if (!tbody) return;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map((p, i) => {
@@ -3562,6 +3675,7 @@ function renderProjectList(rows) {
       : '';
     return `<tr id="prow-${i}">
       <td style="font-weight:800;font-family:monospace">${p.id}${newTag}</td>
+      <td style="font-size:13px;color:var(--muted)">${p.code||'—'}</td>
       <td style="font-weight:700">${p.name}</td>
       <td style="font-size:13px;color:var(--muted)">${p.deptCode||'—'}</td>
       <td>${quoteBadge}</td>
@@ -3579,6 +3693,241 @@ function renderProjectList(rows) {
   // 存入 state 供 edit 讀取
   S._projList = rows;
 }
+
+// ════════════════════════════════════════════════════════════
+// 待辦事項 (Tasks)
+// ════════════════════════════════════════════════════════════
+async function loadTasks() {
+  const list = document.getElementById('taskList');
+  if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
+  try {
+    const res  = await callGAS({ action: 'getTasks' });
+    const rows = res.rows || [];
+    S._taskList = rows;
+    renderTaskList(rows);
+    const cnt = document.getElementById('taskListCnt');
+    if (cnt) cnt.textContent = rows.filter(t=>t.status!=='已完成').length + ' 待處理';
+  } catch(e) {
+    if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
+  }
+}
+
+function renderTaskList(rows) {
+  const list = document.getElementById('taskList');
+  if (!list) return;
+  if (!rows.length) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無待辦事項</div>';
+    return;
+  }
+  list.innerHTML = rows.map(t => {
+    const done = t.status === '已完成';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${done?'checked':''} style="width:18px;height:18px;cursor:pointer"
+        onchange="toggleTask('${t.id}', this.checked)">
+      <div style="flex:1;${done?'text-decoration:line-through;color:var(--muted)':''}">
+        ${esc(t.content)}
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="doDeleteTask('${t.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function doAddTask() {
+  const input = document.getElementById('td-input');
+  const content = input?.value.trim();
+  if (!content) return;
+  input.disabled = true;
+  try {
+    const res = await callGAS({ action:'addTask', content, addedBy: S.user?.name || '' });
+    if (res.success) {
+      input.value = '';
+      loadTasks();
+    } else {
+      toast('❌ ' + (res.error||'新增失敗'));
+    }
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+  input.disabled = false;
+  input.focus();
+}
+
+async function toggleTask(id, checked) {
+  const status = checked ? '已完成' : '待處理';
+  const res = await callGAS({ action:'updateTaskStatus', id, status });
+  if (res.success) loadTasks();
+  else toast('❌ ' + (res.error||'更新失敗'));
+}
+
+async function doDeleteTask(id) {
+  const confirmed = await showConfirm('確定刪除此待辦事項？');
+  if (!confirmed) return;
+  const res = await callGAS({ action:'deleteTask', id });
+  if (res.success) loadTasks();
+  else toast('❌ ' + (res.error||'刪除失敗'));
+}
+
+// ════════════════════════════════════════════════════════════
+// 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款
+// ════════════════════════════════════════════════════════════
+const PJ_STATUS = ['未請款','已請款','已收款'];
+
+async function loadProjectsForBoard() {
+  const board = document.getElementById('projBoard');
+  if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
+  try {
+    const res = await callGAS({ action:'getProjects' });
+    S._pjBoard = res.rows || [];
+    renderProjectBoard();
+  } catch(e) {
+    if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
+  }
+}
+
+function pjSum(arr) { return (arr||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); }
+
+function renderProjectBoard() {
+  const board = document.getElementById('projBoard');
+  if (!board) return;
+  const rows = S._pjBoard || [];
+  if (!rows.length) {
+    board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請至「設定」新增</div>';
+    return;
+  }
+  board.innerHTML = rows.map((p,i) => {
+    const clientTotal  = pjSum(p.client);
+    const vendorTotal  = (p.vendors||[]).reduce((s,v)=>s+pjSum(v.periods),0);
+    const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-hd" style="cursor:pointer" onclick="pjToggle(${i})">
+        <span style="font-weight:800">${esc(p.name)}</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px">${esc(p.code||p.id)}</span>
+        ${prepay.enabled?`<span class="badge bd-purple" style="margin-left:8px">預收 $${Number(prepay.amount).toLocaleString()}（扣${prepay.deductPct}%/期）</span>`:''}
+        <span style="float:right;color:var(--muted);font-size:13px">業主 $${clientTotal.toLocaleString()} ／ 廠商 $${vendorTotal.toLocaleString()}</span>
+      </div>
+      <div class="card-bd" id="pj-body-${i}" style="display:none">
+        <div style="font-weight:700;margin-bottom:8px">🏢 業主端（請款分期）</div>
+        <div id="pj-client-${i}"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pjAddClient(${i})">＋ 新增分期</button>
+
+        <div style="font-weight:700;margin:18px 0 8px">🔧 廠商端</div>
+        <div id="pj-vendor-${i}"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pjAddVendor(${i})">＋ 新增廠商</button>
+
+        <div style="margin-top:18px">
+          <button class="btn btn-primary btn-sm" onclick="pjSave(${i})">💾 儲存</button>
+          <span id="pj-msg-${i}" style="font-size:13px;margin-left:8px"></span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  rows.forEach((p,i) => { pjRenderClient(i); pjRenderVendor(i); });
+}
+
+function pjToggle(i) {
+  const el = document.getElementById('pj-body-'+i);
+  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function pjRenderClient(i) {
+  const p = S._pjBoard[i];
+  const wrap = document.getElementById('pj-client-'+i);
+  if (!wrap) return;
+  const items = p.client || [];
+  if (!items.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無分期</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr>
+    <th>項目</th><th>金額</th><th>狀態</th><th>請款日</th><th>收款日</th><th></th>
+  </tr></thead><tbody>` + items.map((c,j)=>`<tr>
+    <td><input class="inp" value="${esc(c.label||'')}" onchange="pjSetClient(${i},${j},'label',this.value)"></td>
+    <td><input type="number" class="inp" style="width:110px" value="${c.amount||0}" onchange="pjSetClient(${i},${j},'amount',this.value)"></td>
+    <td><select class="inp" onchange="pjSetClient(${i},${j},'status',this.value)">
+      ${PJ_STATUS.map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
+    </select></td>
+    <td><input type="date" class="inp" value="${c.invoiceDate||''}" onchange="pjSetClient(${i},${j},'invoiceDate',this.value)"></td>
+    <td><input type="date" class="inp" value="${c.payDate||''}" onchange="pjSetClient(${i},${j},'payDate',this.value)"></td>
+    <td><button class="btn btn-danger btn-sm" onclick="pjRemoveClient(${i},${j})">🗑</button></td>
+  </tr>`).join('') + `</tbody></table>`;
+}
+
+function pjAddClient(i) {
+  S._pjBoard[i].client = S._pjBoard[i].client || [];
+  S._pjBoard[i].client.push({label:'',amount:0,status:PJ_STATUS[0],invoiceDate:'',payDate:''});
+  pjRenderClient(i);
+}
+function pjRemoveClient(i,j) { S._pjBoard[i].client.splice(j,1); pjRenderClient(i); }
+function pjSetClient(i,j,k,v) {
+  S._pjBoard[i].client[j][k] = (k==='amount') ? (parseFloat(v)||0) : v;
+}
+
+function pjRenderVendor(i) {
+  const p = S._pjBoard[i];
+  const wrap = document.getElementById('pj-vendor-'+i);
+  if (!wrap) return;
+  const vendors = p.vendors || [];
+  if (!vendors.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'; return; }
+  wrap.innerHTML = vendors.map((v,vi) => {
+    const periods = v.periods || [];
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input class="inp" style="flex:1" value="${esc(v.name||'')}" placeholder="廠商名稱"
+          onchange="pjSetVendorName(${i},${vi},this.value)">
+        <button class="btn btn-danger btn-sm" onclick="pjRemoveVendor(${i},${vi})">🗑 廠商</button>
+      </div>
+      ${periods.length ? `<table class="tbl"><thead><tr>
+        <th>項目</th><th>金額</th><th>狀態</th><th></th>
+      </tr></thead><tbody>` + periods.map((pr,pj)=>`<tr>
+        <td><input class="inp" value="${esc(pr.label||'')}" onchange="pjSetVendorPeriod(${i},${vi},${pj},'label',this.value)"></td>
+        <td><input type="number" class="inp" style="width:110px" value="${pr.amount||0}" onchange="pjSetVendorPeriod(${i},${vi},${pj},'amount',this.value)"></td>
+        <td><select class="inp" onchange="pjSetVendorPeriod(${i},${vi},${pj},'status',this.value)">
+          ${PJ_STATUS.map(s=>`<option ${s===pr.status?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td><button class="btn btn-danger btn-sm" onclick="pjRemoveVendorPeriod(${i},${vi},${pj})">🗑</button></td>
+      </tr>`).join('') + `</tbody></table>`
+      : '<div style="color:var(--muted);font-size:13px">尚無分期</div>'}
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pjAddVendorPeriod(${i},${vi})">＋ 新增分期</button>
+    </div>`;
+  }).join('');
+}
+
+function pjAddVendor(i) {
+  S._pjBoard[i].vendors = S._pjBoard[i].vendors || [];
+  S._pjBoard[i].vendors.push({name:'',periods:[]});
+  pjRenderVendor(i);
+}
+function pjRemoveVendor(i,vi) { S._pjBoard[i].vendors.splice(vi,1); pjRenderVendor(i); }
+function pjSetVendorName(i,vi,v) { S._pjBoard[i].vendors[vi].name = v; }
+function pjAddVendorPeriod(i,vi) {
+  const v = S._pjBoard[i].vendors[vi];
+  v.periods = v.periods || [];
+  v.periods.push({label:'',amount:0,status:PJ_STATUS[0]});
+  pjRenderVendor(i);
+}
+function pjRemoveVendorPeriod(i,vi,pj) { S._pjBoard[i].vendors[vi].periods.splice(pj,1); pjRenderVendor(i); }
+function pjSetVendorPeriod(i,vi,pj,k,v) {
+  S._pjBoard[i].vendors[vi].periods[pj][k] = (k==='amount') ? (parseFloat(v)||0) : v;
+}
+
+async function pjSave(i) {
+  const p = S._pjBoard[i];
+  const msg = document.getElementById('pj-msg-'+i);
+  if (msg) { msg.textContent='儲存中...'; msg.style.color='var(--muted)'; }
+  try {
+    const res = await callGAS({
+      action:'updateProject', id:p.id,
+      client:p.client||[], vendors:p.vendors||[], prepay:p.prepay||{enabled:false,amount:0,deductPct:10},
+    });
+    if (res.success) {
+      if (msg) { msg.textContent='✅ 已儲存'; msg.style.color='var(--green)'; }
+      renderProjectBoard();
+    } else {
+      if (msg) { msg.textContent='❌ '+(res.error||'失敗'); msg.style.color='var(--red)'; }
+    }
+  } catch(e) {
+    if (msg) { msg.textContent='❌ '+e.message; msg.style.color='var(--red)'; }
+  }
+}
+
 
 // 編輯：inline 展開編輯列
 function doEditProject(i) {
@@ -3598,7 +3947,7 @@ function doEditProject(i) {
   const editTr = document.createElement('tr');
   editTr.id = 'prow-edit-'+i;
   editTr.style.background = 'rgba(37,99,235,.04)';
-  editTr.innerHTML = `<td colspan="8" style="padding:14px 16px">
+  editTr.innerHTML = `<td colspan="9" style="padding:14px 16px">
     <div class="fg4" style="margin-bottom:10px">
       <div><label class="lbl">名稱</label>
         <input class="inp" id="ep-name-${i}" value="${esc(p.name)}"></div>
@@ -3770,8 +4119,8 @@ async function doStashAll(silent = false) {
   if (!S.receipts.length) { if (!silent) toast('⚠️ 沒有可暫存的憑證'); return; }
 
   const fuelProjForReceipt = (r) => {
-    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId) || null;
-    return null; // projectId 不明時不猜測，避免誤配對
+    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId);
+    return window._fuelProjList.find(fp => fp.projId);
   };
 
   const updates = S.receipts.map(r => {
@@ -4100,13 +4449,11 @@ function retryOCR(rcId) {
   if (!r) return;
   // source 即原始檔名，找 ocrQueue 有無對應（避免重複加）
   const alreadyQueued = S.ocrQueue.find(q => q.name === r.source);
-  if (alreadyQueued) {
-    alreadyQueued.status = 'pending';
-  } else {
+  if (!alreadyQueued) {
     S.ocrQueue.push({ id: rcId.replace('_err',''), name: r.source || rcId, status: 'pending', qAttribution: 'project' });
+    badge('nb-ocr', S.ocrQueue.length);
+    renderQueue();
   }
-  badge('nb-ocr', S.ocrQueue.length);
-  renderQueue();
   // 移除失敗卡片，等重新辨識結果
   S.receipts = S.receipts.filter(x => x.id !== rcId);
   renderOCRResults();
