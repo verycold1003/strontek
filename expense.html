@@ -523,7 +523,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <thead>
                 <tr>
                   <th>專案 ID</th>
-                  <th>名稱</th>
+                  <th style="min-width:220px">名稱</th>
                   <th>部門</th>
                   <th>類型</th>
                   <th>核定補助</th>
@@ -572,6 +572,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 const CFG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec'
 };
+
+// LINE 登入按鈕標籤（兩處共用，避免 SVG 各自維護）
+const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -643,7 +646,7 @@ async function startLineLogin() {
     gasErr = e.message;
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = LINE_BTN_LABEL; }
 
   if (!chId) {
     toast('❌ ' + (gasErr ? 'GAS 連線失敗：' + gasErr : 'LINE_CHANNEL_ID 未設定'));
@@ -673,7 +676,6 @@ function handleLineCallback() {
   localStorage.removeItem('line_state');
 
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
-  const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
   const CALLBACK_TIMEOUT_MS = 30000;  // 30 秒 timeout
   const btnLine = document.getElementById('btnLineLogin');
   function restoreLineBtn() {
@@ -831,6 +833,7 @@ function doReloadAll() {
   } else if (activePage === 'page-history') {
     loadExportHistory(true);
   } else if (activePage === 'page-project') {
+    loadConfig();
     loadProjectList(true);
   } else {
     loadConfig();
@@ -874,24 +877,20 @@ async function restoreFuelProjList(rows) {
   window._fuelProjList = [];
 
   // 去重：同 attrType + attrTarget，保留「最有資料」的一筆
-  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）> 最新更新時間
+  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）
+  // 與 GAS handleGetFuelProjects 的去重邏輯保持一致
   const seen = new Map();
   rows.forEach(row => {
     const key = (row.attrType || '') + '|' + (row.attrTarget || '');
     if (!seen.has(key)) {
       seen.set(key, row);
     } else {
-      const prev = seen.get(key);
-      const prevAmt     = parseFloat(prev.amount    || 0);
-      const currAmt     = parseFloat(row.amount     || 0);
-      const prevSupp    = (prev.supplement || '').length;
-      const currSupp    = (row.supplement  || '').length;
-      const prevUpdated = prev.updatedAt || prev.month || '';
-      const currUpdated = row.updatedAt  || row.month  || '';
-      // 更新時間較新優先；相同時間再看金額與 supplement 長度
-      const currNewer = currUpdated > prevUpdated;
-      const sameTime  = currUpdated === prevUpdated;
-      if (currNewer || (sameTime && currAmt > prevAmt) || (sameTime && currAmt === prevAmt && currSupp > prevSupp)) {
+      const prev    = seen.get(key);
+      const prevAmt  = parseFloat(prev.amount   || 0);
+      const currAmt  = parseFloat(row.amount    || 0);
+      const prevSupp = (prev.supplement || '').length;
+      const currSupp = (row.supplement  || '').length;
+      if (currAmt > prevAmt || (currAmt === prevAmt && currSupp > prevSupp)) {
         seen.set(key, row);
       }
     }
@@ -981,8 +980,8 @@ async function loadOcrResults(auto = false) {
     return;
   }
 
-  // 合併到 S.receipts（以 key 去重）
-  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
+  // 合併到 S.receipts（以 ocrKey 去重，ocrKey 是 Sheet Key 欄的唯一識別）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey).filter(Boolean));
   let added = 0;
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
@@ -1252,13 +1251,11 @@ function renderDriveFiles() {
   }
 
   // 更新計數（card 已預設顯示，不需再 display:block）
-  const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
+  const _uploadCnt = sorted.length || S._newUploadedNames?.size || 0;
   document.getElementById('uploadedCnt').textContent =
-    sorted.length
-      ? sorted.length + ' 個'
-      : S._newUploadedNames?.size
-        ? S._newUploadedNames.size + ' 個（本次）'
-        : '0 個';
+    sorted.length             ? `${sorted.length} 個`
+    : S._newUploadedNames?.size ? `${S._newUploadedNames.size} 個（本次）`
+    : '0 個';
 }
 
 function toggleDriveChk(i) {
@@ -1319,8 +1316,16 @@ function renderQueue() {
     return;
   }
   c.innerHTML = S.ocrQueue.map((f, i) => {
+    // 縮圖：Drive fileId 可組 thumbnail URL；非圖片（PDF）用預設圖示
+    const isPdf = (f.mimeType||f.name||'').includes('pdf');
+    const thumbHtml = f.id && !isPdf
+      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
+             style="width:44px;height:44px;object-fit:cover;border-radius:6px"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:22px'}))">`
+      : `<span style="font-size:22px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `
     <div class="file-item" style="gap:10px">
+      <div class="file-thumb">${thumbHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
@@ -1361,8 +1366,12 @@ async function runOCR() {
     try {
       let b64 = '';
       if (qf.id) {
-        const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
-        b64 = fr.base64 || '';
+        try {
+          const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
+          b64 = fr.base64 || '';
+        } catch(fetchErr) {
+          throw new Error('取得檔案失敗：' + fetchErr.message);
+        }
       }
 
       const res = await callGAS({
@@ -1926,7 +1935,7 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode  = S.config.userDeptCode || '';
+  const myDeptCode  = S.config.userDeptCode || S.config.userDept || '';
   const selectedIds = window._fuelProjList
     .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
     .filter(Boolean);
@@ -2111,7 +2120,7 @@ function initFuelMileDropdownAt(idx) {
   const el = document.getElementById(wrapperId);
   if (!el) return;
 
-  const myDeptCode = S.config.userDeptCode || '';
+  const myDeptCode = S.config.userDeptCode || S.config.userDept || '';
   // 所有生效中專案（含月定額和里程實報）+ 部門 + 其他
   const projItems = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode)
     .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
@@ -2789,8 +2798,7 @@ async function stashSingle(id) {
   if (!r) return;
   // 油資：projId 優先從 _fuelProjList 取（新版 UI 不一定存在 r.projectId）
   const fuelFp = r.category === 'fuel'
-    ? (window._fuelProjList.find(fp => fp.projId === r.projectId)
-       || window._fuelProjList.find(fp => fp.projId))
+    ? (window._fuelProjList.find(fp => fp.projId === r.projectId) || null)
     : null;
   // attribution：停車費固定用 'parking'（GAS exportAll 從 parkAttr 取真正歸屬）
   // 油資歸屬只存 FuelProjects sheet，不回寫 OCRResults K/L 欄 → 傳空字串
@@ -3762,8 +3770,8 @@ async function doStashAll(silent = false) {
   if (!S.receipts.length) { if (!silent) toast('⚠️ 沒有可暫存的憑證'); return; }
 
   const fuelProjForReceipt = (r) => {
-    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId);
-    return window._fuelProjList.find(fp => fp.projId);
+    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId) || null;
+    return null; // projectId 不明時不猜測，避免誤配對
   };
 
   const updates = S.receipts.map(r => {
@@ -4092,11 +4100,13 @@ function retryOCR(rcId) {
   if (!r) return;
   // source 即原始檔名，找 ocrQueue 有無對應（避免重複加）
   const alreadyQueued = S.ocrQueue.find(q => q.name === r.source);
-  if (!alreadyQueued) {
+  if (alreadyQueued) {
+    alreadyQueued.status = 'pending';
+  } else {
     S.ocrQueue.push({ id: rcId.replace('_err',''), name: r.source || rcId, status: 'pending', qAttribution: 'project' });
-    badge('nb-ocr', S.ocrQueue.length);
-    renderQueue();
   }
+  badge('nb-ocr', S.ocrQueue.length);
+  renderQueue();
   // 移除失敗卡片，等重新辨識結果
   S.receipts = S.receipts.filter(x => x.id !== rcId);
   renderOCRResults();
