@@ -4186,10 +4186,15 @@ function doEditProject(i) {
   const editTr = document.createElement('tr');
   editTr.id = 'prow-edit-'+i;
   editTr.style.background = 'rgba(37,99,235,.04)';
+  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
   editTr.innerHTML = `<td colspan="9" style="padding:14px 16px">
-    <div class="fg4" style="margin-bottom:10px">
+    <div class="fg2" style="margin-bottom:10px">
       <div><label class="lbl">名稱</label>
         <input class="inp" id="ep-name-${i}" value="${esc(p.name)}"></div>
+      <div><label class="lbl">專案代號</label>
+        <input class="inp" id="ep-code-${i}" value="${esc(p.code||'')}"></div>
+    </div>
+    <div class="fg4" style="margin-bottom:10px">
       <div><label class="lbl">隸屬部門</label>
         <select class="inp" id="ep-dept-${i}">
           <option value="">—</option>${deptOpts}
@@ -4210,6 +4215,19 @@ function doEditProject(i) {
       <div><label class="lbl">結案日</label>
         <input type="date" class="inp" id="ep-close-${i}" value="${p.closeDate||''}"></div>
     </div>
+    <div style="margin-bottom:10px;padding:12px;border:1px solid var(--border);border-radius:10px">
+      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-ep-prepay-${i}">
+        <button class="tgl-btn ${prepay.enabled?'':'on'}" onclick="setEpPrepay(${i},false)">不啟用</button>
+        <button class="tgl-btn ${prepay.enabled?'on':''}" onclick="setEpPrepay(${i},true)">預收款</button>
+      </div>
+      <input type="hidden" id="ep-prepay-enabled-${i}" value="${prepay.enabled?'true':'false'}">
+      <div class="fg2" id="ep-prepay-fields-${i}" style="${prepay.enabled?'':'display:none'}">
+        <div><label class="lbl">預收金額</label>
+          <input type="number" class="inp" id="ep-prepay-amount-${i}" value="${prepay.amount||0}" min="0" step="1000"></div>
+        <div><label class="lbl">每期扣回比例 (%)</label>
+          <input type="number" class="inp" id="ep-prepay-deductpct-${i}" value="${prepay.deductPct||10}" min="0" max="100"></div>
+      </div>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary btn-sm" onclick="doSaveProject('${p.id}',${i})">💾 儲存</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('prow-edit-${i}')?.remove()">取消</button>
@@ -4217,6 +4235,15 @@ function doEditProject(i) {
     </div>
   </td>`;
   tr.after(editTr);
+}
+
+function setEpPrepay(i, enabled) {
+  document.getElementById(`ep-prepay-enabled-${i}`).value = enabled ? 'true' : 'false';
+  const tgl = document.getElementById(`tgl-ep-prepay-${i}`);
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
+    b.classList.toggle('on', j === (enabled ? 1 : 0)));
+  const fields = document.getElementById(`ep-prepay-fields-${i}`);
+  if (fields) fields.style.display = enabled ? 'grid' : 'none';
 }
 
 function setEpQuota(i, isQuota) {
@@ -4230,15 +4257,22 @@ function setEpQuota(i, isQuota) {
 
 async function doSaveProject(id, i) {
   const quota    = document.getElementById(`ep-quota-${i}`)?.value === 'true';
+  const prepayEnabled = document.getElementById(`ep-prepay-enabled-${i}`)?.value === 'true';
   const payload  = {
     action:     'updateProject',
     id,
     name:       document.getElementById(`ep-name-${i}`)?.value.trim()    || '',
+    code:       document.getElementById(`ep-code-${i}`)?.value.trim()     || '',
     deptCode:   document.getElementById(`ep-dept-${i}`)?.value            || '',
     quota,
     subsidy:    parseFloat(document.getElementById(`ep-subsidy-${i}`)?.value) || 0,
     effectDate: document.getElementById(`ep-effect-${i}`)?.value          || '',
     closeDate:  document.getElementById(`ep-close-${i}`)?.value           || '',
+    prepay: {
+      enabled:   prepayEnabled,
+      amount:    parseFloat(document.getElementById(`ep-prepay-amount-${i}`)?.value) || 0,
+      deductPct: parseFloat(document.getElementById(`ep-prepay-deductpct-${i}`)?.value) || 0,
+    },
   };
   const msg = document.getElementById(`ep-msg-${i}`);
   try {
