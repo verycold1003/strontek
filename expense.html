@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>專案管理</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0d0d0f; --surface:#1e1e22; --surface2:#252529;
-  --border:#2e2e34; --border2:#3a3a42;
-  --text:#f1f1f3; --muted:#8e8e9e;
-  --accent:#3b82f6; --accent2:#a78bfa;
-  --gold:#eab308; --green:#22c55e; --red:#ef4444; --amber:#eab308;
-  --parking:#eab308;
+  --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
+  --border:#d0d7e8; --border2:#b8c2d8;
+  --text:#1a2236; --muted:#5a6a8a;
+  --accent:#2563eb; --accent2:#7c3aed;
+  --gold:#b45309; --green:#15803d; --red:#dc2626; --amber:#d97706;
+  --parking:#c2410c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.6}
-.mono{font-family:'JetBrains Mono',monospace}
+.mono{font-family:'IBM Plex Mono',monospace}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--surface2)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
@@ -26,17 +26,28 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 /* Layout */
 .shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
 
-/* ── Bottom Tab Bar ── */
-.bottombar{position:fixed;left:0;right:0;bottom:0;height:58px;background:var(--surface);
-  border-top:1px solid var(--border);display:flex;z-index:150;
-  box-shadow:0 -2px 8px rgba(0,0,0,.25)}
-.bottombar-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-  font-size:11px;font-weight:600;transition:color .15s}
-.bottombar-btn .bb-ico{font-size:19px;line-height:1}
-.bottombar-btn.active{color:var(--accent)}
-body.has-bottombar .shell{height:calc(100vh - 58px)}
-.app-section{display:none;height:calc(100vh - 56px - 58px);overflow-y:auto;padding:18px}
+/* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
+.mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
+  border-bottom:1px solid var(--border);display:flex;align-items:stretch;z-index:200;
+  box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;background:none;border:none;border-right:1px solid var(--border);
+  cursor:pointer;color:var(--text);position:relative}
+.mainnav-tabs{flex:1;display:flex}
+.mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  font-size:14px;font-weight:600;transition:color .15s}
+.mainnav-btn .nv-ico{font-size:17px;line-height:1}
+.mainnav-btn.active{color:var(--accent)}
+.navmenu{display:none;position:absolute;top:52px;left:0;min-width:180px;background:var(--surface);
+  border:1px solid var(--border2);border-radius:0 10px 10px 10px;box-shadow:0 8px 20px rgba(0,0,0,.12);
+  z-index:201;overflow:hidden}
+.navmenu.open{display:block}
+.navmenu-item{display:block;width:100%;text-align:left;padding:12px 16px;font-size:14px;
+  background:none;border:none;cursor:pointer;color:var(--text);font-family:'Noto Sans TC',sans-serif}
+.navmenu-item:hover{background:var(--surface2)}
+body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
+.app-section{display:none;height:calc(100vh - 52px);margin-top:52px;overflow-y:auto;padding:18px}
 .app-section.active{display:block}
 .app-section .pg-title{margin-bottom:14px}
 .topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -52,7 +63,7 @@ body.has-bottombar .shell{height:calc(100vh - 58px)}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:15px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
 .nav-item:hover{color:var(--text);background:rgba(37,99,235,.06)}
 .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(37,99,235,.08);font-weight:700}
-.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'JetBrains Mono',monospace}
+.nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
 
 /* Cards */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -104,12 +115,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 /* Badges */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
-.bd-blue{background:rgba(59,130,246,.15);color:#60a5fa}
-.bd-green{background:rgba(34,197,94,.15);color:#4ade80}
-.bd-red{background:rgba(239,68,68,.15);color:#f87171}
-.bd-orange{background:rgba(234,179,8,.15);color:#fbbf24}
-.bd-purple{background:rgba(167,139,250,.15);color:#c4b5fd}
-.bd-muted{background:rgba(142,142,158,.15);color:var(--muted)}
+.bd-blue{background:rgba(37,99,235,.12);color:#1e40af}
+.bd-green{background:rgba(21,128,61,.12);color:#14532d}
+.bd-red{background:rgba(220,38,38,.12);color:#991b1b}
+.bd-orange{background:rgba(194,65,12,.12);color:#9a3412}
+.bd-purple{background:rgba(124,58,237,.12);color:#5b21b6}
+.bd-muted{background:rgba(90,106,138,.12);color:var(--muted)}
 
 /* Table */
 .tbl{width:100%;border-collapse:collapse}
@@ -487,10 +498,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-<!-- ═══════════ SECTION: 設定 ═══════════ -->
-<div class="app-section" id="sec-settings">
-  <div class="pg-title">⚙️ 設定</div>
-  <div style="display:flex;flex-direction:column;gap:18px">
+<!-- ═══════════ MODAL: 設定（新增專案 / 進度設定） ═══════════ -->
+<div class="modal-wrap" id="settingsModal">
+  <div class="modal-box" style="max-width:900px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="pg-title" style="margin:0">⚙️ 設定</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
 
     <!-- 新增專案 card -->
     <div class="card">
@@ -603,23 +618,30 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </table>
       </div>
     </div>
-  </div>
-</div>
+    </div><!-- /fields wrap -->
+  </div><!-- /modal-box -->
+</div><!-- /settingsModal -->
 
-<!-- ═══════════ Bottom Tab Bar ═══════════ -->
-<div class="bottombar" id="bottomBar" style="display:none">
-  <button class="bottombar-btn" data-section="project" onclick="switchSection('project')">
-    <span class="bb-ico">🗂</span><span>專案</span>
-  </button>
-  <button class="bottombar-btn active" data-section="expense" onclick="switchSection('expense')">
-    <span class="bb-ico">💲</span><span>費用</span>
-  </button>
-  <button class="bottombar-btn" data-section="todo" onclick="switchSection('todo')">
-    <span class="bb-ico">✅</span><span>待辦</span>
-  </button>
-  <button class="bottombar-btn" data-section="settings" onclick="switchSection('settings')">
-    <span class="bb-ico">⚙️</span><span>設定</span>
-  </button>
+<!-- ═══════════ 頂部主導覽列 ═══════════ -->
+<div class="mainnav" id="mainNav" style="display:none">
+  <div class="mainnav-burger" id="navBurgerBtn">
+    <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);width:100%;height:100%">☰</button>
+    <div class="navmenu" id="navMenu">
+      <button class="navmenu-item" onclick="openSettingsModal('add')">➕ 新增專案</button>
+      <button class="navmenu-item" onclick="openSettingsModal('list')">⚙️ 進度設定</button>
+    </div>
+  </div>
+  <div class="mainnav-tabs">
+    <button class="mainnav-btn" data-section="project" onclick="switchSection('project')">
+      <span class="nv-ico">🗂</span><span>專案</span>
+    </button>
+    <button class="mainnav-btn active" data-section="expense" onclick="switchSection('expense')">
+      <span class="nv-ico">💲</span><span>費用</span>
+    </button>
+    <button class="mainnav-btn" data-section="todo" onclick="switchSection('todo')">
+      <span class="nv-ico">✅</span><span>待辦</span>
+    </button>
+  </div>
 </div>
 
 
@@ -798,8 +820,9 @@ function finishLogin(person) {
   document.getElementById('bindNameSection').style.display  = 'none';
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('appShell').style.display  = 'grid';
-  document.body.classList.add('has-bottombar');
-  document.getElementById('bottomBar').style.display = 'flex';
+  document.body.classList.add('has-mainnav');
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('navBurgerBtn').style.display = 'none'; // 預設在「費用」分頁，隱藏漢堡選單
   renderUserBar();
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = document.getElementById('driveFileTbl');
@@ -1585,7 +1608,7 @@ function renderOCRResults() {
       border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
       cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
       <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+      <div style="font-size:12px;color:#888;margin-top:2px">
         ${isFuel ? '' : `<span id="tab-${key}-cnt">${cnt} 張</span> `}
         <strong id="tab-${key}-amt" style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong>
       </div>
@@ -1906,11 +1929,11 @@ function renderFuelTab(fuelReceipts) {
             const idx = window._fuelProjList.indexOf(fp);
             const expLabel = fp._isExpired ? '（已結案）' : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
-              background:rgba(167,139,250,.15);color:#c4b5fd;border-radius:99px;
+              background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
               ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
-                style="cursor:pointer;font-size:14px;color:#a78bfa;margin-left:2px">✕</span>
+                style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
             </span>`;
           }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
@@ -1991,13 +2014,13 @@ function updateFuelDiff() {
       if (!proj) return '';
       const idx = window._fuelProjList.indexOf(fp);
       return `<span style="display:inline-flex;align-items:center;gap:6px;
-        background:rgba(167,139,250,.15);color:#c4b5fd;border-radius:99px;
+        background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
         padding:4px 12px;font-size:13px;font-weight:700">
         ${proj.id} ${proj.name}
         <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
           核定 $${(proj.subsidy||0).toLocaleString()}/月</span>
         <span onclick="removeFuelProj(${idx})"
-          style="cursor:pointer;font-size:14px;color:#a78bfa;margin-left:2px">✕</span>
+          style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
       </span>`;
     }).join('');
   }
@@ -2476,24 +2499,24 @@ function rcHTML(r) {
   // ── 辨識失敗：顯示專用卡片，提醒使用者重新辨識或手動填寫 ──
   if (r.status === 'error') {
     return `
-    <div id="rc-${r.id}" style="border:2px solid var(--red);border-radius:12px;margin-bottom:12px;background:rgba(239,68,68,.06);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(239,68,68,.12)">
+    <div id="rc-${r.id}" style="border:2px solid var(--red,#e53935);border-radius:12px;margin-bottom:12px;background:#fff8f8;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#ffebee">
         <span style="font-size:22px">❌</span>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;color:#f87171;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
-          ${r.error ? `<div style="font-size:11px;color:#f87171;margin-top:3px">錯誤：${r.error}</div>` : ''}
+          <div style="font-weight:700;color:#c62828;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
+          ${r.error ? `<div style="font-size:11px;color:#b71c1c;margin-top:3px">錯誤：${r.error}</div>` : ''}
         </div>
         <button onclick="retryOCR('${r.id}')"
-          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#1565c0;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
           🔄 重新辨識
         </button>
         <button onclick="editErrorReceipt('${r.id}')"
-          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2)">
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#f5f5f5;color:#333;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #ddd">
           ✏️ 手動填寫
         </button>
         <button onclick="removeErrorReceipt('${r.id}')"
-          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#f87171;font-size:16px;cursor:pointer" title="移除">
+          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#b71c1c;font-size:16px;cursor:pointer" title="移除">
           🗑
         </button>
       </div>
@@ -2593,7 +2616,7 @@ function rcHTML(r) {
         <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${r.vendor}${newTag}
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">${r.source || ''}${r.idx > 0 ? ' [第'+r.idx+'張]' : ''} · ${r.date || ''}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">${r.source || ''}${r.idx > 0 ? ' [第'+r.idx+'張]' : ''} · ${r.date || ''}</div>
         <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${catBadge}${dupBadge}</div>
       </div>
       <div class="mono" style="font-size:17px;font-weight:800;color:var(--gold)">$${r.amount.toLocaleString()}</div>
@@ -3259,14 +3282,14 @@ function renderDupModal(r) {
     </div>
     ${isCrossMonth
       ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
-           <div style="color:#fbbf24;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
+           <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
            <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${oldKeyMonth.slice(0,4)}-${oldKeyMonth.slice(4)}</strong> 月份紀錄中。</div>
            <div style="color:var(--muted);margin-top:4px">跨月不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
          </div>`
       : `<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
            <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
            <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
-           <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
+           <div style="color:#888;margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
          </div>`
     }`;
 
@@ -3484,30 +3507,58 @@ async function _doExport(skipStash = false) {
 }
 
 // ════════════════════════════════════════════════════════════
-// BOTTOM TAB BAR — 區段切換 (專案／費用／待辦／設定)
+// 頂部主導覽列 — 區段切換 (專案／費用／待辦) ＋ 漢堡選單
 // ════════════════════════════════════════════════════════════
 function switchSection(name) {
-  document.querySelectorAll('.bottombar-btn').forEach(b=>
+  document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===name));
 
   document.getElementById('appShell').style.display = (name==='expense') ? 'grid' : 'none';
-  ['project','todo','settings'].forEach(s=>
+  ['project','todo'].forEach(s=>
     document.getElementById('sec-'+s).classList.toggle('active', s===name));
+
+  // 漢堡選單僅在「專案」分頁顯示（新增專案／進度設定）
+  document.getElementById('navBurgerBtn').style.display = (name==='project') ? 'flex' : 'none';
+  closeNavMenu();
 
   // 手機版若 sidebar 仍展開，切換區段時收合
   document.getElementById('mainSidebar')?.classList.remove('open');
   document.getElementById('sidebarOverlay')?.classList.remove('open');
 
-  if (name==='settings') {
-    populateNpDept();
-    loadProjectList(false);
-  }
   if (name==='todo') {
     loadTasks();
   }
   if (name==='project') {
     loadProjectsForBoard();
   }
+}
+
+function toggleNavMenu() {
+  document.getElementById('navMenu')?.classList.toggle('open');
+}
+function closeNavMenu() {
+  document.getElementById('navMenu')?.classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const burger = document.getElementById('navBurgerBtn');
+  if (burger && !burger.contains(e.target)) closeNavMenu();
+});
+
+// 設定 Modal（新增專案 / 進度設定＝專案列表）
+function openSettingsModal(which) {
+  closeNavMenu();
+  document.getElementById('settingsModal')?.classList.add('open');
+  populateNpDept();
+  loadProjectList(false);
+  setTimeout(() => {
+    const target = which === 'list'
+      ? document.getElementById('projListTbl')
+      : document.getElementById('np-id');
+    target?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 50);
+}
+function closeSettingsModal() {
+  document.getElementById('settingsModal')?.classList.remove('open');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3726,7 +3777,7 @@ function renderTaskList(rows) {
         onchange="toggleTask('${t.id}', this.checked)">
       <div style="flex:1;${done?'text-decoration:line-through;color:var(--muted)':''}">
         ${esc(t.content)}
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="doDeleteTask('${t.id}')">🗑</button>
     </div>`;
