@@ -283,21 +283,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <!-- 手機版漢堡選單 -->
+    <!-- 手機版漢堡選單（已移至全域導覽列） -->
     <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
-    <div class="logo">專案<span>管理</span></div>
-    <div style="height:18px;width:1px;background:var(--border)"></div>
-    <div style="font-size:12px;color:var(--muted)">Expense Management Platform</div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
-      <div id="tbUser" style="display:flex;align-items:center;gap:8px">
-        <div id="uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
-        <div>
-          <div id="uName" style="font-size:13px;font-weight:600">—</div>
-          <div id="uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
-    </div>
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
   </div>
 
   <!-- SIDEBAR -->
@@ -482,6 +470,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
   <div class="pg-title">🗂 專案管理</div>
+  <div style="margin-bottom:14px">
+    <select class="inp" id="proj-select" onchange="renderProjectBoard()"></select>
+  </div>
   <div id="projBoard"></div>
 </div>
 
@@ -506,12 +497,22 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-<!-- ═══════════ MODAL: 設定（新增專案 / 進度設定） ═══════════ -->
+<!-- ═══════════ MODAL: 專案設定（新增專案／專案列表／進度設定） ═══════════ -->
 <div class="modal-wrap" id="settingsModal">
   <div class="modal-box" style="max-width:900px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="pg-title" style="margin:0">⚙️ 設定</div>
-      <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="tbUser" style="display:flex;align-items:center;gap:8px">
+          <div id="uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
+          <div>
+            <div id="uName" style="font-size:13px;font-weight:600">—</div>
+            <div id="uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:18px">
 
@@ -521,20 +522,15 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="card-bd">
         <div class="fg2" style="margin-bottom:14px">
           <div>
-            <label class="lbl">專案 ID（代碼）</label>
-            <input class="inp" id="np-id" placeholder="例：P2024001"
-              onchange="npAutoFill()">
+            <label class="lbl">專案代號（即專案 ID）</label>
+            <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
           </div>
           <div>
             <label class="lbl">專案名稱</label>
-            <input class="inp" id="np-name" placeholder="例：台南廠區外勤補助">
+            <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
           </div>
         </div>
         <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">專案代號（合約用）</label>
-            <input class="inp" id="np-code" placeholder="例：A24-015">
-          </div>
           <div>
             <label class="lbl">隸屬部門</label>
             <select class="inp" id="np-dept">
@@ -673,8 +669,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);width:100%;height:100%">☰</button>
     <div class="navmenu" id="navMenuProject">
-      <button class="navmenu-item" onclick="openSettingsModal('add')">➕ 新增專案</button>
-      <button class="navmenu-item" onclick="openSettingsModal('progress')">⚙️ 進度設定</button>
+      <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -3604,26 +3599,14 @@ document.addEventListener('click', (e) => {
   if (burger && !burger.contains(e.target)) closeNavMenu();
 });
 
-// 設定 Modal（新增專案 / 進度設定＝專案列表）
-function openSettingsModal(which) {
+// 設定 Modal（專案設定：新增專案／專案列表／進度設定）
+function openSettingsModal() {
   closeNavMenu();
   document.getElementById('settingsModal')?.classList.add('open');
   populateNpDept();
   loadProjectList(false);
   pgPopulateDeductMethods();
-  if (S._pjBoard) {
-    pgPopulateProjectSelect();
-  } else {
-    loadProjectsForBoard().then(pgPopulateProjectSelect);
-  }
-  setTimeout(() => {
-    const target = which === 'list'
-      ? document.getElementById('projListTbl')
-      : which === 'progress'
-      ? document.getElementById('pgCard')
-      : document.getElementById('np-id');
-    target?.scrollIntoView({ behavior:'smooth', block:'start' });
-  }, 50);
+  loadProjectsForBoard().then(pgPopulateProjectSelect);
 }
 function closeSettingsModal() {
   document.getElementById('settingsModal')?.classList.remove('open');
@@ -3684,9 +3667,6 @@ function setNpQuota(isQuota) {
   }
 }
 
-// 自動填充（目前僅作 placeholder）
-function npAutoFill() {}
-
 // 預收款 toggle
 function setNpPrepay(enabled) {
   document.getElementById('np-prepay-enabled').value = enabled ? 'true' : 'false';
@@ -3699,9 +3679,8 @@ function setNpPrepay(enabled) {
 
 // 新增專案
 async function doAddProject() {
-  const id       = document.getElementById('np-id')?.value.trim();
-  const name     = document.getElementById('np-name')?.value.trim();
   const code     = document.getElementById('np-code')?.value.trim();
+  const name     = document.getElementById('np-name')?.value.trim();
   const deptCode = document.getElementById('np-dept')?.value;
   const quota    = document.getElementById('np-quota')?.value === 'true';
   const subsidy  = parseFloat(document.getElementById('np-subsidy')?.value) || 0;
@@ -3712,8 +3691,8 @@ async function doAddProject() {
   const prepayPct     = parseFloat(document.getElementById('np-prepay-deductpct')?.value) || 0;
   const msg      = document.getElementById('npMsg');
 
-  if (!id || !name || !effect) {
-    if (msg) { msg.textContent = '⚠️ 請填寫專案 ID、名稱、生效日'; msg.style.color = 'var(--red)'; }
+  if (!code || !name || !effect) {
+    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
     return;
   }
 
@@ -3724,7 +3703,7 @@ async function doAddProject() {
   try {
     const res = await callGAS({
       action: 'addProject',
-      id, code, name, quota, subsidy,
+      id: code, code, name, quota, subsidy,
       effectDate: effect,
       closeDate:  close || '',
       deptCode:   deptCode || '',
@@ -3736,7 +3715,7 @@ async function doAddProject() {
     if (res.success) {
       if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
       // 清空表單
-      ['np-id','np-name','np-code','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
+      ['np-code','np-name','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
@@ -3969,25 +3948,27 @@ function pjPeriodCard(c, opts) {
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
 function renderProjectBoard() {
   const board = document.getElementById('projBoard');
-  if (!board) return;
+  const sel   = document.getElementById('proj-select');
+  if (!board || !sel) return;
   const rows = S._pjBoard || [];
   if (!rows.length) {
+    sel.innerHTML = '';
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
     return;
   }
-  board.innerHTML = rows.map((p,i) => `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hd" style="cursor:pointer" onclick="pjToggle(${i})">
+  const cur = sel.value;
+  sel.innerHTML = rows.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}（${esc(p.code||p.id)}）</option>`).join('');
+  if (rows.some(p=>p.id===cur)) sel.value = cur;
+
+  const p = rows.find(x=>x.id===sel.value) || rows[0];
+  board.innerHTML = `
+    <div class="card">
+      <div class="card-hd">
         <span style="font-weight:800;font-size:17px">${esc(p.name)}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px">${esc(p.code||p.id)}</span>
       </div>
-      <div class="card-bd" id="pj-body-${i}" style="display:none">${pjRenderDetail(p)}</div>
-    </div>`).join('');
-}
-
-function pjToggle(i) {
-  const el = document.getElementById('pj-body-'+i);
-  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+      <div class="card-bd">${pjRenderDetail(p)}</div>
+    </div>`;
 }
 
 // 專案詳細內容：業主端 → 廠商端 → 專案費用
