@@ -283,21 +283,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <!-- 手機版漢堡選單 -->
+    <!-- 手機版漢堡選單（已移至全域導覽列） -->
     <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
-    <div class="logo">專案<span>管理</span></div>
-    <div style="height:18px;width:1px;background:var(--border)"></div>
-    <div style="font-size:12px;color:var(--muted)">Expense Management Platform</div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
-      <div id="tbUser" style="display:flex;align-items:center;gap:8px">
-        <div id="uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
-        <div>
-          <div id="uName" style="font-size:13px;font-weight:600">—</div>
-          <div id="uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
-    </div>
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
   </div>
 
   <!-- SIDEBAR -->
@@ -482,6 +470,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
   <div class="pg-title">🗂 專案管理</div>
+  <div style="margin-bottom:14px">
+    <select class="inp" id="proj-select" onchange="renderProjectBoard()"></select>
+  </div>
   <div id="projBoard"></div>
 </div>
 
@@ -506,12 +497,22 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-<!-- ═══════════ MODAL: 設定（新增專案 / 進度設定） ═══════════ -->
+<!-- ═══════════ MODAL: 專案設定（新增專案／專案列表／進度設定） ═══════════ -->
 <div class="modal-wrap" id="settingsModal">
   <div class="modal-box" style="max-width:900px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="pg-title" style="margin:0">⚙️ 設定</div>
-      <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="tbUser" style="display:flex;align-items:center;gap:8px">
+          <div id="uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
+          <div>
+            <div id="uName" style="font-size:13px;font-weight:600">—</div>
+            <div id="uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:18px">
 
@@ -521,20 +522,15 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="card-bd">
         <div class="fg2" style="margin-bottom:14px">
           <div>
-            <label class="lbl">專案 ID（代碼）</label>
-            <input class="inp" id="np-id" placeholder="例：P2024001"
-              onchange="npAutoFill()">
+            <label class="lbl">專案代號（即專案 ID）</label>
+            <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
           </div>
           <div>
             <label class="lbl">專案名稱</label>
-            <input class="inp" id="np-name" placeholder="例：台南廠區外勤補助">
+            <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
           </div>
         </div>
         <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">專案代號（合約用）</label>
-            <input class="inp" id="np-code" placeholder="例：A24-015">
-          </div>
           <div>
             <label class="lbl">隸屬部門</label>
             <select class="inp" id="np-dept">
@@ -607,19 +603,18 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <table class="tbl">
           <thead>
             <tr>
-              <th>專案 ID</th>
-              <th>代號</th>
-              <th style="min-width:200px">名稱</th>
+              <th style="white-space:nowrap">專案代號</th>
+              <th style="min-width:220px">名稱</th>
               <th style="white-space:nowrap">部門</th>
               <th style="white-space:nowrap">類型</th>
-              <th>核定補助</th>
+              <th style="white-space:nowrap">核定補助</th>
               <th style="white-space:nowrap">生效日</th>
               <th style="white-space:nowrap">結案日</th>
               <th></th>
             </tr>
           </thead>
           <tbody id="projListTbl">
-            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">
               點 🔄 載入專案列表
             </td></tr>
           </tbody>
@@ -673,8 +668,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);width:100%;height:100%">☰</button>
     <div class="navmenu" id="navMenuProject">
-      <button class="navmenu-item" onclick="openSettingsModal('add')">➕ 新增專案</button>
-      <button class="navmenu-item" onclick="openSettingsModal('progress')">⚙️ 進度設定</button>
+      <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -1136,20 +1130,18 @@ async function loadOcrResults(auto = false) {
     return;
   }
 
-  // 合併到 S.receipts（以 key 去重）
-  const existKeys = new Set(S.receipts.map(r => r.ocrKey || r.invoiceNo || r.id));
+  // 合併到 S.receipts（以 ocrKey 去重，ocrKey 是 Sheet Key 欄的唯一識別）
+  const existKeys = new Set(S.receipts.map(r => r.ocrKey).filter(Boolean));
   let added = 0;
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
     existKeys.add(row.key);
-    const cat = /fuel|油資/i.test(row.category) ? 'fuel'
-              : /停車|parking/i.test(row.category) ? 'parking'
-              : 'other';
-    // Sheet 回傳：supplement 欄存油資外勤 JSON / 停車事由 / 其他說明
+    const cat = /fuel|油資/i.test(row.category) ? 'fuel' : 'other';
+    // Sheet 回傳：supplement 欄存油資外勤 JSON / 其他說明
     const rawSupp    = row.supplement || '';
-    const parkAttr   = cat === 'parking' ? (row.attributionTarget || '') : '';
-    const projectId  = cat === 'fuel'    ? (row.attributionTarget || '') : '';
-    const dept       = cat === 'other'   ? (row.attributionTarget || '') : (S.config.userDeptCode || S.user?.dept || '');
+    const otherAttr  = cat !== 'fuel'  ? (row.attributionTarget || '') : '';
+    const projectId  = cat === 'fuel'  ? (row.attributionTarget || '') : '';
+    const dept       = S.config.userDeptCode || S.user?.dept || '';
     const frParsed   = (() => {
       if (cat !== 'fuel') return [];
       try { return JSON.parse(rawSupp || '[]'); } catch(_) { return []; }
@@ -1163,7 +1155,7 @@ async function loadOcrResults(auto = false) {
       category:   cat,
       projectId,
       dept,
-      parkAttr,
+      otherAttr,
       supplement,
       vendor:     row.vendor    || '',
       amount:     parseFloat(row.amount  || 0),
@@ -1600,8 +1592,8 @@ function mkReceipt(id, qf, item, idx, isNew) {
     invoiceNo: item.invoiceNo || '',
     ocrKey:    item.key       || '',
     notes:     item.notes     || '',   // OCR 辨識結果，不覆蓋
-    supplement:'',                     // 申請人補充（外勤JSON/停車事由/申請說明）
-    parkAttr:  '',
+    supplement:'',                     // 申請人補充（外勤JSON/申請事由/申請說明）
+    otherAttr: '',
     fieldRows: [],                     // 油資里程實報外勤紀錄
     _isNew:    !!isNew,
     _isDuplicate:    item.isDuplicate    || false,
@@ -1614,20 +1606,19 @@ function detectCat(item) {
   // 優先採信 OCR / GAS 回傳的 category 欄位
   const raw = (item.category || '').toLowerCase().trim();
   if (raw === 'fuel'    || raw === '油資') return 'fuel';
-  if (raw === 'parking' || raw === '停車') return 'parking';
+  // 停車費已併入其他，parking 統一轉 other
+  if (raw === 'parking' || raw === '停車') return 'other';
   if (raw === 'other'   || raw === '其他') return 'other';
 
   // 依廠商名稱 + 備註關鍵字自動判斷
-  const s = JSON.stringify(item);
-  // 停車費優先（避免停車場名稱誤判為油資）
-  if (/停車|parking|car\s*park|車位|泊車|路邊停/i.test(s)) return 'parking';
-  // 加油站常見名稱（擴充）
-  if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|98無鉛|超柴|台亞|全國油|中國石油|油品/i.test(s)) return 'fuel';
+  const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
+  // 停車關鍵字 → 其他（不再獨立分類）
+  if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品/i.test(s)) return 'fuel';
   return 'other';
 }
 
 // ════════════════════════════════════════════════════════════
-// OCR RESULTS RENDER  （tab：油資 / 停車費 / 其他）
+// OCR RESULTS RENDER  （tab：油資 / 其他）
 // ════════════════════════════════════════════════════════════
 let _ocrTab = 'fuel';
 
@@ -1641,7 +1632,7 @@ function renderOCRResults() {
   });
   const tabs = {
     fuel:  sorted.filter(r => r.category === 'fuel'),
-    other: sorted.filter(r => r.category !== 'fuel'),  // parking + other 合併
+    other: sorted.filter(r => r.category !== 'fuel'),
   };
 
   if (!tabs[_ocrTab]?.length) {
@@ -1660,7 +1651,7 @@ function renderOCRResults() {
       border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
       cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
       <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+      <div style="font-size:12px;color:#888;margin-top:2px">
         ${isFuel ? '' : `<span id="tab-${key}-cnt">${cnt} 張</span> `}
         <strong id="tab-${key}-amt" style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong>
       </div>
@@ -1669,7 +1660,7 @@ function renderOCRResults() {
 
   const tabHtml = `<div style="display:flex;gap:10px;margin-bottom:14px">
     ${tabBtn('fuel','⛽','油資',tabs.fuel.length,fuelAmt)}
-    ${tabBtn('other','📋','其他',tabs.other.length,otherAmt)}
+    ${tabBtn('other','📄','其他',tabs.other.length,otherAmt)}
   </div>`;
 
   let bodyHtml = '';
@@ -1711,36 +1702,27 @@ function switchOcrTab(tab) {
 if (!window._fuelProjList) window._fuelProjList = [];
 
 // ════════════════════════════════════════════════════════════
-// 其他 Tab — 頂部統一歸屬搜尋框 + 套用按鈕（停車＋其他合併）
+// 其他 Tab — 頂部統一歸屬搜尋框 + 套用按鈕
 // ════════════════════════════════════════════════════════════
 let _otherSelectedItem = null;
 
 function renderOtherTab(otherReceipts) {
-  // 停車費：全部有設定歸屬才預設全勾
-  const parkList = otherReceipts.filter(r => r.category === 'parking');
-  const allParkHasAttr = parkList.length === 0 || parkList.every(r => !!r.parkAttr);
-
+  // 預設：未設定歸屬的不勾選；已設定歸屬的勾選
   const rows = otherReceipts.map(r => {
-    const isPark = r.category === 'parking';
-    // 停車費：未全設定歸屬前預設不勾；其他預設全勾
-    if (r._checked === undefined) r._checked = isPark ? allParkHasAttr : true;
-    const defChk = r._checked;
-    const isNew  = r._isNew;
-    const newTag = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
+    // 若尚未有 _checked 狀態，依是否設定歸屬決定
+    if (r._checked === undefined) r._checked = !!r.otherAttr;
+    const defChk  = r._checked;
+    const isNew   = r._isNew;
+    const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
 
-    // 類別 badge
-    const catBadge = isPark
-      ? `<span class="badge bd-orange">🅿️ 停車</span>`
-      : `<span class="badge bd-muted">📄 其他</span>`;
-
-    // 歸屬 badge（停車費）
-    const attrBadge = isPark ? (() => {
-      if (!r.parkAttr) return `<span class="badge bd-muted" style="margin-left:4px">未設定歸屬</span>`;
-      const proj = (S.config.projects||[]).find(p => p.id === r.parkAttr);
-      const dept = (S.config.departments||[]).find(d => d.code === r.parkAttr);
-      const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : r.parkAttr;
-      return `<span class="badge bd-blue" style="margin-left:4px">${name}</span>`;
-    })() : '';
+    // 歸屬 badge
+    const attrBadge = (() => {
+      if (!r.otherAttr) return `<span class="badge bd-muted">未設定歸屬</span>`;
+      const proj = (S.config.projects||[]).find(p => p.id === r.otherAttr);
+      const dept = (S.config.departments||[]).find(d => d.code === r.otherAttr);
+      const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : r.otherAttr;
+      return `<span class="badge bd-blue">${name}</span>`;
+    })();
 
     return `<div id="other-row-${r.id}" style="border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap">
@@ -1750,7 +1732,7 @@ function renderOtherTab(otherReceipts) {
         <div style="flex:1;min-width:120px;cursor:pointer" onclick="toggleOtherRow('${r.id}')">
           <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}</div>
           <div style="font-size:12px;color:var(--muted)">${r.source||r.date||''} · ${r.invoiceNo||'—'}</div>
-          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${catBadge}${attrBadge}</div>
+          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}</div>
         </div>
         <div class="mono" id="rc-amt-${r.id}" style="font-size:16px;font-weight:800;color:var(--gold)">
           $${r.amount.toLocaleString()}
@@ -1763,7 +1745,7 @@ function renderOtherTab(otherReceipts) {
       <!-- 申請事由（展開外）-->
       <div style="padding:0 0 10px 36px">
         <input class="inp" id="other-supp-${r.id}" value="${esc(r.supplement||'')}"
-          placeholder="${isPark ? '申請事由（請說明與公務的關聯）' : '申請事由（費用用途與公務關聯）'}"
+          placeholder="申請事由（請說明費用用途與公務關聯）"
           onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
       </div>
       <!-- 展開：辨識資訊 -->
@@ -1782,59 +1764,23 @@ function renderOtherTab(otherReceipts) {
             <input class="inp" value="${esc(r.invoiceNo)}"
               onchange="upR('${r.id}','invoiceNo',this.value);stashSingle('${r.id}')"></div>
         </div>
-        ${isPark ? `
-        <div style="margin-bottom:10px">
-          <label class="lbl" style="margin-bottom:3px">歸屬（專案/部門/其他）</label>
-          ${fdHTML(`fd-pkattr2-${r.id}`, `fd-pkattr2-inp-${r.id}`, '輸入專案代碼、部門代碼或「其他」')}
-        </div>` : ''}
         <div>
           <label class="lbl">費用類別</label>
-          <div class="tgl" style="width:280px">
+          <div class="tgl" style="width:200px">
             <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn ${isPark?'on':''}" onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
-            <button class="tgl-btn ${!isPark?'on':''}" onclick="setCat('${r.id}','other')">📄 其他</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','other')">📄 其他</button>
           </div>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  // 初始化停車費歸屬 dropdown（展開內）
-  const parkIds = otherReceipts.filter(r => r.category === 'parking').map(r => r.id);
-  if (parkIds.length) {
-    const myDept = S.config.userDeptCode || S.config.userDept || '';
-    const pkItems = (S.config.projects||[])
-      .filter(p => !p.deptCode || p.deptCode === myDept)
-      .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
-      .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name })))
-      .concat([{ id: '其他', name: '其他' }]);
-    setTimeout(() => {
-      parkIds.forEach(rid => {
-        fdInit(`fd-pkattr2-${rid}`, pkItems, item => {
-          upR(rid, 'parkAttr', item.id);
-          const parkAll = S.receipts.filter(r => r.category === 'parking');
-          const nowAll  = parkAll.every(r => !!r.parkAttr);
-          if (nowAll) parkAll.forEach(r => document.getElementById('rck-'+r.id)?.classList.add('on'));
-          else document.getElementById('rck-'+rid)?.classList.add('on');
-          renderOCRResults();
-        }, S._recentProjIds || []);
-        const existing = S.receipts.find(r => r.id === rid);
-        if (existing?.parkAttr) {
-          const inp = document.querySelector(`#fd-pkattr2-${rid} .fd-input`);
-          const proj = (S.config.projects||[]).find(p => p.id === existing.parkAttr);
-          const dept = (S.config.departments||[]).find(d => d.code === existing.parkAttr);
-          if (inp) inp.value = proj ? proj.id+' '+proj.name : dept ? dept.code+' '+dept.name : existing.parkAttr;
-        }
-      });
-    }, 0);
-  }
-
   return `<div class="card">
     <div class="card-hd" style="font-size:14px;font-weight:800">
-      📋 其他費用
+      📄 其他
       <span class="badge bd-orange" style="margin-left:6px">${otherReceipts.length} 張</span>
     </div>
-    <!-- 頂部：歸屬搜尋框 + 套用按鈕（僅套用停車費歸屬） -->
+    <!-- 頂部：歸屬搜尋框 + 費用類別 + 套用按鈕 -->
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <label class="lbl" style="margin-bottom:4px">套用歸屬到勾選項目</label>
@@ -1860,9 +1806,8 @@ function toggleOtherRow(id) {
 
 function initOtherAttrDropdown() {
   _otherSelectedItem = null;
-  const myDept = S.config.userDeptCode || S.config.userDept || '';
   const items = (S.config.projects||[])
-    .filter(p => !p.deptCode || p.deptCode === myDept)
+    .filter(p => !p.deptCode || p.deptCode === (S.config.userDeptCode||''))
     .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
     .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name })))
     .concat([{ id: '其他', name: '其他' }]);
@@ -1875,8 +1820,7 @@ function initOtherAttrDropdown() {
 function updateOtherApplyBtn() {
   const btn = document.getElementById('btn-other-apply');
   if (!btn) return;
-  const hasChecked = S.receipts
-    .filter(r => r.category !== 'fuel')
+  const hasChecked = S.receipts.filter(r => r.category !== 'fuel')
     .some(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
   btn.disabled = !(_otherSelectedItem && hasChecked);
 }
@@ -1884,11 +1828,12 @@ function updateOtherApplyBtn() {
 function applyOtherAttr() {
   if (!_otherSelectedItem) return;
   const item = _otherSelectedItem;
-  // 套用歸屬到所有已勾選的非油資發票（停車費設 parkAttr，其他記錄即可）
+  // 套用歸屬到所有已勾選的其他費用
   S.receipts
     .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
     .forEach(r => {
-      upR(r.id, 'parkAttr', item.id);
+      upR(r.id, 'otherAttr', item.id);
+      upR(r.id, '_checked', true);
       stashSingle(r.id);
     });
   const inp = document.querySelector('#fd-other-attr .fd-input');
@@ -1896,18 +1841,6 @@ function applyOtherAttr() {
   _otherSelectedItem = null;
   const btn = document.getElementById('btn-other-apply');
   if (btn) btn.disabled = true;
-
-  // 套用後：若停車費全部已設定歸屬，全選；否則全取消讓使用者繼續設定
-  const parkAll = S.receipts.filter(r => r.category === 'parking');
-  const unset   = parkAll.filter(r => !r.parkAttr);
-  parkAll.forEach(r => {
-    const chk = document.getElementById('rck-' + r.id);
-    if (!chk) return;
-    const shouldCheck = unset.length === 0;
-    if (shouldCheck)  { if (!chk.classList.contains('on')) chk.classList.add('on'); }
-    else              { chk.classList.remove('on'); }
-    upR(r.id, '_checked', chk.classList.contains('on'));
-  });
 
   renderOCRResults();
   updateStats();
@@ -1959,9 +1892,8 @@ function renderFuelTab(fuelReceipts) {
         </div>
         <div>
           <label class="lbl">費用類別</label>
-          <div class="tgl" style="width:280px">
+          <div class="tgl" style="width:200px">
             <button class="tgl-btn on" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn"    onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
             <button class="tgl-btn"    onclick="setCat('${r.id}','other')">📄 其他</button>
           </div>
         </div>
@@ -2118,7 +2050,7 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode  = S.config.userDeptCode || '';
+  const myDeptCode  = S.config.userDeptCode || S.config.userDept || '';
   const selectedIds = window._fuelProjList
     .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
     .filter(Boolean);
@@ -2647,11 +2579,9 @@ function rcHTML(r) {
     ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:4px">新產生</span>`
     : '';
 
-  const catBadge = r.category === 'parking'
-    ? `<span class="badge bd-orange">🅿️ 停車費</span>`
-    : r.category === 'fuel'
-      ? `<span class="badge bd-blue">⛽ 油資</span>`
-      : `<span class="badge bd-muted">📄 其他</span>`;
+  const catBadge = r.category === 'fuel'
+    ? `<span class="badge bd-blue">⛽ 油資</span>`
+    : `<span class="badge bd-muted">📄 其他</span>`;
   const dupBadge = r._isDuplicate
     ? `<span class="badge bd-red" title="發票號碼重複">⚠️ 重複</span>` : '';
 
@@ -2659,32 +2589,23 @@ function rcHTML(r) {
   const sameDeptProjects = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode);
   const recentIds = (S._recentProjIds || []).slice(0, 3);
 
-  const isPark  = r.category === 'parking';
   const isFuel  = r.category === 'fuel';
-  const isOther = !isPark && !isFuel;
+  const isOther = !isFuel;
 
-  // ── 展開外必填區塊（停車費/其他）
+  // ── 展開外必填區塊（其他）
   const quickFillHtml = (() => {
-    if (isPark) {
+    if (isOther) {
       return `<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px">
         <div>
           <label class="lbl" style="margin-bottom:3px">歸屬（專案/部門/其他）</label>
           ${fdHTML(`fd-pkattr-${r.id}`, `fd-pkattr-inp-${r.id}`, '輸入專案代碼、部門代碼或「其他」')}
         </div>
         <div>
-          <label class="lbl" style="margin-bottom:3px">停車事由</label>
-          <input class="inp" id="inp-supp-park-${r.id}" value="${esc(r.supplement||'')}"
-            placeholder="請說明與公務的關聯"
+          <label class="lbl" style="margin-bottom:3px">申請說明</label>
+          <input class="inp" id="inp-supp-other-${r.id}" value="${esc(r.supplement||'')}"
+            placeholder="請說明費用用途與公務關聯"
             onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
         </div>
-      </div>`;
-    }
-    if (isOther) {
-      return `<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--surface)">
-        <label class="lbl" style="margin-bottom:3px">申請說明</label>
-        <input class="inp" id="inp-supp-other-${r.id}" value="${esc(r.supplement||'')}"
-          placeholder="請說明費用用途與公務關聯"
-          onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
       </div>`;
     }
     return '';
@@ -2716,7 +2637,7 @@ function rcHTML(r) {
       <div class="rc-chev" style="color:var(--muted);font-size:13px">▼</div>
     </div>
 
-    <!-- 展開外必填（停車費/其他） -->
+    <!-- 展開外必填（其他） -->
     ${quickFillHtml}
 
     <!-- Body（展開內辨識資訊） -->
@@ -2741,9 +2662,8 @@ function rcHTML(r) {
         <!-- 費用類別 -->
         <div style="margin-bottom:12px">
           <label class="lbl">費用類別</label>
-          <div class="tgl" style="width:280px" id="tgl-cat-${r.id}">
+          <div class="tgl" style="width:200px" id="tgl-cat-${r.id}">
             <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn ${isPark?'on':''}" onclick="setCat('${r.id}','parking')">🅿️ 停車</button>
             <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','other')">📄 其他</button>
           </div>
         </div>
@@ -2789,40 +2709,26 @@ function rcHTML(r) {
         if (inp && selProj) inp.value = selProj.id + ' ' + selProj.name;
       }
     }
-    if (isPark) {
-      const pkItems = [
+    if (isOther) {
+      const otItems = [
         ..._projItems.map(p=>({id:p.id, name:p.name, quota:p.quota})),
         ..._deptItems,
       ];
-      fdInit(`fd-pkattr-${rid}`, pkItems, item => {
-        upR(rid, 'parkAttr', item.id);
-        // 設定歸屬後：判斷是否全部停車費都已設定，若是才全勾，否則只勾這筆
-        const parkAll = S.receipts.filter(r => r.category === 'parking');
-        const nowAllHasAttr = parkAll.length > 0 && parkAll.every(r => !!r.parkAttr);
-        if (nowAllHasAttr) {
-          parkAll.forEach(r => { document.getElementById('rck-' + r.id)?.classList.add('on'); });
-        } else {
-          document.getElementById('rck-' + rid)?.classList.add('on');
-        }
+      fdInit(`fd-otattr-${rid}`, otItems, item => {
+        upR(rid, 'otherAttr', item.id);
+        // 設定歸屬後自動勾選此筆
+        const chk = document.getElementById('rck-' + rid);
+        if (chk && !chk.classList.contains('on')) chk.classList.add('on');
+        upR(rid, '_checked', true);
         syncAllOcrChk();
         updateStats();
-        // 更新 badge 顯示（找到此筆的 badge 並更新）
-        const allBadges = document.querySelectorAll(`#park-row-${rid} .badge`);
-        const badgeEl = allBadges[allBadges.length - 1];
-        if (badgeEl) {
-          const proj = (S.config.projects||[]).find(p => p.id === item.id);
-          const dept = (S.config.departments||[]).find(d => d.code === item.id);
-          const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : item.id;
-          badgeEl.textContent = name;
-          badgeEl.className = 'badge bd-blue';
-        }
         stashSingle(rid);
       }, _recentIds);
-      if (r.parkAttr) {
-        const inp = document.querySelector(`#fd-pkattr-${rid} .fd-input`);
+      if (r.otherAttr) {
+        const inp = document.querySelector(`#fd-otattr-${rid} .fd-input`);
         if (inp) {
-          const found = pkItems.find(p=>p.id===r.parkAttr);
-          inp.value = found ? r.parkAttr + ' ' + found.name : r.parkAttr;
+          const found = [..._projItems, ..._deptItems].find(p=>p.id===r.otherAttr);
+          inp.value = found ? r.otherAttr + ' ' + found.name : r.otherAttr;
         }
       }
     }
@@ -2981,17 +2887,12 @@ async function stashSingle(id) {
   if (!r) return;
   // 油資：projId 優先從 _fuelProjList 取（新版 UI 不一定存在 r.projectId）
   const fuelFp = r.category === 'fuel'
-    ? (window._fuelProjList.find(fp => fp.projId === r.projectId)
-       || window._fuelProjList.find(fp => fp.projId))
+    ? (window._fuelProjList.find(fp => fp.projId === r.projectId) || null)
     : null;
-  // attribution：停車費固定用 'parking'（GAS exportAll 從 parkAttr 取真正歸屬）
-  // 油資歸屬只存 FuelProjects sheet，不回寫 OCRResults K/L 欄 → 傳空字串
-  const attribution = r.category === 'parking' ? 'parking'
-    : r.category === 'fuel'    ? ''
-    : 'dept';
-  const attributionTarget = r.category === 'parking' ? (r.parkAttr || '')
-    : r.category === 'fuel'    ? ''
-    : (r.dept || '');
+  // attribution：其他費用統一用 'other'，GAS exportAll 從 otherAttr 取真正歸屬
+  // 油資歸屬只存 FuelProjects sheet → 傳空字串
+  const attribution = r.category === 'fuel' ? '' : 'other';
+  const attributionTarget = r.category === 'fuel' ? '' : (r.otherAttr || r.parkAttr || r.dept || '');
   // 補充欄：油資存外勤JSON，停車/其他存文字補充
   const fieldRows  = r.category === 'fuel'
     ? (fuelFp?.fieldRows?.length ? JSON.stringify(fuelFp.fieldRows)
@@ -3276,7 +3177,7 @@ function updateStats() {
   const fuelInvAmt  = fuelChecked.reduce((s, r) => s + r.amount, 0);
   const fuelAmt     = calcFuelApplyTotal();
 
-  // 停車費、其他：合併計算（不分勾選）
+  // 其他（含原停車費）：全部顯示
   const otherAll = all.filter(r => r.category !== 'fuel');
   const otherCnt = otherAll.length;
   const otherAmt = otherAll.reduce((s, r) => s + r.amount, 0);
@@ -3287,9 +3188,9 @@ function updateStats() {
   const hdMono = document.querySelector('#ocrResults .card-hd .mono');
   if (hdMono)  hdMono.textContent = '總額 $' + fuelInvAmt.toLocaleString();
 
-  se('tab-fuel-amt',   '$'+fuelAmt.toLocaleString());
-  se('tab-other-cnt',  otherCnt + ' 張');
-  se('tab-other-amt',  '$'+otherAmt.toLocaleString());
+  se('tab-fuel-amt',  '$'+fuelAmt.toLocaleString());
+  se('tab-other-cnt', otherCnt + ' 張');
+  se('tab-other-amt', '$'+otherAmt.toLocaleString());
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3533,17 +3434,16 @@ async function _doExport(skipStash = false) {
     return { fp, attribution, projectId, deptId, attrLabel, fieldRows, receipts: fpReceipts };
   });
 
-  // ── 停車費：只帶 _checked=true 的 ──────────────────────
-  const parkReceipts = S.receipts
-    .filter(r => r.category === 'parking' && r._checked !== false)
-    .map(r => ({ ...r, supplement: r.supplement||'', parkAttr: r.parkAttr||'' }));
-
-  // ── 其他：只帶 _checked=true 的 ──────────────────────
+  // ── 其他：只帶 _checked=true 的（含原停車費，統一歸入其他）──
   const otherReceipts = S.receipts
-    .filter(r => r.category !== 'fuel' && r.category !== 'parking' && r._checked !== false)
-    .map(r => ({ ...r, supplement: r.supplement||r.notes||'' }));
+    .filter(r => r.category !== 'fuel' && r._checked !== false)
+    .map(r => ({
+      ...r,
+      supplement:   r.supplement || r.notes || '',
+      otherAttr:    r.otherAttr  || r.parkAttr || '其他',  // 未設定歸屬自動補「其他」
+    }));
 
-  const hasAnything = fuelProjData.length || parkReceipts.length || otherReceipts.length;
+  const hasAnything = fuelProjData.length || otherReceipts.length;
   if (!hasAnything) {
     toast('⚠️ 沒有可匯出的資料（油資需先選擇申請專案，其他費用請勾選）');
     return;
@@ -3557,12 +3457,11 @@ async function _doExport(skipStash = false) {
 
   // ── 計算合計（顯示用）──────────────────────────────────
   const fuelInvTotal = fuelReceipts.reduce((s,r)=>s+r.amount, 0);
-  const parkTotal    = parkReceipts.reduce((s,r)=>s+r.amount, 0);
   const otherTotal   = otherReceipts.reduce((s,r)=>s+r.amount, 0);
-  const grandTotal   = calcFuelApplyTotal() + parkTotal + otherTotal;
+  const grandTotal   = calcFuelApplyTotal() + otherTotal;
 
-  const totalItems = fuelReceipts.length + parkReceipts.length + otherReceipts.length;
-  toast(`⏳ 產生 PDF 中（油資${fuelReceipts.length}張 / 其他${parkReceipts.length + otherReceipts.length}張）...`);
+  const totalItems = fuelReceipts.length + otherReceipts.length;
+  toast(`⏳ 產生 PDF 中（油資${fuelReceipts.length}張 / 其他${otherReceipts.length}張）...`);
 
   try {
     const res = await callGAS({
@@ -3570,11 +3469,9 @@ async function _doExport(skipStash = false) {
       person,   month,
       personDept:  (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.dept  || S.user?.dept  || ''),
       personTitle: (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.title || S.user?.title || ''),
-      // 新格式：直接傳結構化資料，GAS 不需再 groupBy
-      fuelProjData,          // [{ fp, attribution, projectId, deptId, fieldRows, receipts }]
-      parkReceipts,
+      fuelProjData,
       otherReceipts,
-      fuelReceipts,          // 完整油資發票清單（供員工申請單印發票明細）
+      fuelReceipts,
       projects: S.config.projects,
       mileageRate: mRate,
     });
@@ -3636,26 +3533,14 @@ document.addEventListener('click', (e) => {
   if (burger && !burger.contains(e.target)) closeNavMenu();
 });
 
-// 設定 Modal（新增專案 / 進度設定＝專案列表）
-function openSettingsModal(which) {
+// 設定 Modal（專案設定：新增專案／專案列表／進度設定）
+function openSettingsModal() {
   closeNavMenu();
   document.getElementById('settingsModal')?.classList.add('open');
   populateNpDept();
   loadProjectList(false);
   pgPopulateDeductMethods();
-  if (S._pjBoard) {
-    pgPopulateProjectSelect();
-  } else {
-    loadProjectsForBoard().then(pgPopulateProjectSelect);
-  }
-  setTimeout(() => {
-    const target = which === 'list'
-      ? document.getElementById('projListTbl')
-      : which === 'progress'
-      ? document.getElementById('pgCard')
-      : document.getElementById('np-id');
-    target?.scrollIntoView({ behavior:'smooth', block:'start' });
-  }, 50);
+  loadProjectsForBoard().then(pgPopulateProjectSelect);
 }
 function closeSettingsModal() {
   document.getElementById('settingsModal')?.classList.remove('open');
@@ -3716,9 +3601,6 @@ function setNpQuota(isQuota) {
   }
 }
 
-// 自動填充（目前僅作 placeholder）
-function npAutoFill() {}
-
 // 預收款 toggle
 function setNpPrepay(enabled) {
   document.getElementById('np-prepay-enabled').value = enabled ? 'true' : 'false';
@@ -3731,9 +3613,8 @@ function setNpPrepay(enabled) {
 
 // 新增專案
 async function doAddProject() {
-  const id       = document.getElementById('np-id')?.value.trim();
-  const name     = document.getElementById('np-name')?.value.trim();
   const code     = document.getElementById('np-code')?.value.trim();
+  const name     = document.getElementById('np-name')?.value.trim();
   const deptCode = document.getElementById('np-dept')?.value;
   const quota    = document.getElementById('np-quota')?.value === 'true';
   const subsidy  = parseFloat(document.getElementById('np-subsidy')?.value) || 0;
@@ -3744,8 +3625,8 @@ async function doAddProject() {
   const prepayPct     = parseFloat(document.getElementById('np-prepay-deductpct')?.value) || 0;
   const msg      = document.getElementById('npMsg');
 
-  if (!id || !name || !effect) {
-    if (msg) { msg.textContent = '⚠️ 請填寫專案 ID、名稱、生效日'; msg.style.color = 'var(--red)'; }
+  if (!code || !name || !effect) {
+    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
     return;
   }
 
@@ -3756,7 +3637,7 @@ async function doAddProject() {
   try {
     const res = await callGAS({
       action: 'addProject',
-      id, code, name, quota, subsidy,
+      id: code, code, name, quota, subsidy,
       effectDate: effect,
       closeDate:  close || '',
       deptCode:   deptCode || '',
@@ -3768,7 +3649,7 @@ async function doAddProject() {
     if (res.success) {
       if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
       // 清空表單
-      ['np-id','np-name','np-code','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
+      ['np-code','np-name','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
@@ -3814,7 +3695,7 @@ function renderProjectList(rows) {
   const tbody = document.getElementById('projListTbl');
   if (!tbody) return;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map((p, i) => {
@@ -3825,11 +3706,10 @@ function renderProjectList(rows) {
       ? '<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>'
       : '';
     return `<tr id="prow-${i}">
-      <td style="font-weight:800;font-family:monospace">${p.id}${newTag}</td>
-      <td style="font-size:13px;color:var(--muted)">${p.code||'—'}</td>
+      <td style="font-weight:800;font-family:monospace;white-space:nowrap">${p.code||p.id}${newTag}</td>
       <td style="font-weight:700">${p.name}</td>
-      <td style="font-size:13px;color:var(--muted)">${p.deptCode||'—'}</td>
-      <td>${quoteBadge}</td>
+      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${p.deptCode||'—'}</td>
+      <td style="white-space:nowrap">${quoteBadge}</td>
       <td class="mono" style="color:var(--gold)">${p.quota && p.subsidy ? '$'+p.subsidy.toLocaleString() : '—'}</td>
       <td style="font-size:13px;color:var(--muted)">${p.effectDate||'—'}</td>
       <td style="font-size:13px;color:var(--muted)">${p.closeDate||'—'}</td>
@@ -4001,25 +3881,27 @@ function pjPeriodCard(c, opts) {
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
 function renderProjectBoard() {
   const board = document.getElementById('projBoard');
-  if (!board) return;
+  const sel   = document.getElementById('proj-select');
+  if (!board || !sel) return;
   const rows = S._pjBoard || [];
   if (!rows.length) {
+    sel.innerHTML = '';
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
     return;
   }
-  board.innerHTML = rows.map((p,i) => `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hd" style="cursor:pointer" onclick="pjToggle(${i})">
+  const cur = sel.value;
+  sel.innerHTML = rows.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}（${esc(p.code||p.id)}）</option>`).join('');
+  if (rows.some(p=>p.id===cur)) sel.value = cur;
+
+  const p = rows.find(x=>x.id===sel.value) || rows[0];
+  board.innerHTML = `
+    <div class="card">
+      <div class="card-hd">
         <span style="font-weight:800;font-size:17px">${esc(p.name)}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px">${esc(p.code||p.id)}</span>
       </div>
-      <div class="card-bd" id="pj-body-${i}" style="display:none">${pjRenderDetail(p)}</div>
-    </div>`).join('');
-}
-
-function pjToggle(i) {
-  const el = document.getElementById('pj-body-'+i);
-  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+      <div class="card-bd">${pjRenderDetail(p)}</div>
+    </div>`;
 }
 
 // 專案詳細內容：業主端 → 廠商端 → 專案費用
@@ -4080,7 +3962,7 @@ function pjToggleEl(id) {
 
 function renderProjExpenseList(items) {
   if (!items.length) return '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
-  const icon = { fuel:'⛽', parking:'🅿️', other:'🧾' };
+  const icon = { fuel:'⛽', other:'🧾' };
   return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
     <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
     <div style="flex:1">
@@ -4362,7 +4244,7 @@ function doEditProject(i) {
   editTr.id = 'prow-edit-'+i;
   editTr.style.background = 'rgba(37,99,235,.04)';
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-  editTr.innerHTML = `<td colspan="9" style="padding:14px 16px">
+  editTr.innerHTML = `<td colspan="8" style="padding:14px 16px">
     <div class="fg2" style="margin-bottom:10px">
       <div><label class="lbl">名稱</label>
         <input class="inp" id="ep-name-${i}" value="${esc(p.name)}"></div>
@@ -4567,21 +4449,19 @@ async function doStashAll(silent = false) {
   if (!S.receipts.length) { if (!silent) toast('⚠️ 沒有可暫存的憑證'); return; }
 
   const fuelProjForReceipt = (r) => {
-    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId);
-    return window._fuelProjList.find(fp => fp.projId);
+    if (r.projectId) return window._fuelProjList.find(fp => fp.projId === r.projectId) || null;
+    return null; // projectId 不明時不猜測，避免誤配對
   };
 
   const updates = S.receipts.map(r => {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
     const fuelFp = r.category === 'fuel' ? fuelProjForReceipt(r) : null;
-    // 停車費：attribution 固定 'parking'，GAS exportAll 從 parkAttr 取真正歸屬
-    const attribution = r.category === 'parking' ? 'parking'
-      : r.category === 'fuel'    ? 'project'
-      : 'dept';
-    const attributionTarget = r.category === 'parking' ? (r.parkAttr   || '')
-      : r.category === 'fuel'    ? (fuelFp?.projId || r.projectId || '')
-      : (r.dept     || '');
+    // 其他費用統一 attribution = 'other'
+    const attribution = r.category === 'fuel' ? 'project' : 'other';
+    const attributionTarget = r.category === 'fuel'
+      ? (fuelFp?.projId || r.projectId || '')
+      : (r.otherAttr || r.parkAttr || r.dept || '');
     const fieldRows  = r.category === 'fuel'
       ? (fuelFp?.fieldRows?.length ? JSON.stringify(fuelFp.fieldRows) : '')
       : undefined;
@@ -4661,17 +4541,21 @@ async function loadExportHistory(showToast) {
 // ════════════════════════════════════════════════════════════
 async function callGAS(payload) {
   try {
-    const res = await fetch(CFG.GAS_URL, {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 60000);
+    const res  = await fetch(CFG.GAS_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body:    JSON.stringify(payload),
+      signal:  ctrl.signal,
     });
+    clearTimeout(tid);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    return JSON.parse(text);
+    return JSON.parse(await res.text());
   } catch (err) {
-    console.warn('[callGAS] 失敗:', payload.action, err.message);
-    return { success:false, error:err.message };
+    const msg = err.name === 'AbortError' ? '請求逾時（60s）' : err.message;
+    console.warn('[callGAS] 失敗:', payload.action, msg);
+    return { success: false, error: msg };
   }
 }
 
@@ -4851,7 +4735,7 @@ async function sendDebugSnapshot() {
     date:      r.date,
     invoiceNo: r.invoiceNo,
     ocrKey:    r.ocrKey,
-    parkAttr:  r.parkAttr  || '',
+    parkAttr:  r.otherAttr || r.parkAttr || '',
     projectId: r.projectId || '',
     dept:      r.dept      || '',
     supplement:r.supplement|| '',
