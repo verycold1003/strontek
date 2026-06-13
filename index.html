@@ -44,6 +44,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   z-index:201;overflow:hidden}
 .navmenu.open{display:block}
 .navmenu.menu-hidden{display:none!important}
+
+/* ── 專案進度顯示 ── */
+.proj-progress{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;margin:6px 0}
+.proj-progress-fill{height:100%;background:var(--accent)}
+.period-card{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--surface)}
+.vendor-row{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;background:var(--surface)}
+.vendor-row:hover{border-color:var(--border2)}
 .navmenu-item{display:block;width:100%;text-align:left;padding:12px 16px;font-size:14px;
   background:none;border:none;cursor:pointer;color:var(--text);font-family:'Noto Sans TC',sans-serif}
 .navmenu-item:hover{background:var(--surface2)}
@@ -277,7 +284,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <!-- TOPBAR -->
   <div class="topbar">
     <!-- 手機版漢堡選單 -->
-    <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1">☰</button>
+    <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
     <div class="logo">專案<span>管理</span></div>
     <div style="height:18px;width:1px;background:var(--border)"></div>
     <div style="font-size:12px;color:var(--muted)">Expense Management Platform</div>
@@ -632,10 +639,25 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             </select>
           </div>
           <div>
-            <label class="lbl">預收款扣抵方式</label>
+            <label class="lbl">編輯對象</label>
+            <select class="inp" id="pg-target-select" onchange="pgRenderEditor()">
+              <option value="client">🏢 業主端</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2" style="margin-bottom:12px;align-items:end">
+          <div>
+            <label class="lbl">新增廠商</label>
+            <div style="display:flex;gap:8px">
+              <input class="inp" id="pg-new-vendor" placeholder="廠商名稱" style="flex:1">
+              <button class="btn btn-ghost btn-sm" onclick="pgAddVendorQuick()">＋ 新增廠商</button>
+            </div>
+          </div>
+          <div>
+            <label class="lbl">預收款扣抵方式（僅套用於業主端）</label>
             <div style="display:flex;gap:8px">
               <select class="inp" id="pg-deduct-method" style="flex:1"></select>
-              <button class="btn btn-ghost btn-sm" onclick="pgApplyDeductMethod()">套用至業主端</button>
+              <button class="btn btn-ghost btn-sm" onclick="pgApplyDeductMethod()">套用</button>
             </div>
           </div>
         </div>
@@ -656,10 +678,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="td-show-done" onchange="renderTaskList()"> 顯示已完成
+        <input type="checkbox" id="td-show-done" onchange="renderTaskList()"> ✅ 已完成
       </label>
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="td-show-deleted" onchange="renderTaskList()"> 顯示已刪除
+        <input type="checkbox" id="td-show-deleted" onchange="renderTaskList()"> 🗑 已刪除
       </label>
     </div>
   </div>
@@ -851,15 +873,14 @@ function finishLogin(person) {
   document.getElementById('loginCallbackMsg').style.display = 'none';
   document.getElementById('bindNameSection').style.display  = 'none';
   document.getElementById('loginWrap').style.display = 'none';
-  document.getElementById('appShell').style.display  = 'grid';
   document.body.classList.add('has-mainnav');
   document.getElementById('mainNav').style.display = 'flex';
-  document.getElementById('navBurgerBtn').style.display = 'none'; // 預設在「費用」分頁，隱藏漢堡選單
   renderUserBar();
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = document.getElementById('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
   loadConfig(); // loadConfig 結尾會呼叫 loadDriveFiles
+  switchSection('project'); // 登入後預設顯示「專案」分頁
 }
 
 function showBindNameUI() {
@@ -3549,9 +3570,9 @@ function switchSection(name) {
   ['project','todo'].forEach(s=>
     document.getElementById('sec-'+s).classList.toggle('active', s===name));
 
-  // 漢堡選單：專案分頁顯示「新增專案／進度設定」，待辦分頁顯示「顯示已完成／已刪除」
+  // 漢堡選單：費用分頁=切換側邊欄；專案分頁=新增專案／進度設定；待辦分頁=已完成／已刪除
   const burger = document.getElementById('navBurgerBtn');
-  burger.style.display = (name==='project' || name==='todo') ? 'flex' : 'none';
+  burger.style.display = 'flex';
   document.getElementById('navMenuProject').classList.toggle('menu-hidden', name!=='project');
   document.getElementById('navMenuTodo').classList.toggle('menu-hidden', name!=='todo');
   closeNavMenu();
@@ -3569,8 +3590,10 @@ function switchSection(name) {
 }
 
 function toggleNavMenu() {
+  const active = document.querySelector('.mainnav-btn.active')?.dataset.section;
+  if (active === 'expense') { toggleMenu(); return; }
   document.querySelectorAll('#navBurgerBtn .navmenu').forEach(m=>{
-    if (m.style.display !== 'none') m.classList.toggle('open');
+    if (!m.classList.contains('menu-hidden')) m.classList.toggle('open');
   });
 }
 function closeNavMenu() {
@@ -3887,16 +3910,18 @@ async function restoreTask(id) {
 }
 
 // ════════════════════════════════════════════════════════════
-// 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款
+// 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款 / 專案費用
 // ════════════════════════════════════════════════════════════
-// 狀態: 未請款 / 已請款 / 未收款 / 已收款（業主端／廠商端共用）
-const PJ_STATUS = ['未請款','已請款','未收款','已收款'];
-const PJ_STATUS_BADGE = {
-  '未請款':'bd-muted', '已請款':'bd-blue', '未收款':'bd-orange', '已收款':'bd-green',
-};
-// 每期欄位結構: { label, amount, prepayDeduct, expectedDate, status, actualDate }
+// 每期欄位結構: { label, amount, prepayDeduct, expectedDate,
+//                 invoiced, invoiceDate, paid, payDate }
 function pjBlankPeriod() {
-  return { label:'', amount:0, prepayDeduct:0, expectedDate:'', status:PJ_STATUS[0], actualDate:'' };
+  return { label:'', amount:0, prepayDeduct:0, expectedDate:'',
+           invoiced:false, invoiceDate:'', paid:false, payDate:'' };
+}
+function pjPeriodStatus(c) {
+  if (c.paid)    return { label:'已完成', cls:'bd-green' };
+  if (c.invoiced) return { label:'進行中', cls:'bd-blue'  };
+  return { label:'未開始', cls:'bd-muted' };
 }
 
 async function loadProjectsForBoard() {
@@ -3912,11 +3937,36 @@ async function loadProjectsForBoard() {
 }
 
 function pjSum(arr) { return (arr||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); }
-function pjBadge(status) {
-  return `<span class="badge ${PJ_STATUS_BADGE[status]||'bd-muted'}">${esc(status||'未請款')}</span>`;
+
+// ── 期款卡片（業主端／廠商端共用樣式）──────────────────────
+function pjPeriodCard(c, opts) {
+  opts = opts || {};
+  const st = pjPeriodStatus(c);
+  const showAccept = opts.last && !c.paid;
+  return `<div class="period-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-weight:700;font-size:15px">${esc(c.label||'（未命名期款）')}</div>
+      <span class="badge ${st.cls}">${st.label}</span>
+    </div>
+    <div style="font-size:20px;font-weight:800;font-family:monospace;margin-bottom:8px">
+      $${Number(c.amount||0).toLocaleString()}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span class="badge ${c.invoiced?'bd-blue':'bd-muted'}">
+        📄 ${c.invoiced?'已開票':'未開票'}${c.invoiced&&c.invoiceDate?'　🗒 '+c.invoiceDate:''}
+      </span>
+      <span class="badge ${c.paid?'bd-green':'bd-muted'}">
+        💰 ${c.paid?'已收款':'未收款'}${c.paid&&c.payDate?'　🗒 '+c.payDate:''}
+      </span>
+      ${c.prepayDeduct ? `<span class="badge bd-purple">扣抵預收 $${Number(c.prepayDeduct).toLocaleString()}</span>` : ''}
+    </div>
+    ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
+        onclick="pjQuickAccept('${opts.projectId}','${opts.target}',${opts.vendorIndex ?? 'null'},${opts.periodIndex})">
+        ✓ 驗收完成</button>` : ''}
+  </div>`;
 }
 
-// ── 專案 tab：唯讀顯示 ──────────────────────────────────────
+// ── 專案 tab：唯讀展示 ──────────────────────────────────────
 function renderProjectBoard() {
   const board = document.getElementById('projBoard');
   if (!board) return;
@@ -3925,49 +3975,133 @@ function renderProjectBoard() {
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
     return;
   }
-  board.innerHTML = rows.map((p,i) => {
-    const clientTotal = pjSum(p.client);
-    const vendorTotal = (p.vendors||[]).reduce((s,v)=>s+pjSum(v.periods),0);
-    const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-
-    const periodRows = (items) => !items.length
-      ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">尚無分期</div>'
-      : `<table class="tbl"><thead><tr>
-          <th>項目</th><th>金額</th><th>扣抵預收</th><th>預計款項日期</th><th>狀態</th><th>實際款項日期</th>
-        </tr></thead><tbody>` + items.map(c=>`<tr>
-          <td>${esc(c.label||'')}</td>
-          <td style="font-family:monospace">$${Number(c.amount||0).toLocaleString()}</td>
-          <td style="font-family:monospace">${c.prepayDeduct?('$'+Number(c.prepayDeduct).toLocaleString()):'—'}</td>
-          <td>${c.expectedDate||'—'}</td>
-          <td>${pjBadge(c.status)}</td>
-          <td>${c.actualDate||'—'}</td>
-        </tr>`).join('') + `</tbody></table>`;
-
-    return `<div class="card" style="margin-bottom:14px">
+  board.innerHTML = rows.map((p,i) => `
+    <div class="card" style="margin-bottom:14px">
       <div class="card-hd" style="cursor:pointer" onclick="pjToggle(${i})">
-        <span style="font-weight:800">${esc(p.name)}</span>
+        <span style="font-weight:800;font-size:17px">${esc(p.name)}</span>
         <span style="font-size:12px;color:var(--muted);margin-left:8px">${esc(p.code||p.id)}</span>
-        ${prepay.enabled?`<span class="badge bd-purple" style="margin-left:8px">預收 $${Number(prepay.amount).toLocaleString()}</span>`:''}
-        <span style="float:right;color:var(--muted);font-size:13px">業主 $${clientTotal.toLocaleString()} ／ 廠商 $${vendorTotal.toLocaleString()}</span>
       </div>
-      <div class="card-bd" id="pj-body-${i}" style="display:none">
-        <div style="font-weight:700;margin-bottom:8px">🏢 業主端（請款分期）</div>
-        ${periodRows(p.client||[])}
-
-        <div style="font-weight:700;margin:18px 0 8px">🔧 廠商端</div>
-        ${(p.vendors||[]).length ? (p.vendors||[]).map(v=>`
-          <div style="margin-bottom:12px">
-            <div style="font-weight:600;margin-bottom:4px">${esc(v.name||'（未命名廠商）')}</div>
-            ${periodRows(v.periods||[])}
-          </div>`).join('') : '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'}
-      </div>
-    </div>`;
-  }).join('');
+      <div class="card-bd" id="pj-body-${i}" style="display:none">${pjRenderDetail(p)}</div>
+    </div>`).join('');
 }
 
 function pjToggle(i) {
   const el = document.getElementById('pj-body-'+i);
   if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+// 專案詳細內容：業主端 → 廠商端 → 專案費用
+function pjRenderDetail(p) {
+  const clientItems = p.client || [];
+  const vendors      = p.vendors || [];
+
+  const clientHtml = !clientItems.length
+    ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>'
+    : clientItems.map((c,j)=>pjPeriodCard(c, {
+        projectId:p.id, target:'client', periodIndex:j, last: j===clientItems.length-1,
+      })).join('');
+
+  const vendorHtml = !vendors.length
+    ? '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'
+    : vendors.map((v,vi)=>{
+        const periods = v.periods || [];
+        const done = periods.filter(c=>c.paid).length;
+        const total = periods.length;
+        const pct   = total ? Math.round(done/total*100) : 0;
+        const amt   = pjSum(periods);
+        const elId  = `pj-vendor-${p.id}-${vi}`;
+        return `<div class="vendor-row" onclick="pjToggleEl('${elId}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">${esc(v.name||'（未命名廠商）')} <span style="color:var(--muted);font-size:13px;font-weight:400">${done}/${total} 期</span></div>
+            <div style="font-weight:800;font-family:monospace">$${amt.toLocaleString()}</div>
+          </div>
+          <div class="proj-progress"><div class="proj-progress-fill" style="width:${pct}%"></div></div>
+          <div id="${elId}" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
+            ${!periods.length ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>' :
+              periods.map((c,pj)=>pjPeriodCard(c, {
+                projectId:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj, last: pj===periods.length-1,
+              })).join('')}
+          </div>
+        </div>`;
+      }).join('');
+
+  const expenseHtml = (S._projExpenses && S._projExpenses[p.id])
+    ? renderProjExpenseList(S._projExpenses[p.id])
+    : `<div style="color:var(--muted);font-size:13px">
+         <button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>
+       </div>`;
+
+  return `
+    <div style="font-weight:700;margin-bottom:8px">🏢 業主端</div>
+    ${clientHtml}
+    <div style="font-weight:700;margin:18px 0 8px">🚚 廠商端</div>
+    ${vendorHtml}
+    <div style="font-weight:700;margin:18px 0 8px">🧾 專案費用</div>
+    <div id="pj-expense-${p.id}">${expenseHtml}</div>
+  `;
+}
+
+function pjToggleEl(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function renderProjExpenseList(items) {
+  if (!items.length) return '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
+  const icon = { fuel:'⛽', parking:'🅿️', other:'🧾' };
+  return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
+    <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:14px">${esc(e.label||'')}</div>
+      <div style="font-size:12px;color:var(--muted)">${e.date||''}</div>
+    </div>
+    <div style="font-weight:800;font-family:monospace">$${Number(e.amount||0).toLocaleString()}</div>
+  </div>`).join('');
+}
+
+// 專案費用：暫以 OcrResults 取得（若後端尚未實作 getProjectExpenses，靜默失敗顯示空清單）
+async function loadProjectExpenses(projectId) {
+  const wrap = document.getElementById('pj-expense-'+projectId);
+  if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">載入中...</div>';
+  try {
+    const res = await callGAS({ action:'getProjectExpenses', projectId });
+    S._projExpenses = S._projExpenses || {};
+    S._projExpenses[projectId] = (res && res.success && res.rows) ? res.rows : [];
+  } catch(e) {
+    S._projExpenses = S._projExpenses || {};
+    S._projExpenses[projectId] = [];
+  }
+  if (wrap) wrap.innerHTML = renderProjExpenseList(S._projExpenses[projectId]);
+}
+
+// 快速「驗收完成」：標記該期已收款（含開票），日期填今天
+async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
+  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  if (!p) return;
+  const today = new Date().toISOString().slice(0,10);
+  let arr;
+  if (target === 'client') {
+    arr = p.client = p.client || [];
+  } else {
+    p.vendors = p.vendors || [];
+    p.vendors[vendorIndex] = p.vendors[vendorIndex] || {name:'',periods:[]};
+    arr = p.vendors[vendorIndex].periods = p.vendors[vendorIndex].periods || [];
+  }
+  const c = arr[periodIndex];
+  if (!c) return;
+  c.invoiced = true;  c.invoiceDate = c.invoiceDate || today;
+  c.paid     = true;  c.payDate     = today;
+
+  const payload = { action:'updateProject', id:p.id, client:p.client||[], vendors:p.vendors||[] };
+  const res = await callGAS(payload);
+  if (res.success) {
+    toast('✅ 已標記驗收完成');
+    renderProjectBoard();
+    // 若進度設定編輯器正開著同一專案，同步重新整理
+    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
+  } else {
+    toast('❌ ' + (res.error||'更新失敗'));
+  }
 }
 
 // ── 設定 > 進度設定：可編輯 ──────────────────────────────────
@@ -3992,15 +4126,53 @@ function pgPopulateDeductMethods() {
   sel.innerHTML = methods.map(m=>`<option value="${esc(m.key)}">${esc(m.label)}</option>`).join('');
 }
 
+function pgPopulateTargetSelect() {
+  const sel = document.getElementById('pg-target-select');
+  if (!sel) return;
+  const p = S._pgProject;
+  const cur = sel.value;
+  let opts = '<option value="client">🏢 業主端</option>';
+  (p?.vendors||[]).forEach((v,vi)=> opts += `<option value="vendor:${vi}">🚚 ${esc(v.name||'（未命名廠商'+(vi+1)+'）')}</option>`);
+  sel.innerHTML = opts;
+  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}
+
 function pgLoadProject(id) {
   const editor = document.getElementById('pg-editor');
-  if (!id) { S._pgProject = null; if (editor) editor.innerHTML=''; return; }
+  if (!id) { S._pgProject = null; if (editor) editor.innerHTML=''; pgPopulateTargetSelect(); return; }
   const p = (S._pjBoard||[]).find(x=>x.id===id);
   if (!p) return;
   // 深拷貝，避免直接改到 board 快取
   S._pgProject = JSON.parse(JSON.stringify(p));
   S._pgProject.client  = S._pgProject.client  || [];
   S._pgProject.vendors = S._pgProject.vendors || [];
+  pgPopulateTargetSelect();
+  document.getElementById('pg-target-select').value = 'client';
+  pgRenderEditor();
+}
+
+// 取得目前編輯對象的期款陣列（業主端 client 或某廠商 periods）
+function pgTargetArray() {
+  const p = S._pgProject;
+  if (!p) return null;
+  const target = document.getElementById('pg-target-select')?.value || 'client';
+  if (target === 'client') return p.client = p.client || [];
+  const vi = Number(target.split(':')[1]);
+  p.vendors[vi] = p.vendors[vi] || {name:'',periods:[]};
+  return p.vendors[vi].periods = p.vendors[vi].periods || [];
+}
+
+function pgAddVendorQuick() {
+  const p = S._pgProject;
+  if (!p) { toast('請先選擇專案'); return; }
+  const input = document.getElementById('pg-new-vendor');
+  const name = input?.value.trim();
+  if (!name) return;
+  p.vendors = p.vendors || [];
+  p.vendors.push({ name, periods: [] });
+  input.value = '';
+  pgPopulateTargetSelect();
+  document.getElementById('pg-target-select').value = 'vendor:' + (p.vendors.length-1);
   pgRenderEditor();
 }
 
@@ -4009,108 +4181,79 @@ function pgRenderEditor() {
   if (!editor) return;
   const p = S._pgProject;
   if (!p) { editor.innerHTML=''; return; }
+  const target = document.getElementById('pg-target-select')?.value || 'client';
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
+  let removeVendorBtn = '';
+  if (target.startsWith('vendor:')) {
+    const vi = Number(target.split(':')[1]);
+    removeVendorBtn = `<button class="btn btn-danger btn-sm" style="margin-bottom:8px" onclick="pgRemoveVendor(${vi})">🗑 刪除此廠商</button>`;
+  }
+
   editor.innerHTML = `
-    ${prepay.enabled ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">
+    ${target==='client' && prepay.enabled ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">
       💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${p.client.reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
     </div>` : ''}
-    <div style="font-weight:700;margin-bottom:8px">🏢 業主端（請款分期）</div>
-    <div id="pg-client"></div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddClient()">＋ 新增分期</button>
-
-    <div style="font-weight:700;margin:18px 0 8px">🔧 廠商端</div>
-    <div id="pg-vendor"></div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddVendor()">＋ 新增廠商</button>
+    ${removeVendorBtn}
+    <div id="pg-periods"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddPeriod()">＋ 新增分期</button>
 
     <div style="margin-top:18px">
       <button class="btn btn-primary btn-sm" onclick="pgSave()">💾 儲存進度</button>
       <span id="pg-msg" style="font-size:13px;margin-left:8px"></span>
     </div>`;
-  pgRenderClient();
-  pgRenderVendor();
+  pgRenderPeriods();
 }
 
-function pgRenderClient() {
-  const p = S._pgProject;
-  const wrap = document.getElementById('pg-client');
+function pgRenderPeriods() {
+  const wrap  = document.getElementById('pg-periods');
   if (!wrap) return;
-  const items = p.client || [];
+  const items = pgTargetArray() || [];
   if (!items.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無分期</div>'; return; }
+  const target = document.getElementById('pg-target-select')?.value || 'client';
+  const showDeduct = (target === 'client');
   wrap.innerHTML = `<table class="tbl"><thead><tr>
-    <th>項目</th><th>金額</th><th>扣抵預收</th><th>預計款項日期</th><th>狀態</th><th>實際款項日期</th><th></th>
+    <th>項目</th><th>金額</th>${showDeduct?'<th>扣抵預收</th>':''}<th>預計款項日期</th>
+    <th>已開票</th><th>開票日期</th><th>已收款</th><th>收款日期</th><th></th>
   </tr></thead><tbody>` + items.map((c,j)=>`<tr>
-    <td><input class="inp" value="${esc(c.label||'')}" onchange="pgSetClient(${j},'label',this.value)"></td>
-    <td><input type="number" class="inp" style="width:110px" value="${c.amount||0}" onchange="pgSetClient(${j},'amount',this.value)"></td>
-    <td><input type="number" class="inp" style="width:110px" value="${c.prepayDeduct||0}" onchange="pgSetClient(${j},'prepayDeduct',this.value)"></td>
-    <td><input type="date" class="inp" value="${c.expectedDate||''}" onchange="pgSetClient(${j},'expectedDate',this.value)"></td>
-    <td><select class="inp" onchange="pgSetClient(${j},'status',this.value)">
-      ${PJ_STATUS.map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
-    </select></td>
-    <td><input type="date" class="inp" value="${c.actualDate||''}" onchange="pgSetClient(${j},'actualDate',this.value)"></td>
-    <td><button class="btn btn-danger btn-sm" onclick="pgRemoveClient(${j})">🗑</button></td>
+    <td><input class="inp" value="${esc(c.label||'')}" onchange="pgSetPeriod(${j},'label',this.value)"></td>
+    <td><input type="number" class="inp" style="width:100px" value="${c.amount||0}" onchange="pgSetPeriod(${j},'amount',this.value)"></td>
+    ${showDeduct?`<td><input type="number" class="inp" style="width:100px" value="${c.prepayDeduct||0}" onchange="pgSetPeriod(${j},'prepayDeduct',this.value)"></td>`:''}
+    <td><input type="date" class="inp" value="${c.expectedDate||''}" onchange="pgSetPeriod(${j},'expectedDate',this.value)"></td>
+    <td style="text-align:center"><input type="checkbox" ${c.invoiced?'checked':''} onchange="pgSetPeriod(${j},'invoiced',this.checked)"></td>
+    <td><input type="date" class="inp" value="${c.invoiceDate||''}" onchange="pgSetPeriod(${j},'invoiceDate',this.value)"></td>
+    <td style="text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="pgSetPeriod(${j},'paid',this.checked)"></td>
+    <td><input type="date" class="inp" value="${c.payDate||''}" onchange="pgSetPeriod(${j},'payDate',this.value)"></td>
+    <td><button class="btn btn-danger btn-sm" onclick="pgRemovePeriod(${j})">🗑</button></td>
   </tr>`).join('') + `</tbody></table>`;
 }
 
-function pgAddClient() {
-  S._pgProject.client = S._pgProject.client || [];
-  S._pgProject.client.push(pjBlankPeriod());
-  pgRenderClient();
+function pgAddPeriod() {
+  const arr = pgTargetArray();
+  if (!arr) return;
+  arr.push(pjBlankPeriod());
+  pgRenderPeriods();
 }
-function pgRemoveClient(j) { S._pgProject.client.splice(j,1); pgRenderClient(); }
-function pgSetClient(j,k,v) {
-  S._pgProject.client[j][k] = (k==='amount'||k==='prepayDeduct') ? (parseFloat(v)||0) : v;
+function pgRemovePeriod(j) {
+  const arr = pgTargetArray();
+  if (!arr) return;
+  arr.splice(j,1);
+  pgRenderPeriods();
 }
-
-function pgRenderVendor() {
-  const p = S._pgProject;
-  const wrap = document.getElementById('pg-vendor');
-  if (!wrap) return;
-  const vendors = p.vendors || [];
-  if (!vendors.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'; return; }
-  wrap.innerHTML = vendors.map((v,vi) => {
-    const periods = v.periods || [];
-    return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <input class="inp" style="flex:1" value="${esc(v.name||'')}" placeholder="廠商名稱"
-          onchange="pgSetVendorName(${vi},this.value)">
-        <button class="btn btn-danger btn-sm" onclick="pgRemoveVendor(${vi})">🗑 廠商</button>
-      </div>
-      ${periods.length ? `<table class="tbl"><thead><tr>
-        <th>項目</th><th>金額</th><th>扣抵預收</th><th>預計款項日期</th><th>狀態</th><th>實際款項日期</th><th></th>
-      </tr></thead><tbody>` + periods.map((pr,pj)=>`<tr>
-        <td><input class="inp" value="${esc(pr.label||'')}" onchange="pgSetVendorPeriod(${vi},${pj},'label',this.value)"></td>
-        <td><input type="number" class="inp" style="width:110px" value="${pr.amount||0}" onchange="pgSetVendorPeriod(${vi},${pj},'amount',this.value)"></td>
-        <td><input type="number" class="inp" style="width:110px" value="${pr.prepayDeduct||0}" onchange="pgSetVendorPeriod(${vi},${pj},'prepayDeduct',this.value)"></td>
-        <td><input type="date" class="inp" value="${pr.expectedDate||''}" onchange="pgSetVendorPeriod(${vi},${pj},'expectedDate',this.value)"></td>
-        <td><select class="inp" onchange="pgSetVendorPeriod(${vi},${pj},'status',this.value)">
-          ${PJ_STATUS.map(s=>`<option ${s===pr.status?'selected':''}>${s}</option>`).join('')}
-        </select></td>
-        <td><input type="date" class="inp" value="${pr.actualDate||''}" onchange="pgSetVendorPeriod(${vi},${pj},'actualDate',this.value)"></td>
-        <td><button class="btn btn-danger btn-sm" onclick="pgRemoveVendorPeriod(${vi},${pj})">🗑</button></td>
-      </tr>`).join('') + `</tbody></table>`
-      : '<div style="color:var(--muted);font-size:13px">尚無分期</div>'}
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddVendorPeriod(${vi})">＋ 新增分期</button>
-    </div>`;
-  }).join('');
+function pgSetPeriod(j,k,v) {
+  const arr = pgTargetArray();
+  if (!arr) return;
+  if (k==='amount'||k==='prepayDeduct') arr[j][k] = parseFloat(v)||0;
+  else if (k==='invoiced'||k==='paid')  arr[j][k] = !!v;
+  else arr[j][k] = v;
+  if (k==='invoiced'||k==='paid') pgRenderPeriods(); // 重新渲染以反映 checkbox 狀態
 }
 
-function pgAddVendor() {
-  S._pgProject.vendors = S._pgProject.vendors || [];
-  S._pgProject.vendors.push({name:'',periods:[]});
-  pgRenderVendor();
-}
-function pgRemoveVendor(vi) { S._pgProject.vendors.splice(vi,1); pgRenderVendor(); }
-function pgSetVendorName(vi,v) { S._pgProject.vendors[vi].name = v; }
-function pgAddVendorPeriod(vi) {
-  const v = S._pgProject.vendors[vi];
-  v.periods = v.periods || [];
-  v.periods.push(pjBlankPeriod());
-  pgRenderVendor();
-}
-function pgRemoveVendorPeriod(vi,pj) { S._pgProject.vendors[vi].periods.splice(pj,1); pgRenderVendor(); }
-function pgSetVendorPeriod(vi,pj,k,v) {
-  S._pgProject.vendors[vi].periods[pj][k] = (k==='amount'||k==='prepayDeduct') ? (parseFloat(v)||0) : v;
+function pgRemoveVendor(vi) {
+  S._pgProject.vendors.splice(vi,1);
+  pgPopulateTargetSelect();
+  document.getElementById('pg-target-select').value = 'client';
+  pgRenderEditor();
 }
 
 // 套用預收款扣抵方式至「業主端」全部分期（依序計算，可手動覆寫個別金額）
@@ -4141,7 +4284,7 @@ function pgApplyDeductMethod() {
     c.prepayDeduct = Math.round(deduct);
     remaining -= c.prepayDeduct;
   });
-  pgRenderClient();
+  if ((document.getElementById('pg-target-select')?.value)==='client') pgRenderPeriods();
   toast('已套用「' + method.label + '」，剩餘預收款 $' + remaining.toLocaleString());
 }
 
