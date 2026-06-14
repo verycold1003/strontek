@@ -4199,7 +4199,11 @@ function pjEditClientPay(projectId, periodIndex) {
     onSave: async (vals) => {
       c.paid    = vals['pay-status'] === '已收款';
       c.payDate = vals['pay-date'] || '';
-      await _pjSaveAndRefresh(p);
+      const res = await callGAS({ action:'updateProjectPeriod',
+        id:p.id, target:'client', periodIndex:j,
+        fields:{ paid:c.paid, payDate:c.payDate } });
+      if (res.success) { renderProjectBoard(); }
+      else { toast('❌ ' + (res.error||'更新失敗')); }
     }
   });
 }
@@ -4222,7 +4226,11 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
     onSave: async (vals) => {
       c.invReceived     = vals['inv-status'] === '已收票';
       c.invReceivedDate = vals['inv-date'] || '';
-      await _pjSaveAndRefresh(p);
+      const res = await callGAS({ action:'updateProjectPeriod',
+        id:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj,
+        fields:{ invReceived:c.invReceived, invReceivedDate:c.invReceivedDate } });
+      if (res.success) { renderProjectBoard(); }
+      else { toast('❌ ' + (res.error||'更新失敗')); }
     }
   });
 }
@@ -4444,9 +4452,10 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
   const c = (p.client||[])[periodIdx];
   if (!c) return;
   c.invoiceDate = dateVal;
-  c.invoiced    = !!dateVal; // 填日期=已開票，清空=取消
-  const res = await callGAS({ action:'updateProject', id:p.id,
-    client:p.client||[], vendors:p.vendors||[] });
+  c.invoiced    = !!dateVal;
+  const res = await callGAS({ action:'updateProjectPeriod',
+    id:projectId, target:'client', periodIndex,
+    fields:{ invoiced:c.invoiced, invoiceDate:dateVal } });
   if (res.success) {
     // 更新快取列表
     const row = (_finRows.invoice||[]).find(r=>r.proj.id===projectId && r.periodIdx===periodIdx);
@@ -4464,8 +4473,9 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
   if (!c) return;
   c.vendorPayDate = dateVal;
   c.vendorPaid    = !!dateVal;
-  const res = await callGAS({ action:'updateProject', id:p.id,
-    client:p.client||[], vendors:p.vendors||[] });
+  const res = await callGAS({ action:'updateProjectPeriod',
+    id:projectId, target:'vendor', vendorIndex, periodIndex,
+    fields:{ vendorPaid:c.vendorPaid, vendorPayDate:dateVal } });
   if (res.success) {
     const row = (_finRows.payment||[]).find(r=>
       r.proj.id===projectId && r.vendorIdx===vendorIdx && r.periodIdx===periodIdx);
