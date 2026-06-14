@@ -24,7 +24,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
 /* Layout */
-.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.shell{display:grid;grid-template-columns:1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
 
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
@@ -59,7 +59,6 @@ body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 .app-section.active{display:block}
 .app-section .pg-title{margin-bottom:14px}
 .topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.sidebar{background:var(--surface);border-right:2px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;box-shadow:2px 0 8px rgba(0,0,0,.04)}
 .main-area{overflow-y:auto;padding:24px;background:var(--bg)}
 
 /* Logo */
@@ -224,18 +223,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 @media(max-width:900px){
   #menuToggle{display:flex}
   .shell{grid-template-columns:1fr;grid-template-rows:56px 1fr}
-  .sidebar{
-    display:flex;
-    position:fixed;
-    top:56px;left:0;bottom:0;
-    width:220px;
-    z-index:100;
-    transform:translateX(-100%);
-    transition:transform .25s ease;
-    border-right:1px solid var(--border2);
-    box-shadow:4px 0 24px rgba(0,0,0,.4);
-  }
-  .sidebar.open{transform:translateX(0)}
   .login-box{width:min(400px,92vw);padding:28px 20px}
   .topbar{padding:0 14px;gap:10px}
   .topbar .logo{font-size:15px}
@@ -249,81 +236,39 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <body>
 
 <div class="toast" id="toast"></div>
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMenu()"></div>
-
-<!-- LOGIN -->
-<div class="login-wrap" id="loginWrap">
-  <div class="login-box">
-    <div style="font-size:52px;margin-bottom:14px">📋</div>
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform</div>
-    <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
-      使用 LINE 帳號登入
-    </button>
-    <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
-    <div id="bindNameSection" style="display:none;margin-top:20px;text-align:left">
-      <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6">
-          此 LINE 帳號尚未綁定系統員工資料。<br>請輸入您的<strong style="color:var(--text)">中文姓名</strong>，系統將自動比對並完成綁定。
-        </div>
-      </div>
-      <div id="bindLineName" style="font-size:13px;color:var(--text);background:rgba(255,255,255,.05);border-radius:7px;padding:8px 12px;margin-bottom:10px;line-height:1.8"></div>
-      <label class="lbl" style="display:block;margin-bottom:5px">您的中文姓名</label>
-      <input id="bindNameInput" class="inp" placeholder="例：張家榮" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')doBindName()">
-      <button class="btn btn-primary btn-full" id="btnBindName" onclick="doBindName()">🔗 比對並綁定帳號</button>
-      <div id="bindNameErr" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
-    </div>
-  </div>
-</div>
-
-<!-- APP SHELL -->
 <div class="shell" id="appShell" style="display:none">
-
-  <!-- TOPBAR -->
   <div class="topbar">
-    <!-- 手機版漢堡選單（已移至全域導覽列） -->
     <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
     <div class="pg-title" style="margin:0">💲 費用管理</div>
   </div>
+  <div class="main-area" id="mainArea"></div>
+</div><!-- /appShell -->
 
-  <!-- SIDEBAR -->
-  <div class="sidebar" id="mainSidebar">
-    <div class="nav-sec">作業流程</div>
-    <div class="nav-item active" data-page="upload" onclick="nav('upload')">📤 <span>上傳憑證</span> <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
-    <div class="nav-item" data-page="ocr" onclick="nav('ocr')">🤖 <span>OCR 辨識</span> <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
-    <div class="nav-item" data-page="history" onclick="nav('history')">📋 <span>匯出紀錄</span></div>
-
-    <!-- 申請月份：作業流程與上傳憑證中間 -->
-    <div style="padding:10px 16px 4px">
-      <label class="lbl" style="margin-bottom:4px">申請月份</label>
+<!-- ═══════════ SECTION: 費用-上傳憑證 ═══════════ -->
+<div class="app-section" id="sec-expense-upload">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
+    <div class="pg-title" style="margin:0">📤 上傳憑證 <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
       <input type="month" class="inp" id="global-month" style="font-size:14px;padding:7px 10px"
              onchange="onGlobalMonthChange(this.value)">
     </div>
-
-    <div style="margin-top:auto;padding:12px 16px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="syncStatus">尚未同步</div>
-      <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--muted)" id="syncStatus">尚未同步</div>
         <span id="syncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
         <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
         <span id="fuelLastSyncLabel" style="font-size:11px;color:var(--muted);display:none"></span>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted)"
+          onclick="sendDebugSnapshot()" title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug</button>
+        <div id="debugSnapStatus" style="font-size:11px;color:var(--muted)"></div>
       </div>
-      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted);width:100%"
-          onclick="sendDebugSnapshot()" title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug 快照</button>
-        <div id="debugSnapStatus" style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center"></div>
-      </div>
-    </div>
   </div>
-
-  <!-- MAIN -->
-  <div class="main-area" id="mainArea">
-
-    <!-- PAGE: UPLOAD -->
-    <div class="page active" id="page-upload">
-      <div class="pg-title">📤 上傳憑證</div>
-      <div class="pg-sub">批次上傳照片至 Google Drive；每張照片可包含多張電子發票</div>
+  <div class="pg-sub">批次上傳照片至 Google Drive；每張照片可包含多張電子發票</div>
 
       <div style="display:flex;flex-direction:column;gap:18px">
         <div class="card">
@@ -384,12 +329,33 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </div>
         </div>
       </div>
-    </div>
+</div>
 
-    <!-- PAGE: OCR -->
-    <div class="page" id="page-ocr">
-      <div class="pg-title">🤖 OCR 辨識</div>
-      <div class="pg-sub">Gemini AI 逐一辨識每張照片，每張可辨識出多張發票。完成後依類別整理憑證</div>
+<!-- ═══════════ SECTION: 費用-OCR辨識 ═══════════ -->
+<div class="app-section" id="sec-expense-ocr">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
+    <div class="pg-title" style="margin:0">🤖 OCR 辨識 <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
+      <input type="month" class="inp" id="global-month-ocr" style="font-size:14px;padding:7px 10px"
+             onchange="onGlobalMonthChange(this.value)">
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--muted)" id="syncStatus-ocr">尚未同步</div>
+        <span id="syncDone-ocr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
+        <button class="btn btn-ghost btn-sm" id="btnReload-ocr" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
+        <span id="fuelLastSyncLabel-ocr" style="font-size:11px;color:var(--muted);display:none"></span>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted)"
+           title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug</button>
+        <div id="debugSnapStatus-ocr" style="font-size:11px;color:var(--muted)"></div>
+      </div>
+  </div>
+  <div class="pg-sub">Gemini AI 逐一辨識每張照片，每張可辨識出多張發票。完成後依類別整理憑證</div>
 
       <div class="steps">
         <div class="step active" id="st1"><div class="step-n">1</div><span>加入佇列</span></div>
@@ -438,12 +404,16 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <button class="btn btn-danger" id="btnDelSelected" onclick="delSelected()">🗑 刪除勾選</button>
         </div>
       </div>
-    </div>
+</div>
 
-    <!-- PAGE: HISTORY (匯出紀錄) -->
-    <div class="page" id="page-history">
-      <div class="pg-title">📋 匯出紀錄</div>
-      <div class="pg-sub">本月已產生的 PDF 附件清單</div>
+<!-- ═══════════ SECTION: 費用-匯出紀錄 ═══════════ -->
+<div class="app-section" id="sec-expense-history">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
+    <div class="pg-title" style="margin:0">📋 匯出紀錄</div>
+  </div>
+  <div class="pg-sub">本月已產生的 PDF 附件清單</div>
       <div class="card">
         <div class="card-hd">
           📄 已產生 PDF
@@ -462,10 +432,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </table>
         </div>
       </div>
-    </div>
-
-  </div><!-- /mainArea -->
-</div><!-- /appShell -->
+</div>
 
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
@@ -498,25 +465,25 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 </div>
 
 <!-- ═══════════ MODAL: 專案設定（新增專案／專案列表／進度設定） ═══════════ -->
-<div class="modal-wrap" id="settingsModal">
-  <div class="modal-box" style="max-width:900px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div id="tbUser" style="display:flex;align-items:center;gap:8px">
-          <div id="uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
-          <div>
-            <div id="uName" style="font-size:13px;font-weight:600">—</div>
-            <div id="uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
-          </div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
-        <button class="btn btn-ghost btn-sm" onclick="closeSettingsModal()">✕ 關閉</button>
+<!-- ═══════════ SECTION: 專案設定 ═══════════ -->
+<div class="app-section" id="sec-proj-settings" style="overflow-x:auto">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
+  </div>
+  <div id="ps-user-bar" style="display:flex;align-items:center;gap:14px;margin-bottom:18px;
+    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="ps-uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);
+        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
+      <div>
+        <div id="ps-uName" style="font-size:13px;font-weight:600">—</div>
+        <div id="ps-uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:18px">
-
-    <!-- 新增專案 card -->
+    <button class="btn btn-ghost btn-sm" onclick="logout()" style="margin-left:auto">登出</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:18px">
+<!-- 新增專案 card -->
     <div class="card">
       <div class="card-hd">➕ 新增專案</div>
       <div class="card-bd">
@@ -659,16 +626,89 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <div id="pg-editor"></div>
       </div>
     </div>
-    </div><!-- /fields wrap -->
-  </div><!-- /modal-box -->
-</div><!-- /settingsModal -->
+  </div>
+</div>
 
 <!-- ═══════════ 頂部主導覽列 ═══════════ -->
+<!-- ═══════════ SECTION: 財務專區 ═══════════ -->
+<div class="app-section" id="sec-finance" style="overflow-x:auto">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="pg-title" style="margin:0">💰 財務專區</div>
+    <button class="btn btn-ghost btn-sm" onclick="loadFinance()">🔄 重新載入</button>
+  </div>
+
+  <!-- 待發票列表 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px">
+      📄 待發票列表（業主端）
+      <label style="font-size:13px;font-weight:400;margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="fin-show-inv-done" onchange="renderFinanceInvoice()"> 顯示已完成
+      </label>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="fin-inv-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">專案</th>
+          <th style="white-space:nowrap">期次</th>
+          <th style="white-space:nowrap">實收金額</th>
+          <th style="white-space:nowrap">收款狀態</th>
+          <th style="white-space:nowrap">收款日期</th>
+          <th style="white-space:nowrap">開票日期</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="fin-inv-body">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 待付款列表 -->
+  <div class="card">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px">
+      💸 待付款列表（廠商端）
+      <label style="font-size:13px;font-weight:400;margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="fin-show-pay-done" onchange="renderFinancePayment()"> 顯示已完成
+      </label>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="fin-pay-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">專案</th>
+          <th style="white-space:nowrap">廠商</th>
+          <th style="white-space:nowrap">期次</th>
+          <th style="white-space:nowrap">金額</th>
+          <th style="white-space:nowrap">發票狀態</th>
+          <th style="white-space:nowrap">發票日期</th>
+          <th style="white-space:nowrap">付款日期</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="fin-pay-body">
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div class="mainnav" id="mainNav" style="display:none">
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);width:100%;height:100%">☰</button>
     <div class="navmenu" id="navMenuProject">
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
+      <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
+      <div id="navMenuProjBack" style="display:none">
+        <button class="navmenu-item" onclick="closeSettingsModal()">← 返回專案</button>
+      </div>
+    </div>
+    <div class="navmenu" id="navMenuExpense">
+      <button class="navmenu-item" onclick="switchExpensePage('upload')">
+        📤 上傳憑證 <span class="nbadge" id="nb-upload-m" style="margin-left:4px;display:none">0</span>
+      </button>
+      <button class="navmenu-item" onclick="switchExpensePage('ocr')">
+        🤖 OCR 辨識 <span class="nbadge" id="nb-ocr-m" style="margin-left:4px;display:none">0</span>
+      </button>
+      <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -735,10 +775,7 @@ const S = {
 // ════════════════════════════════════════════════════════════
 // MOBILE MENU
 // ════════════════════════════════════════════════════════════
-function toggleMenu() {
-  document.getElementById('mainSidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
-}
+function toggleMenu() { /* sidebar 已移除，由漢堡 navmenu 取代 */ }
 
 // ════════════════════════════════════════════════════════════
 // MILEAGE RATE
@@ -904,17 +941,29 @@ async function doBindName() {
 
 function renderUserBar() {
   const u = S.user;
-  document.getElementById('uName').textContent = u.name;
+  if (!u) return;
   const p      = S.config?.persons?.find(x => x.name === u.name);
   const dept   = (p?.dept  || u.dept  || '');
   const title  = (p?.title || u.title || '');
   const depts  = (p?.depts && p.depts.length) ? p.depts : (dept ? [dept] : []);
-  document.getElementById('uDeptTitle').textContent = depts.join(' / ') + (title ? ' · ' + title : '');
+  // uName/uAvatar/uDeptTitle are only in loginWrap section now — safe to skip if missing
+  const nm = document.getElementById('uName');
   const av = document.getElementById('uAvatar');
-  if (u.avatar) av.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">`;
-  else av.textContent = u.name.slice(0,1);
-  if (dept)         S.user.dept  = dept;
-  if (depts.length) S.user.depts = depts;
+  const dt = document.getElementById('uDeptTitle');
+  if (nm) nm.textContent = u.name;
+  if (dt) dt.textContent = depts.join(' / ') + (title ? ' · ' + title : '');
+  if (av) {
+    if (u.avatar) av.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">`;
+    else av.textContent = u.name.slice(0,1);
+  }
+  if (dept)         S.user.dept     = dept;
+  if (title)        S.user.title    = title;
+  if (depts.length) S.user.depts    = depts;
+  if (dept)         S.config.userDept = dept;
+  // 財務部門才顯示財務專區入口
+  const isFinance = dept.includes('FI') || dept.includes('財務');
+  const finBtn = document.getElementById('navFinanceBtn');
+  if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
 }
 
 function logout() {
@@ -966,21 +1015,22 @@ function populateSelects() {
 
 // 全域月份變更：同步到各頁
 function onGlobalMonthChange(val) {
+  // sync the OCR section's month input
+  const ocrM = document.getElementById('global-month-ocr');
+  if (ocrM) ocrM.value = val;
   loadDriveFiles();
   loadExportHistory(false);
 }
 
-// 🔄 依當前頁面決定觸發動作
+// 🔄 依當前費用子頁決定觸發動作
 function doReloadAll() {
-  const activePage = document.querySelector('.page.active')?.id || '';
-  if (activePage === 'page-upload') {
+  const page = _currentExpensePage || 'upload';
+  if (page === 'upload') {
     loadConfig();
-  } else if (activePage === 'page-ocr') {
+  } else if (page === 'ocr') {
     reloadOcrWithFuel();
-  } else if (activePage === 'page-history') {
+  } else if (page === 'history') {
     loadExportHistory(true);
-  } else if (activePage === 'page-project') {
-    loadProjectList(true);
   } else {
     loadConfig();
   }
@@ -3491,36 +3541,82 @@ async function _doExport(skipStash = false) {
 // ════════════════════════════════════════════════════════════
 // 頂部主導覽列 — 區段切換 (專案／費用／待辦) ＋ 漢堡選單
 // ════════════════════════════════════════════════════════════
+let _currentExpensePage = 'upload'; // 記住費用子頁
+
 function switchSection(name) {
+  const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
-    b.classList.toggle('active', b.dataset.section===name));
+    b.classList.toggle('active', b.dataset.section===displayName));
+  const backBtn = document.getElementById('navMenuProjBack');
+  if (backBtn) backBtn.style.display = (name==='proj-settings'||name==='finance') ? 'block' : 'none';
 
-  document.getElementById('appShell').style.display = (name==='expense') ? 'grid' : 'none';
-  ['project','todo'].forEach(s=>
-    document.getElementById('sec-'+s).classList.toggle('active', s===name));
+  // 費用：完全靠 sec-expense-* sections，appShell 隱藏
+  document.getElementById('appShell').style.display = 'none';
+  ['project','todo','proj-settings','finance',
+   'expense-upload','expense-ocr','expense-history'].forEach(s=> {
+    const el = document.getElementById('sec-'+s);
+    if (el) el.classList.remove('active');
+  });
 
-  // 漢堡選單：費用分頁=切換側邊欄；專案分頁=新增專案／進度設定；待辦分頁=已完成／已刪除
-  const burger = document.getElementById('navBurgerBtn');
-  burger.style.display = 'flex';
-  document.getElementById('navMenuProject').classList.toggle('menu-hidden', name!=='project');
+  if (name === 'expense') {
+    document.getElementById('sec-expense-'+_currentExpensePage)?.classList.add('active');
+  } else {
+    document.getElementById('sec-'+name)?.classList.add('active');
+  }
+
+  // 漢堡：費用→費用子頁選單，專案→專案設定，待辦→篩選，proj-settings/finance→返回
+  document.getElementById('navBurgerBtn').style.display = 'flex';
+  document.getElementById('navMenuProject').classList.toggle('menu-hidden', !isProjectRelated(name));
+  document.getElementById('navMenuExpense').classList.toggle('menu-hidden', name!=='expense');
   document.getElementById('navMenuTodo').classList.toggle('menu-hidden', name!=='todo');
   closeNavMenu();
 
-  // 手機版若 sidebar 仍展開，切換區段時收合
-  document.getElementById('mainSidebar')?.classList.remove('open');
-  document.getElementById('sidebarOverlay')?.classList.remove('open');
-
-  if (name==='todo') {
-    loadTasks();
+  if (name==='todo')    loadTasks();
+  if (name==='project') loadProjectsForBoard();
+  if (name==='proj-settings') {
+    populateNpDept();
+    loadProjectList(false);
+    pgPopulateDeductMethods();
+    loadProjectsForBoard().then(pgPopulateProjectSelect);
+    renderSettingsUserBar();
   }
-  if (name==='project') {
-    loadProjectsForBoard();
+  if (name==='finance') {
+    loadFinance();
   }
 }
 
+// 專案設定頁使用者資訊列
+function renderSettingsUserBar() {
+  const u = S.user;
+  if (!u) return;
+  const av = document.getElementById('ps-uAvatar');
+  const nm = document.getElementById('ps-uName');
+  const dt = document.getElementById('ps-uDeptTitle');
+  if (av) {
+    if (u.pictureUrl) { av.innerHTML = `<img src="${u.pictureUrl}" style="width:100%;height:100%;object-fit:cover">`; }
+    else { av.textContent = (u.name||'?')[0]; }
+  }
+  if (nm) nm.textContent = u.name || '—';
+  if (dt) dt.textContent = [S.config?.userDept, u.title].filter(Boolean).join('・') || '—';
+}
+
+// 漢堡選單：專案設定在「專案」nav-btn active 狀態下顯示
+function isProjectRelated(name) {
+  return name === 'project' || name === 'proj-settings' || name === 'finance';
+}function switchExpensePage(page) {
+  _currentExpensePage = page;
+  closeNavMenu();
+  ['upload','ocr','history'].forEach(p=> {
+    document.getElementById('sec-expense-'+p)?.classList.toggle('active', p===page);
+  });
+  // 同步月份欄位（OCR 頁有獨立 id）
+  const mainMonth = document.getElementById('global-month')?.value || '';
+  const ocrMonth  = document.getElementById('global-month-ocr');
+  if (ocrMonth && mainMonth) ocrMonth.value = mainMonth;
+  if (page==='history') loadExportHistory(false);
+}
+
 function toggleNavMenu() {
-  const active = document.querySelector('.mainnav-btn.active')?.dataset.section;
-  if (active === 'expense') { toggleMenu(); return; }
   document.querySelectorAll('#navBurgerBtn .navmenu').forEach(m=>{
     if (!m.classList.contains('menu-hidden')) m.classList.toggle('open');
   });
@@ -3533,43 +3629,21 @@ document.addEventListener('click', (e) => {
   if (burger && !burger.contains(e.target)) closeNavMenu();
 });
 
-// 設定 Modal（專案設定：新增專案／專案列表／進度設定）
+// 專案設定（全頁 section，替換 modal）
 function openSettingsModal() {
   closeNavMenu();
-  document.getElementById('settingsModal')?.classList.add('open');
-  populateNpDept();
-  loadProjectList(false);
-  pgPopulateDeductMethods();
-  loadProjectsForBoard().then(pgPopulateProjectSelect);
+  switchSection('proj-settings');
 }
 function closeSettingsModal() {
-  document.getElementById('settingsModal')?.classList.remove('open');
+  switchSection('project');
 }
 
 // ════════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
+// nav() 已改由 switchExpensePage() 處理，保留此函式供舊 badge/inline 呼叫相容
 function nav(name) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  if (name==='ocr') {
-    if (S.receipts.length === 0) {
-      loadOcrResults(true);
-    } else {
-      renderOCRResults();
-      const doneBar = document.getElementById('ocrDoneBar');
-      if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:8px;flex-wrap:wrap';
-      setStep(3);
-    }
-  }
-  if (name==='history') {
-    loadExportHistory(false);
-  }
-  // 手機版切頁後關閉 sidebar
-  document.getElementById('mainSidebar')?.classList.remove('open');
-  document.getElementById('sidebarOverlay')?.classList.remove('open');
+  switchExpensePage(name);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3824,16 +3898,28 @@ async function restoreTask(id) {
 // ════════════════════════════════════════════════════════════
 // 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款 / 專案費用
 // ════════════════════════════════════════════════════════════
-// 每期欄位結構: { label, amount, prepayDeduct, expectedDate,
-//                 invoiced, invoiceDate, paid, payDate }
+// 每期欄位結構: { label, amount, prepayDeduct,
+//                 invoiced, invoiceDate,   ← 業主開票（財務更新）
+//                 paid, payDate,           ← 業主收款（專案頁更新）
+//                 invReceived, invReceivedDate, ← 廠商收票（專案頁更新）
+//                 vendorPaid, vendorPayDate }   ← 廠商付款（財務更新）
 function pjBlankPeriod() {
-  return { label:'', amount:0, prepayDeduct:0, expectedDate:'',
-           invoiced:false, invoiceDate:'', paid:false, payDate:'' };
+  return { label:'', amount:0, prepayDeduct:0,
+           invoiced:false, invoiceDate:'', paid:false, payDate:'',
+           invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'' };
 }
-function pjPeriodStatus(c) {
-  if (c.paid)    return { label:'已完成', cls:'bd-green' };
-  if (c.invoiced) return { label:'進行中', cls:'bd-blue'  };
-  return { label:'未開始', cls:'bd-muted' };
+
+// 業主端：invoiced = 已開票(財務)，paid = 已收款(業主付我)
+function pjClientStatus(c) {
+  if (c.paid && c.invoiced) return { label:'已完成', cls:'bd-green' };
+  if (c.invoiced)           return { label:'進行中', cls:'bd-blue'  };
+  return                           { label:'未開始', cls:'bd-muted' };
+}
+// 廠商端：invReceived = 已收票(廠商開票給我)，vendorPaid = 已付款(我付廠商)
+function pjVendorPeriodStatus(c) {
+  if (c.vendorPaid && c.invReceived) return { label:'已完成', cls:'bd-green' };
+  if (c.invReceived)                 return { label:'進行中', cls:'bd-blue'  };
+  return                                    { label:'未開始', cls:'bd-muted' };
 }
 
 async function loadProjectsForBoard() {
@@ -3850,11 +3936,79 @@ async function loadProjectsForBoard() {
 
 function pjSum(arr) { return (arr||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); }
 
-// ── 期款卡片（業主端／廠商端共用樣式）──────────────────────
-function pjPeriodCard(c, opts) {
+// ── 驗收完成按鈕顯示邏輯 ──────────────────────────────────
+// 找出應顯示「驗收完成」的 periodIndex：
+// 1. 若全未完成 → 第 0 期顯示
+// 2. 否則找第一個已完成之後的下一個未完成期
+function pjAcceptIndex(items, isClient) {
+  const isDone = isClient
+    ? (c) => c.paid
+    : (c) => c.vendorPaid;
+
+  const firstUndone = items.findIndex(c => !isDone(c));
+  if (firstUndone < 0) return -1; // 全部完成
+
+  // 若第一個未完成就是第 0 期，且之前沒有完成的，顯示第 0 期
+  if (firstUndone === 0) return 0;
+
+  // 確認前一期是否已完成
+  return isDone(items[firstUndone - 1]) ? firstUndone : -1;
+}
+
+// ── 期款卡片（業主端）─────────────────────────────────────
+function pjClientCard(c, opts) {
   opts = opts || {};
-  const st = pjPeriodStatus(c);
-  const showAccept = opts.last && !c.paid;
+  const st = pjClientStatus(c);
+  const netAmount = Number(c.amount||0) - Number(c.prepayDeduct||0);
+  const showAccept = opts.acceptIdx === opts.periodIndex;
+
+  // 業主端 badge：待開票(可點)／已開票，待收款(可點)／已收款
+  const invBadge = c.invoiced
+    ? `<span class="badge bd-blue">📄 已開票${c.invoiceDate?' '+c.invoiceDate:''}</span>`
+    : `<span class="badge bd-muted" style="cursor:default">📄 待開票</span>`;
+
+  const payBadge = c.paid
+    ? `<span class="badge bd-green">💰 已收款${c.payDate?' '+c.payDate:''}</span>`
+    : `<span class="badge bd-orange" style="cursor:pointer"
+        onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
+        title="點擊更新收款狀態">💰 待收款 ✎</span>`;
+
+  return `<div class="period-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-weight:700;font-size:15px">${esc(c.label||'（未命名期款）')}</div>
+      <span class="badge ${st.cls}">${st.label}</span>
+    </div>
+    <div style="font-size:20px;font-weight:800;font-family:monospace;margin-bottom:4px">
+      $${Number(c.amount||0).toLocaleString()}
+    </div>
+    ${c.prepayDeduct ? `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+      扣抵預收 $${Number(c.prepayDeduct).toLocaleString()} → 實收 $${netAmount.toLocaleString()}
+    </div>` : '<div style="margin-bottom:8px"></div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${invBadge}${payBadge}
+    </div>
+    ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
+        onclick="pjQuickAccept('${opts.projectId}','client',null,${opts.periodIndex})">
+        ✓ 驗收完成</button>` : ''}
+  </div>`;
+}
+
+// ── 期款卡片（廠商端）─────────────────────────────────────
+function pjVendorCard(c, opts) {
+  opts = opts || {};
+  const st = pjVendorPeriodStatus(c);
+  const showAccept = opts.acceptIdx === opts.periodIndex;
+
+  const invBadge = c.invReceived
+    ? `<span class="badge bd-blue">🧾 已收票${c.invReceivedDate?' '+c.invReceivedDate:''}</span>`
+    : `<span class="badge bd-muted" style="cursor:pointer"
+        onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
+        title="點擊更新收票狀態">🧾 待收票 ✎</span>`;
+
+  const payBadge = c.vendorPaid
+    ? `<span class="badge bd-green">💸 已付款${c.vendorPayDate?' '+c.vendorPayDate:''}</span>`
+    : `<span class="badge bd-muted" style="cursor:default">💸 待付款</span>`;
+
   return `<div class="period-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">${esc(c.label||'（未命名期款）')}</div>
@@ -3864,16 +4018,10 @@ function pjPeriodCard(c, opts) {
       $${Number(c.amount||0).toLocaleString()}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span class="badge ${c.invoiced?'bd-blue':'bd-muted'}">
-        📄 ${c.invoiced?'已開票':'未開票'}${c.invoiced&&c.invoiceDate?'　🗒 '+c.invoiceDate:''}
-      </span>
-      <span class="badge ${c.paid?'bd-green':'bd-muted'}">
-        💰 ${c.paid?'已收款':'未收款'}${c.paid&&c.payDate?'　🗒 '+c.payDate:''}
-      </span>
-      ${c.prepayDeduct ? `<span class="badge bd-purple">扣抵預收 $${Number(c.prepayDeduct).toLocaleString()}</span>` : ''}
+      ${invBadge}${payBadge}
     </div>
     ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
-        onclick="pjQuickAccept('${opts.projectId}','${opts.target}',${opts.vendorIndex ?? 'null'},${opts.periodIndex})">
+        onclick="pjQuickAccept('${opts.projectId}','vendor',${opts.vendorIndex},${opts.periodIndex})">
         ✓ 驗收完成</button>` : ''}
   </div>`;
 }
@@ -3894,65 +4042,102 @@ function renderProjectBoard() {
   if (rows.some(p=>p.id===cur)) sel.value = cur;
 
   const p = rows.find(x=>x.id===sel.value) || rows[0];
-  board.innerHTML = `
-    <div class="card">
-      <div class="card-hd">
-        <span style="font-weight:800;font-size:17px">${esc(p.name)}</span>
-        <span style="font-size:12px;color:var(--muted);margin-left:8px">${esc(p.code||p.id)}</span>
-      </div>
-      <div class="card-bd">${pjRenderDetail(p)}</div>
-    </div>`;
+  board.innerHTML = `<div class="card"><div class="card-bd">${pjRenderDetail(p)}</div></div>`;
 }
 
-// 專案詳細內容：業主端 → 廠商端 → 專案費用
+// 專案詳細內容：金額摘要 → 業主端 → 廠商端 → 專案費用
 function pjRenderDetail(p) {
-  const clientItems = p.client || [];
-  const vendors      = p.vendors || [];
+  const clientItems = p.client   || [];
+  const vendors      = p.vendors  || [];
 
-  const clientHtml = !clientItems.length
-    ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>'
-    : clientItems.map((c,j)=>pjPeriodCard(c, {
-        projectId:p.id, target:'client', periodIndex:j, last: j===clientItems.length-1,
+  const contractAmt = pjSum(clientItems);
+  const vendorAmt   = vendors.reduce((s,v)=>s+pjSum(v.periods||[]),0);
+  const expenseAmt  = (S._projExpenses && S._projExpenses[p.id])
+    ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) : null;
+  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
+
+  // ── 金額摘要列 ──
+  const summaryHtml = `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    padding:12px 16px;background:var(--surface2);border-radius:10px;font-size:14px">
+    <div><span style="color:var(--muted)">合約總金額</span>
+      <span style="font-weight:800;font-family:monospace;margin-left:6px">$${contractAmt.toLocaleString()}</span></div>
+    <div style="color:var(--muted)">-</div>
+    <div><span style="color:var(--muted)">廠商總金額</span>
+      <span style="font-weight:800;font-family:monospace;margin-left:6px">$${vendorAmt.toLocaleString()}</span></div>
+    <div style="color:var(--muted)">-</div>
+    <div><span style="color:var(--muted)">費用總金額</span>
+      <span style="font-weight:800;font-family:monospace;margin-left:6px">${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'—'}</span></div>
+    ${prepay.enabled?`<div style="color:var(--muted)">｜</div>
+    <div><span class="badge bd-purple">預收款 $${Number(prepay.amount).toLocaleString()}</span></div>`:''}
+  </div>`;
+
+  // ── 業主端 ──
+  const clientAcceptIdx = pjAcceptIndex(clientItems, true);
+  const clientTotal = pjSum(clientItems);
+  const clientExpand = document.getElementById('pj-client-expand-'+p.id)?.dataset.open === '1';
+
+  const clientCardsHtml = !clientItems.length
+    ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">尚無分期</div>'
+    : clientItems.map((c,j)=>pjClientCard(c, {
+        projectId:p.id, periodIndex:j, acceptIdx:clientAcceptIdx
       })).join('');
 
-  const vendorHtml = !vendors.length
-    ? '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'
-    : vendors.map((v,vi)=>{
-        const periods = v.periods || [];
-        const done = periods.filter(c=>c.paid).length;
-        const total = periods.length;
-        const pct   = total ? Math.round(done/total*100) : 0;
-        const amt   = pjSum(periods);
-        const elId  = `pj-vendor-${p.id}-${vi}`;
-        return `<div class="vendor-row" onclick="pjToggleEl('${elId}')">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700">${esc(v.name||'（未命名廠商）')} <span style="color:var(--muted);font-size:13px;font-weight:400">${done}/${total} 期</span></div>
-            <div style="font-weight:800;font-family:monospace">$${amt.toLocaleString()}</div>
-          </div>
-          <div class="proj-progress"><div class="proj-progress-fill" style="width:${pct}%"></div></div>
-          <div id="${elId}" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
-            ${!periods.length ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>' :
-              periods.map((c,pj)=>pjPeriodCard(c, {
-                projectId:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj, last: pj===periods.length-1,
-              })).join('')}
-          </div>
-        </div>`;
-      }).join('');
+  const clientHtml = `<div style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      cursor:pointer;margin-bottom:8px" onclick="pjToggleSection('pj-client-body-${p.id}')">
+      <div style="font-weight:700;font-size:15px">🏢 業主端
+        <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
+          ${clientItems.length}期</span></div>
+      <div style="font-family:monospace;font-weight:800">$${clientTotal.toLocaleString()}</div>
+    </div>
+    <div id="pj-client-body-${p.id}" style="display:block">
+      ${clientCardsHtml}
+    </div>
+  </div>`;
 
+  // ── 廠商端 ──
+  const vendorTotal = vendorAmt;
+  const vendorHtml = `<div style="margin-bottom:18px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:8px">🚚 廠商端
+      <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
+        $${vendorTotal.toLocaleString()}</span></div>
+    ${!vendors.length
+      ? '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'
+      : vendors.map((v,vi)=>{
+          const periods = v.periods || [];
+          const done  = periods.filter(c=>c.vendorPaid).length;
+          const total = periods.length;
+          const pct   = total ? Math.round(done/total*100) : 0;
+          const amt   = pjSum(periods);
+          const vAcceptIdx = pjAcceptIndex(periods, false);
+          const elId  = `pj-vendor-${p.id}-${vi}`;
+          return `<div class="vendor-row" onclick="pjToggleEl('${elId}')">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700">${esc(v.name||'（未命名廠商）')}
+                <span style="color:var(--muted);font-size:13px;font-weight:400">${done}/${total} 期</span></div>
+              <div style="font-weight:800;font-family:monospace">$${amt.toLocaleString()}</div>
+            </div>
+            <div class="proj-progress"><div class="proj-progress-fill" style="width:${pct}%"></div></div>
+            <div id="${elId}" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
+              ${!periods.length ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>' :
+                periods.map((c,pj)=>pjVendorCard(c, {
+                  projectId:p.id, vendorIndex:vi, periodIndex:pj, acceptIdx:vAcceptIdx
+                })).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+  </div>`;
+
+  // ── 專案費用 ──
   const expenseHtml = (S._projExpenses && S._projExpenses[p.id])
     ? renderProjExpenseList(S._projExpenses[p.id])
-    : `<div style="color:var(--muted);font-size:13px">
-         <button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>
-       </div>`;
+    : `<button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>`;
 
-  return `
-    <div style="font-weight:700;margin-bottom:8px">🏢 業主端</div>
-    ${clientHtml}
-    <div style="font-weight:700;margin:18px 0 8px">🚚 廠商端</div>
-    ${vendorHtml}
-    <div style="font-weight:700;margin:18px 0 8px">🧾 專案費用</div>
-    <div id="pj-expense-${p.id}">${expenseHtml}</div>
-  `;
+  return summaryHtml + clientHtml + vendorHtml + `
+    <div style="font-weight:700;font-size:15px;margin-bottom:8px">🧾 專案費用
+      <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
+        ${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'未載入'}</span></div>
+    <div id="pj-expense-${p.id}">${expenseHtml}</div>`;
 }
 
 function pjToggleEl(id) {
@@ -3960,11 +4145,18 @@ function pjToggleEl(id) {
   if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
+function pjToggleSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
 function renderProjExpenseList(items) {
   if (!items.length) return '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
   const icon = { fuel:'⛽', other:'🧾' };
-  return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
-    <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
+  return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
+    ${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
+    <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
+      display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
     <div style="flex:1">
       <div style="font-weight:600;font-size:14px">${esc(e.label||'')}</div>
       <div style="font-size:12px;color:var(--muted)">${e.date||''}</div>
@@ -3973,7 +4165,6 @@ function renderProjExpenseList(items) {
   </div>`).join('');
 }
 
-// 專案費用：暫以 OcrResults 取得（若後端尚未實作 getProjectExpenses，靜默失敗顯示空清單）
 async function loadProjectExpenses(projectId) {
   const wrap = document.getElementById('pj-expense-'+projectId);
   if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">載入中...</div>';
@@ -3985,37 +4176,303 @@ async function loadProjectExpenses(projectId) {
     S._projExpenses = S._projExpenses || {};
     S._projExpenses[projectId] = [];
   }
-  if (wrap) wrap.innerHTML = renderProjExpenseList(S._projExpenses[projectId]);
+  renderProjectBoard(); // re-render to update expense total
 }
 
-// 快速「驗收完成」：標記該期已收款（含開票），日期填今天
+// ── 業主端「待收款」badge 點擊 → 編輯收款狀態 ─────────────
+function pjEditClientPay(projectId, periodIndex) {
+  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  if (!p) return;
+  const c = (p.client||[])[periodIndex];
+  if (!c) return;
+
+  const today = new Date().toISOString().slice(0,10);
+  const existing = c.payDate || today;
+
+  showInlineEdit({
+    title: `${esc(c.label||'期款')} — 更新收款`,
+    fields: [
+      { id:'pay-status', label:'狀態', type:'select',
+        options:['待查帳','已收款'], value: c.paid?'已收款':'待查帳' },
+      { id:'pay-date', label:'收款日期', type:'date', value: existing },
+    ],
+    onSave: async (vals) => {
+      c.paid    = vals['pay-status'] === '已收款';
+      c.payDate = vals['pay-date'] || '';
+      await _pjSaveAndRefresh(p);
+    }
+  });
+}
+
+// ── 廠商端「待收票」badge 點擊 → 編輯收票狀態 ─────────────
+function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
+  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  if (!p) return;
+  const c = ((p.vendors||[])[vendorIndex]?.periods||[])[periodIndex];
+  if (!c) return;
+
+  const today = new Date().toISOString().slice(0,10);
+  showInlineEdit({
+    title: `${esc(c.label||'廠商期款')} — 更新收票`,
+    fields: [
+      { id:'inv-status', label:'收票狀態', type:'select',
+        options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
+      { id:'inv-date', label:'收票日期', type:'date', value: c.invReceivedDate || today },
+    ],
+    onSave: async (vals) => {
+      c.invReceived     = vals['inv-status'] === '已收票';
+      c.invReceivedDate = vals['inv-date'] || '';
+      await _pjSaveAndRefresh(p);
+    }
+  });
+}
+
+// ── 共用：儲存 + 重新整理 ──────────────────────────────────
+async function _pjSaveAndRefresh(p) {
+  const res = await callGAS({ action:'updateProject', id:p.id,
+    client:p.client||[], vendors:p.vendors||[] });
+  if (res.success) {
+    renderProjectBoard();
+    if (S._pgProject && S._pgProject.id===p.id) pgLoadProject(p.id);
+  } else {
+    toast('❌ ' + (res.error||'更新失敗'));
+  }
+}
+
+// ── 驗收完成：業主端標記 invoiced=true，廠商端標記 invReceived=true ──
 async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
   const p = (S._pjBoard||[]).find(x=>x.id===projectId);
   if (!p) return;
-  const today = new Date().toISOString().slice(0,10);
-  let arr;
+
+  let arr, c;
   if (target === 'client') {
     arr = p.client = p.client || [];
+    c   = arr[periodIndex];
+    if (!c) return;
+    // 驗收完成：僅標記 invoiced（開票由財務填），paid 由待收款 badge 更新
+    // 若已 invoiced 則整體完成標記不重複設定
+    if (!c.invoiced) c.invoiced = true;
+    // 同時建立「請款」待辦
+    const netAmt = Number(c.amount||0) - Number(c.prepayDeduct||0);
+    const deductNote = c.prepayDeduct
+      ? `，扣抵預收 $${Number(c.prepayDeduct).toLocaleString()}，實收 $${netAmt.toLocaleString()}`
+      : '';
+    await callGAS({ action:'addTask',
+      content:`【${p.name}】${c.label||'期款'} 請款 $${Number(c.amount||0).toLocaleString()}${deductNote}`,
+      addedBy: S.user?.name || '' });
   } else {
     p.vendors = p.vendors || [];
     p.vendors[vendorIndex] = p.vendors[vendorIndex] || {name:'',periods:[]};
     arr = p.vendors[vendorIndex].periods = p.vendors[vendorIndex].periods || [];
+    c   = arr[periodIndex];
+    if (!c) return;
+    if (!c.invReceived) c.invReceived = true;
+    // 建立「索取發票」待辦
+    const vName = p.vendors[vendorIndex].name || '廠商';
+    await callGAS({ action:'addTask',
+      content:`【${p.name}】${vName} ${c.label||'期款'} 索取發票`,
+      addedBy: S.user?.name || '' });
   }
-  const c = arr[periodIndex];
-  if (!c) return;
-  c.invoiced = true;  c.invoiceDate = c.invoiceDate || today;
-  c.paid     = true;  c.payDate     = today;
 
-  const payload = { action:'updateProject', id:p.id, client:p.client||[], vendors:p.vendors||[] };
-  const res = await callGAS(payload);
+  const res = await callGAS({ action:'updateProject', id:p.id,
+    client:p.client||[], vendors:p.vendors||[] });
   if (res.success) {
-    toast('✅ 已標記驗收完成');
+    toast('✅ 已標記驗收完成，待辦已新增');
     renderProjectBoard();
-    // 若進度設定編輯器正開著同一專案，同步重新整理
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else {
     toast('❌ ' + (res.error||'更新失敗'));
   }
+}
+
+// ── inline 編輯小 modal（輕量版，省略 confirmModal 建立複雜度）──
+function showInlineEdit({ title, fields, onSave }) {
+  const existing = document.getElementById('_inlineEditWrap');
+  if (existing) existing.remove();
+
+  const fHtml = fields.map(f => `<div style="margin-bottom:10px">
+    <label class="lbl">${f.label}</label>
+    ${f.type==='select'
+      ? `<select class="inp" id="ie-${f.id}">${f.options.map(o=>`<option${o===f.value?' selected':''}>${o}</option>`).join('')}</select>`
+      : `<input type="${f.type}" class="inp" id="ie-${f.id}" value="${esc(f.value||'')}">`}
+  </div>`).join('');
+
+  const wrap = document.createElement('div');
+  wrap.id = '_inlineEditWrap';
+  wrap.className = 'modal-wrap open';
+  wrap.innerHTML = `<div class="modal-box" style="max-width:360px">
+    <div style="font-weight:700;font-size:16px;margin-bottom:14px">${title}</div>
+    ${fHtml}
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-primary btn-sm" id="ie-save">儲存</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('_inlineEditWrap').remove()">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+
+  document.getElementById('ie-save').onclick = async () => {
+    const vals = {};
+    fields.forEach(f => { vals[f.id] = document.getElementById('ie-'+f.id)?.value; });
+    wrap.remove();
+    await onSave(vals);
+  };
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 財務專區 — 待發票（業主端）/ 待付款（廠商端）
+// ════════════════════════════════════════════════════════════
+// 財務專區資料快取
+let _finRows = { invoice: [], payment: [] };
+
+async function loadFinance() {
+  _finRows = { invoice: [], payment: [] };
+  renderFinanceInvoice();
+  renderFinancePayment();
+
+  // 若 pjBoard 已有資料直接用，否則先載入
+  const rows = S._pjBoard || [];
+  if (!rows.length) {
+    const res = await callGAS({ action:'getProjects' });
+    S._pjBoard = res.rows || [];
+  }
+
+  // 建立待發票（業主端 invoiced=false）與待付款（廠商端 vendorPaid=false）列表
+  const inv = [], pay = [];
+  for (const p of S._pjBoard) {
+    for (const [j, c] of (p.client||[]).entries()) {
+      // 只要有「進度」（業主端已驗收 = invoiced 或 paid 任一有動作），就列出
+      if (!c.label && !c.amount) continue;
+      inv.push({ proj:p, periodIdx:j, c });
+    }
+    for (const [vi, v] of (p.vendors||[]).entries()) {
+      for (const [pj, c] of (v.periods||[]).entries()) {
+        if (!c.label && !c.amount) continue;
+        pay.push({ proj:p, vendorIdx:vi, vendor:v, periodIdx:pj, c });
+      }
+    }
+  }
+  _finRows.invoice  = inv;
+  _finRows.payment  = pay;
+  renderFinanceInvoice();
+  renderFinancePayment();
+}
+
+// ── 待發票列表渲染 ──
+function renderFinanceInvoice() {
+  const tbody   = document.getElementById('fin-inv-body');
+  if (!tbody) return;
+  const showAll = document.getElementById('fin-show-inv-done')?.checked;
+  const rows    = _finRows.invoice || [];
+  const visible = showAll ? rows : rows.filter(r => !r.c.invoiced || !r.c.paid);
+
+  if (!visible.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
+      ${rows.length ? '✅ 全部已完成' : '尚無業主端分期資料'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visible.map(({ proj:p, periodIdx:j, c }) => {
+    const net = Number(c.amount||0) - Number(c.prepayDeduct||0);
+    const invDone = c.invoiced && c.paid;
+    const payBadge = c.paid
+      ? `<span class="badge bd-green">已收款</span>`
+      : `<span class="badge bd-orange">待收款</span>`;
+    const rowStyle = invDone ? 'opacity:.55' : '';
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
+      <td style="white-space:nowrap">${esc(c.label||'—')}</td>
+      <td style="font-family:monospace;font-weight:800;white-space:nowrap">
+        $${net.toLocaleString()}
+        ${c.prepayDeduct?`<span style="font-size:11px;color:var(--muted)">（扣 $${Number(c.prepayDeduct).toLocaleString()}）</span>`:''}
+      </td>
+      <td>${payBadge}</td>
+      <td style="white-space:nowrap">${c.payDate||'—'}</td>
+      <td>
+        <input type="date" class="inp" style="font-size:13px;padding:4px 8px;min-width:140px"
+          value="${c.invoiceDate||''}"
+          onchange="finUpdateInvoiceDate('${p.id}',${j},this.value)"
+          title="填入開票日期後自動標記已開票">
+      </td>
+      <td>${invDone?'<span class="badge bd-green">已完成</span>':''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 待付款列表渲染 ──
+function renderFinancePayment() {
+  const tbody   = document.getElementById('fin-pay-body');
+  if (!tbody) return;
+  const showAll = document.getElementById('fin-show-pay-done')?.checked;
+  const rows    = _finRows.payment || [];
+  const visible = showAll ? rows : rows.filter(r => !r.c.vendorPaid || !r.c.invReceived);
+
+  if (!visible.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
+      ${rows.length ? '✅ 全部已完成' : '尚無廠商端分期資料'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visible.map(({ proj:p, vendorIdx:vi, vendor:v, periodIdx:pj, c }) => {
+    const allDone = c.vendorPaid && c.invReceived;
+    const invBadge = c.invReceived
+      ? `<span class="badge bd-blue">已收票</span>`
+      : `<span class="badge bd-muted">待收票</span>`;
+    const rowStyle = allDone ? 'opacity:.55' : '';
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
+      <td style="white-space:nowrap">${esc(v.name||'—')}</td>
+      <td style="white-space:nowrap">${esc(c.label||'—')}</td>
+      <td style="font-family:monospace;font-weight:800;white-space:nowrap">$${Number(c.amount||0).toLocaleString()}</td>
+      <td>${invBadge}</td>
+      <td style="white-space:nowrap">${c.invReceivedDate||'—'}</td>
+      <td>
+        <input type="date" class="inp" style="font-size:13px;padding:4px 8px;min-width:140px"
+          value="${c.vendorPayDate||''}"
+          onchange="finUpdatePayDate('${p.id}',${vi},${pj},this.value)"
+          title="填入付款日期後自動標記已付款">
+      </td>
+      <td>${allDone?'<span class="badge bd-green">已完成</span>':''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 財務：更新開票日期 → invoiced=true ──────────────────────
+async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
+  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  if (!p) return;
+  const c = (p.client||[])[periodIdx];
+  if (!c) return;
+  c.invoiceDate = dateVal;
+  c.invoiced    = !!dateVal; // 填日期=已開票，清空=取消
+  const res = await callGAS({ action:'updateProject', id:p.id,
+    client:p.client||[], vendors:p.vendors||[] });
+  if (res.success) {
+    // 更新快取列表
+    const row = (_finRows.invoice||[]).find(r=>r.proj.id===projectId && r.periodIdx===periodIdx);
+    if (row) { row.c.invoiced = c.invoiced; row.c.invoiceDate = dateVal; }
+    renderFinanceInvoice();
+    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
+  } else { toast('❌ ' + (res.error||'更新失敗')); }
+}
+
+// ── 財務：更新付款日期 → vendorPaid=true ────────────────────
+async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
+  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  if (!p) return;
+  const c = ((p.vendors||[])[vendorIdx]?.periods||[])[periodIdx];
+  if (!c) return;
+  c.vendorPayDate = dateVal;
+  c.vendorPaid    = !!dateVal;
+  const res = await callGAS({ action:'updateProject', id:p.id,
+    client:p.client||[], vendors:p.vendors||[] });
+  if (res.success) {
+    const row = (_finRows.payment||[]).find(r=>
+      r.proj.id===projectId && r.vendorIdx===vendorIdx && r.periodIdx===periodIdx);
+    if (row) { row.c.vendorPaid = c.vendorPaid; row.c.vendorPayDate = dateVal; }
+    renderFinancePayment();
+    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
+  } else { toast('❌ ' + (res.error||'更新失敗')); }
 }
 
 // ── 設定 > 進度設定：可編輯 ──────────────────────────────────
@@ -4108,6 +4565,11 @@ function pgRenderEditor() {
     ${target==='client' && prepay.enabled ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">
       💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${p.client.reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
     </div>` : ''}
+    ${target==='client' ? `<div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px">
+      ℹ️ 已開票／開票日期由財務專區更新；已收款／收款日期由專案頁更新
+    </div>` : `<div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px">
+      ℹ️ 已收票／付款狀態由專案頁及財務專區更新
+    </div>`}
     ${removeVendorBtn}
     <div id="pg-periods"></div>
     <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddPeriod()">＋ 新增分期</button>
@@ -4125,21 +4587,22 @@ function pgRenderPeriods() {
   const items = pgTargetArray() || [];
   if (!items.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無分期</div>'; return; }
   const target = document.getElementById('pg-target-select')?.value || 'client';
-  const showDeduct = (target === 'client');
-  wrap.innerHTML = `<table class="tbl"><thead><tr>
-    <th>項目</th><th>金額</th>${showDeduct?'<th>扣抵預收</th>':''}<th>預計款項日期</th>
-    <th>已開票</th><th>開票日期</th><th>已收款</th><th>收款日期</th><th></th>
-  </tr></thead><tbody>` + items.map((c,j)=>`<tr>
-    <td><input class="inp" value="${esc(c.label||'')}" onchange="pgSetPeriod(${j},'label',this.value)"></td>
-    <td><input type="number" class="inp" style="width:100px" value="${c.amount||0}" onchange="pgSetPeriod(${j},'amount',this.value)"></td>
-    ${showDeduct?`<td><input type="number" class="inp" style="width:100px" value="${c.prepayDeduct||0}" onchange="pgSetPeriod(${j},'prepayDeduct',this.value)"></td>`:''}
-    <td><input type="date" class="inp" value="${c.expectedDate||''}" onchange="pgSetPeriod(${j},'expectedDate',this.value)"></td>
-    <td style="text-align:center"><input type="checkbox" ${c.invoiced?'checked':''} onchange="pgSetPeriod(${j},'invoiced',this.checked)"></td>
-    <td><input type="date" class="inp" value="${c.invoiceDate||''}" onchange="pgSetPeriod(${j},'invoiceDate',this.value)"></td>
-    <td style="text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="pgSetPeriod(${j},'paid',this.checked)"></td>
-    <td><input type="date" class="inp" value="${c.payDate||''}" onchange="pgSetPeriod(${j},'payDate',this.value)"></td>
+  const isClient = (target === 'client');
+  // 業主端：項目(*必填)、金額(*必填)、扣抵預收 → 開票/收款由財務/專案頁更新
+  // 廠商端：項目(*必填)、金額(*必填) → 收票/付款由財務/專案頁更新
+  const headers = isClient
+    ? `<th style="min-width:140px">項目 *</th><th style="min-width:110px">金額 *</th><th style="min-width:110px">扣抵預收</th><th></th>`
+    : `<th style="min-width:140px">項目 *</th><th style="min-width:110px">金額 *</th><th></th>`;
+  wrap.innerHTML = `<div style="overflow-x:auto"><table class="tbl"><thead><tr>${headers}</tr></thead><tbody>` +
+    items.map((c,j)=>`<tr>
+    <td><input class="inp" value="${esc(c.label||'')}" required onchange="pgSetPeriod(${j},'label',this.value)"
+      style="border-color:${c.label?'':'var(--red)'}"></td>
+    <td><input type="number" class="inp" style="width:100px;border-color:${c.amount?'':'var(--red)'}"
+      value="${c.amount||0}" required onchange="pgSetPeriod(${j},'amount',this.value)"></td>
+    ${isClient?`<td><input type="number" class="inp" style="width:100px" value="${c.prepayDeduct||0}"
+      onchange="pgSetPeriod(${j},'prepayDeduct',this.value)"></td>`:''}
     <td><button class="btn btn-danger btn-sm" onclick="pgRemovePeriod(${j})">🗑</button></td>
-  </tr>`).join('') + `</tbody></table>`;
+  </tr>`).join('') + `</tbody></table></div>`;
 }
 
 function pgAddPeriod() {
