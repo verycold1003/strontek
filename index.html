@@ -236,33 +236,29 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <body>
 
 <div class="toast" id="toast"></div>
-
-<!-- ═══════════ LOGIN WRAP ═══════════ -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-box">
-    <div style="font-size:36px;margin-bottom:12px">🗂</div>
-    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px">專案管理系統</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">請使用 LINE 帳號登入</div>
-
-    <!-- 登入中訊息 -->
-    <div id="loginCallbackMsg" style="display:none;margin-bottom:16px;font-size:14px;color:var(--muted);align-items:center;gap:8px;justify-content:center">
-      <div style="width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
-      驗證中，請稍候...
-    </div>
-
-    <!-- 綁定姓名區塊 -->
-    <div id="bindNameSection" style="display:none;margin-bottom:16px;text-align:left">
-      <div style="font-size:14px;font-weight:700;margin-bottom:8px">🔗 首次登入，請輸入您的姓名</div>
-      <div id="bindLineName" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
-      <input id="bindNameInput" class="inp" type="text" placeholder="請輸入姓名（同 HR 資料）" style="margin-bottom:8px">
-      <div id="bindNameErr" style="display:none;color:var(--red);font-size:13px;margin-bottom:8px"></div>
-      <button id="btnBindName" class="btn btn-primary" style="width:100%" onclick="doBindName()">🔗 比對並綁定帳號</button>
-    </div>
-
-    <button id="btnLineLogin" class="line-btn" onclick="startLineLogin()">
+    <div style="font-size:52px;margin-bottom:14px">📋</div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform</div>
+    <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
     </button>
+    <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
+    <div id="bindNameSection" style="display:none;margin-top:20px;text-align:left">
+      <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">
+          此 LINE 帳號尚未綁定系統員工資料。<br>請輸入您的<strong style="color:var(--text)">中文姓名</strong>，系統將自動比對並完成綁定。
+        </div>
+      </div>
+      <div id="bindLineName" style="font-size:13px;color:var(--text);background:rgba(255,255,255,.05);border-radius:7px;padding:8px 12px;margin-bottom:10px;line-height:1.8"></div>
+      <label class="lbl" style="display:block;margin-bottom:5px">您的中文姓名</label>
+      <input id="bindNameInput" class="inp" placeholder="例：張家榮" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')doBindName()">
+      <button class="btn btn-primary btn-full" id="btnBindName" onclick="doBindName()">🔗 比對並綁定帳號</button>
+      <div id="bindNameErr" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
+    </div>
   </div>
 </div>
 
@@ -291,15 +287,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:12px;color:var(--muted)" id="syncStatus">尚未同步</div>
         <span id="syncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
-        <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
+        <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel" style="font-size:11px;color:var(--muted);display:none"></span>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted)"
-          onclick="sendDebugSnapshot()" title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug</button>
-        <div id="debugSnapStatus" style="font-size:11px;color:var(--muted)"></div>
       </div>
   </div>
-  <div class="pg-sub">批次上傳照片至 Google Drive；每張照片可包含多張電子發票</div>
-
       <div style="display:flex;flex-direction:column;gap:18px">
         <div class="card">
           <div class="card-hd">📁 選擇檔案</div>
@@ -334,9 +325,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div class="card-hd">
             ✅ 已上傳至雲端
             <span class="badge bd-green" id="uploadedCnt">—</span>
-          </div>
-          <div id="uploadDoneHint" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:rgba(37,99,235,.06);border-bottom:1px solid var(--border);font-size:14px;color:var(--accent)">
-            ✅ 上傳完成，請勾選檔案後點「辨識勾選項目」
           </div>
           <div style="overflow-x:auto">
             <table class="tbl">
@@ -378,21 +366,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:12px;color:var(--muted)" id="syncStatus-ocr">尚未同步</div>
         <span id="syncDone-ocr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
-        <button class="btn btn-ghost btn-sm" id="btnReload-ocr" onclick="doReloadAll()" title="重新從 Sheet 載入">🔄</button>
+        <button class="btn btn-ghost btn-sm" id="btnReload-ocr" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel-ocr" style="font-size:11px;color:var(--muted);display:none"></span>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted)"
-           title="傳送前端狀態快照到 DebugLog Sheet">🐛 Debug</button>
-        <div id="debugSnapStatus-ocr" style="font-size:11px;color:var(--muted)"></div>
       </div>
   </div>
-  <div class="pg-sub">Gemini AI 逐一辨識每張照片，每張可辨識出多張發票。完成後依類別整理憑證</div>
-
-      <div class="steps">
-        <div class="step active" id="st1"><div class="step-n">1</div><span>加入佇列</span></div>
-        <div class="step" id="st2"><div class="step-n">2</div><span>AI 辨識</span></div>
-        <div class="step" id="st3"><div class="step-n">3</div><span>確認結果</span></div>
-      </div>
-
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-hd">
@@ -801,11 +778,6 @@ const S = {
   ocrQueue: [],
   receipts: [],
 };
-
-// ════════════════════════════════════════════════════════════
-// MOBILE MENU
-// ════════════════════════════════════════════════════════════
-function toggleMenu() { /* sidebar 已移除，由漢堡 navmenu 取代 */ }
 
 // ════════════════════════════════════════════════════════════
 // MILEAGE RATE
@@ -1417,9 +1389,6 @@ function renderUploadedList(files) {
   if (files.length) {
     document.getElementById('uploadedCnt').textContent = files.length + ' 個（本次）';
   }
-  // 顯示提示
-  const hint = document.getElementById('uploadDoneHint');
-  if (hint) hint.style.display = 'flex';
   // 本次上傳的完整檔名（含月份前綴，與 Drive 一致）
   S._newUploadedNames = new Set(files.map(f => f.name));
 }
@@ -3986,27 +3955,53 @@ function pjAcceptIndex(items, isClient) {
 }
 
 // ── 期款卡片（業主端）─────────────────────────────────────
+// item6: 顯示驗收完成按鈕時 badge=進行中
+// item7: 未開始時 badge=未開票/未收款（不可點）
+// item8: 驗收完成後 badge=待開票/待收款（可點）
 function pjClientCard(c, opts) {
   opts = opts || {};
-  const st = pjClientStatus(c);
-  const netAmount = Number(c.amount||0) - Number(c.prepayDeduct||0);
+  const netAmount  = Number(c.amount||0) - Number(c.prepayDeduct||0);
   const showAccept = opts.acceptIdx === opts.periodIndex;
 
-  // 業主端 badge：待開票(可點)／已開票，待收款(可點)／已收款
-  const invBadge = c.invoiced
-    ? `<span class="badge bd-blue">📄 已開票${c.invoiceDate?' '+c.invoiceDate:''}</span>`
-    : `<span class="badge bd-muted" style="cursor:default">📄 待開票</span>`;
+  // 整體狀態 badge
+  let stLabel, stCls;
+  if (c.paid && c.invoiced)      { stLabel='已完成'; stCls='bd-green'; }
+  else if (showAccept)           { stLabel='進行中'; stCls='bd-blue';  }  // item6
+  else if (c.invoiced || c.paid) { stLabel='進行中'; stCls='bd-blue';  }
+  else                           { stLabel='未開始'; stCls='bd-muted'; }
 
-  const payBadge = c.paid
-    ? `<span class="badge bd-green">💰 已收款${c.payDate?' '+c.payDate:''}</span>`
-    : `<span class="badge bd-orange" style="cursor:pointer"
-        onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
-        title="點擊更新收款狀態">💰 待收款 ✎</span>`;
+  // 開票 badge
+  let invBadge;
+  if (c.invoiced) {
+    invBadge = `<span class="badge bd-blue">📄 已開票${c.invoiceDate?' '+c.invoiceDate:''}</span>`;
+  } else if (showAccept || c.paid) {
+    // item8: 驗收完成後 or 已收款但未開票 → 待開票（不可點，由財務填）
+    invBadge = `<span class="badge bd-orange" style="cursor:default" title="請至財務專區填寫開票日期">📄 待開票</span>`;
+  } else {
+    // item7: 未開始 → 未開票
+    invBadge = `<span class="badge bd-muted" style="cursor:default">📄 未開票</span>`;
+  }
+
+  // 收款 badge
+  let payBadge;
+  if (c.paid) {
+    payBadge = `<span class="badge bd-green" style="cursor:pointer"
+      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
+      title="點擊編輯收款狀態">💰 已收款${c.payDate?' '+c.payDate:''} ✎</span>`;
+  } else if (showAccept || c.invoiced) {
+    // item8: 驗收完成後 or 已開票 → 待收款（可點）
+    payBadge = `<span class="badge bd-orange" style="cursor:pointer"
+      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
+      title="點擊更新收款狀態">💰 待收款 ✎</span>`;
+  } else {
+    // item7: 未開始 → 未收款（不可點）
+    payBadge = `<span class="badge bd-muted" style="cursor:default">💰 未收款</span>`;
+  }
 
   return `<div class="period-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">${esc(c.label||'（未命名期款）')}</div>
-      <span class="badge ${st.cls}">${st.label}</span>
+      <span class="badge ${stCls}">${stLabel}</span>
     </div>
     <div style="font-size:20px;font-weight:800;font-family:monospace;margin-bottom:4px">
       $${Number(c.amount||0).toLocaleString()}
@@ -4024,25 +4019,52 @@ function pjClientCard(c, opts) {
 }
 
 // ── 期款卡片（廠商端）─────────────────────────────────────
+// item11: 未開始 → 未收票/未付款（不可點）
+// item12: 驗收完成後 → 待收票(可點)/待付款(不可點由財務)
+// item13: 待收票可點，收票日期可重置
 function pjVendorCard(c, opts) {
   opts = opts || {};
-  const st = pjVendorPeriodStatus(c);
   const showAccept = opts.acceptIdx === opts.periodIndex;
 
-  const invBadge = c.invReceived
-    ? `<span class="badge bd-blue">🧾 已收票${c.invReceivedDate?' '+c.invReceivedDate:''}</span>`
-    : `<span class="badge bd-muted" style="cursor:pointer"
-        onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
-        title="點擊更新收票狀態">🧾 待收票 ✎</span>`;
+  // 整體狀態 badge
+  let stLabel, stCls;
+  if (c.vendorPaid && c.invReceived) { stLabel='已完成'; stCls='bd-green'; }
+  else if (showAccept)               { stLabel='進行中'; stCls='bd-blue';  }
+  else if (c.invReceived || c.vendorPaid) { stLabel='進行中'; stCls='bd-blue'; }
+  else                               { stLabel='未開始'; stCls='bd-muted'; }
 
-  const payBadge = c.vendorPaid
-    ? `<span class="badge bd-green">💸 已付款${c.vendorPayDate?' '+c.vendorPayDate:''}</span>`
-    : `<span class="badge bd-muted" style="cursor:default">💸 待付款</span>`;
+  // 收票 badge
+  let invBadge;
+  if (c.invReceived) {
+    invBadge = `<span class="badge bd-blue" style="cursor:pointer"
+      onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
+      title="點擊編輯收票狀態">🧾 已收票${c.invReceivedDate?' '+c.invReceivedDate:''} ✎</span>`;
+  } else if (showAccept || c.vendorPaid) {
+    // item12: 驗收後或已付款未收票 → 待收票（可點）
+    invBadge = `<span class="badge bd-orange" style="cursor:pointer"
+      onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
+      title="點擊更新收票狀態">🧾 待收票 ✎</span>`;
+  } else {
+    // item11: 未開始 → 未收票
+    invBadge = `<span class="badge bd-muted" style="cursor:default">🧾 未收票</span>`;
+  }
+
+  // 付款 badge
+  let payBadge;
+  if (c.vendorPaid) {
+    payBadge = `<span class="badge bd-green">💸 已付款${c.vendorPayDate?' '+c.vendorPayDate:''}</span>`;
+  } else if (showAccept || c.invReceived) {
+    // item12: 驗收後或已收票 → 待付款（不可點，由財務填）
+    payBadge = `<span class="badge bd-orange" style="cursor:default" title="請至財務專區填寫付款日期">💸 待付款</span>`;
+  } else {
+    // item11: 未開始 → 未付款
+    payBadge = `<span class="badge bd-muted" style="cursor:default">💸 未付款</span>`;
+  }
 
   return `<div class="period-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">${esc(c.label||'（未命名期款）')}</div>
-      <span class="badge ${st.cls}">${st.label}</span>
+      <span class="badge ${stCls}">${stLabel}</span>
     </div>
     <div style="font-size:20px;font-weight:800;font-family:monospace;margin-bottom:8px">
       $${Number(c.amount||0).toLocaleString()}
@@ -4082,23 +4104,34 @@ function pjRenderDetail(p) {
 
   const contractAmt = pjSum(clientItems);
   const vendorAmt   = vendors.reduce((s,v)=>s+pjSum(v.periods||[]),0);
+  // item5: 月定額/里程實報核算金額併入專案費用
+  const quotaMileAmt = pjQuotaMileAmount(p);
   const expenseAmt  = (S._projExpenses && S._projExpenses[p.id])
-    ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) : null;
+    ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) + quotaMileAmt : null;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
-  // ── 金額摘要列 ──
-  const summaryHtml = `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;
-    padding:12px 16px;background:var(--surface2);border-radius:10px;font-size:14px">
-    <div><span style="color:var(--muted)">合約總金額</span>
-      <span style="font-weight:800;font-family:monospace;margin-left:6px">$${contractAmt.toLocaleString()}</span></div>
-    <div style="color:var(--muted)">-</div>
-    <div><span style="color:var(--muted)">廠商總金額</span>
-      <span style="font-weight:800;font-family:monospace;margin-left:6px">$${vendorAmt.toLocaleString()}</span></div>
-    <div style="color:var(--muted)">-</div>
-    <div><span style="color:var(--muted)">費用總金額</span>
-      <span style="font-weight:800;font-family:monospace;margin-left:6px">${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'—'}</span></div>
-    ${prepay.enabled?`<div style="color:var(--muted)">｜</div>
-    <div><span class="badge bd-purple">預收款 $${Number(prepay.amount).toLocaleString()}</span></div>`:''}
+  // ── 金額摘要（item3: 已收款 - 已付款 - 費用 = 淨利）──────
+  const paidAmt    = clientItems.reduce((s,c)=>s+(c.paid?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
+  const vendorPaidAmt = vendors.reduce((s,v)=>{
+    return s + (v.periods||[]).reduce((t,c)=>t+(c.vendorPaid?Number(c.amount||0):0),0);
+  },0);
+  const expAmt     = expenseAmt || 0;
+  const netAmt     = paidAmt - vendorPaidAmt - expAmt;
+  const summaryHtml = `<div style="padding:12px 16px;background:var(--surface2);border-radius:10px;
+    font-size:14px;margin-bottom:18px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">
+      <span style="color:var(--muted)">已收款</span>
+      <span style="font-weight:800;font-family:monospace">$${paidAmt.toLocaleString()}</span>
+      <span style="color:var(--muted)">-</span>
+      <span style="color:var(--muted)">已付款</span>
+      <span style="font-weight:800;font-family:monospace">$${vendorPaidAmt.toLocaleString()}</span>
+      <span style="color:var(--muted)">-</span>
+      <span style="color:var(--muted)">費用</span>
+      <span style="font-weight:800;font-family:monospace">${expenseAmt!==null?'$'+expAmt.toLocaleString():'—'}</span>
+      <span style="color:var(--muted)">=</span>
+      <span style="font-weight:800;font-family:monospace;color:${netAmt>=0?'var(--green)':'var(--red)'}">$${netAmt.toLocaleString()}</span>
+    </div>
+    ${prepay.enabled?`<div style="margin-top:6px"><span class="badge bd-purple">預收款 $${Number(prepay.amount).toLocaleString()}</span></div>`:''}
   </div>`;
 
   // ── 業主端 ──
@@ -4112,22 +4145,39 @@ function pjRenderDetail(p) {
         projectId:p.id, periodIndex:j, acceptIdx:clientAcceptIdx
       })).join('');
 
+  const clientDone = clientItems.filter(c=>c.paid).length;
+  const clientPct  = clientItems.length ? Math.round(clientDone/clientItems.length*100) : 0;
   const clientHtml = `<div style="margin-bottom:18px">
-    <div style="display:flex;align-items:center;justify-content:space-between;
-      cursor:pointer;margin-bottom:8px" onclick="pjToggleSection('pj-client-body-${p.id}')">
-      <div style="font-weight:700;font-size:15px">🏢 業主端
-        <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
-          ${clientItems.length}期</span></div>
-      <div style="font-family:monospace;font-weight:800">$${clientTotal.toLocaleString()}</div>
+    <div class="vendor-row" onclick="pjToggleEl('pj-client-body-${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">🏢 業主端
+          <span style="color:var(--muted);font-size:13px;font-weight:400;margin-left:6px">
+            ${clientDone}/${clientItems.length} 期</span></div>
+        <div style="font-weight:800;font-family:monospace">$${clientTotal.toLocaleString()}</div>
+      </div>
+      <div class="proj-progress"><div class="proj-progress-fill" style="width:${clientPct}%"></div></div>
+      <div id="pj-client-body-${p.id}" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
+        ${clientCardsHtml}
+      </div>
     </div>
-    <div id="pj-client-body-${p.id}" style="display:block">
-      ${clientCardsHtml}
-    </div>
+  </div>`;
+
+  // ── item4: 合約 - 廠商 = 毛利 ───────────────────────────────
+  const grossAmt   = contractAmt - vendorAmt;
+  const midSummary = `<div style="padding:10px 14px;background:var(--surface2);border-radius:10px;
+    font-size:13px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
+    <span style="color:var(--muted)">合約</span>
+    <span style="font-weight:800;font-family:monospace">$${contractAmt.toLocaleString()}</span>
+    <span style="color:var(--muted)">-</span>
+    <span style="color:var(--muted)">廠商</span>
+    <span style="font-weight:800;font-family:monospace">$${vendorAmt.toLocaleString()}</span>
+    <span style="color:var(--muted)">=</span>
+    <span style="font-weight:800;font-family:monospace;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
   </div>`;
 
   // ── 廠商端 ──
   const vendorTotal = vendorAmt;
-  const vendorHtml = `<div style="margin-bottom:18px">
+  const vendorHtml = midSummary + `<div style="margin-bottom:18px">
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🚚 廠商端
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
         $${vendorTotal.toLocaleString()}</span></div>
@@ -4160,7 +4210,7 @@ function pjRenderDetail(p) {
 
   // ── 專案費用 ──
   const expenseHtml = (S._projExpenses && S._projExpenses[p.id])
-    ? renderProjExpenseList(S._projExpenses[p.id])
+    ? renderProjExpenseList(S._projExpenses[p.id], p)
     : `<button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>`;
 
   return summaryHtml + clientHtml + vendorHtml + `
@@ -4180,10 +4230,45 @@ function pjToggleSection(id) {
   if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
-function renderProjExpenseList(items) {
-  if (!items.length) return '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
+// item5: 計算該專案月定額或里程實報的核算金額
+// 月定額：固定為 proj.subsidy
+// 里程實報：無法在專案頁彙總跨人員申報資料，回傳 0（畫面仍顯示「依申報」）
+function pjQuotaMileAmount(proj) {
+  if (!proj) return 0;
+  if (proj.quota) return Number(proj.subsidy) || 0;
+  return 0;
+}
+
+function renderProjExpenseList(items, proj) {
   const icon = { fuel:'⛽', other:'🧾' };
-  return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
+  // item5: 月定額/里程實報核算金額
+  let quotaHtml = '';
+  if (proj) {
+    const month = document.getElementById('global-month')?.value || '';
+    if (proj.quota && proj.subsidy) {
+      quotaHtml = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
+          display:flex;align-items:center;justify-content:center;font-size:16px">📅</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">月定額補助</div>
+          <div style="font-size:12px;color:var(--muted)">${month||'—'}</div>
+        </div>
+        <div style="font-weight:800;font-family:monospace">$${Number(proj.subsidy).toLocaleString()}</div>
+      </div>`;
+    } else if (!proj.quota) {
+      quotaHtml = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
+          display:flex;align-items:center;justify-content:center;font-size:16px">🛣</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">里程實報</div>
+          <div style="font-size:12px;color:var(--muted)">依實際里程核算</div>
+        </div>
+        <div style="font-weight:800;font-family:monospace;color:var(--muted)">依申報</div>
+      </div>`;
+    }
+  }
+  if (!items.length) return quotaHtml || '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
+  return quotaHtml + items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
     ${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
     <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
       display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
@@ -4238,20 +4323,32 @@ function pjEditClientPay(projectId, periodIndex) {
   });
 }
 
-// ── 廠商端「待收票」badge 點擊 → 編輯收票狀態 ─────────────
+// ── 廠商端「待收票/已收票」badge 點擊 → 編輯收票狀態 ─────────
+// item13: 預設空白，加重置按鈕
 function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
   const p = (S._pjBoard||[]).find(x=>x.id===projectId);
   if (!p) return;
-  const c = ((p.vendors||[])[vendorIndex]?.periods||[])[periodIndex];
+  const vi = Number(vendorIndex);
+  const pj = Number(periodIndex);
+  const c = ((p.vendors||[])[vi]?.periods||[])[pj];
   if (!c) return;
 
-  const today = new Date().toISOString().slice(0,10);
   showInlineEdit({
     title: `${esc(c.label||'廠商期款')} — 更新收票`,
     fields: [
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
-      { id:'inv-date', label:'收票日期', type:'date', value: c.invReceivedDate || today },
+      { id:'inv-date', label:'收票日期（可空白）', type:'date', value: c.invReceivedDate||'' },
+    ],
+    extraActions: [
+      { label:'重置收票日期', action: async () => {
+        c.invReceived = false; c.invReceivedDate = '';
+        const res = await callGAS({ action:'updateProjectPeriod',
+          id:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj,
+          fields:{ invReceived:false, invReceivedDate:'' } });
+        if (res.success) { renderProjectBoard(); }
+        else toast('❌ ' + (res.error||'更新失敗'));
+      }}
     ],
     onSave: async (vals) => {
       c.invReceived     = vals['inv-status'] === '已收票';
@@ -4323,8 +4420,8 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
   }
 }
 
-// ── inline 編輯小 modal（輕量版，省略 confirmModal 建立複雜度）──
-function showInlineEdit({ title, fields, onSave }) {
+// ── inline 編輯小 modal（支援 extraActions 重置按鈕）─────────
+function showInlineEdit({ title, fields, onSave, extraActions }) {
   const existing = document.getElementById('_inlineEditWrap');
   if (existing) existing.remove();
 
@@ -4335,18 +4432,31 @@ function showInlineEdit({ title, fields, onSave }) {
       : `<input type="${f.type}" class="inp" id="ie-${f.id}" value="${esc(f.value||'')}">`}
   </div>`).join('');
 
+  const extraHtml = (extraActions||[]).map((_,i)=>
+    `<button class="btn btn-ghost btn-sm" id="ie-extra-${i}"></button>`).join('');
+
   const wrap = document.createElement('div');
   wrap.id = '_inlineEditWrap';
   wrap.className = 'modal-wrap open';
   wrap.innerHTML = `<div class="modal-box" style="max-width:360px">
     <div style="font-weight:700;font-size:16px;margin-bottom:14px">${title}</div>
     ${fHtml}
-    <div style="display:flex;gap:8px;margin-top:14px">
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" id="ie-save">儲存</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('_inlineEditWrap').remove()">取消</button>
+      ${extraHtml}
     </div>
   </div>`;
   document.body.appendChild(wrap);
+
+  // set extra button labels after insert
+  (extraActions||[]).forEach((a,i) => {
+    const btn = document.getElementById('ie-extra-'+i);
+    if (btn) {
+      btn.textContent = a.label;
+      btn.onclick = async () => { wrap.remove(); await a.action(); };
+    }
+  });
 
   document.getElementById('ie-save').onclick = async () => {
     const vals = {};
@@ -4487,10 +4597,11 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
     id:projectId, target:'client', periodIndex,
     fields:{ invoiced:c.invoiced, invoiceDate:dateVal } });
   if (res.success) {
-    // 更新快取列表
+    // item10: 即時同步快取 + 重新整理專案頁 badge
     const row = (_finRows.invoice||[]).find(r=>r.proj.id===projectId && r.periodIdx===periodIdx);
     if (row) { row.c.invoiced = c.invoiced; row.c.invoiceDate = dateVal; }
     renderFinanceInvoice();
+    renderProjectBoard();  // item10: 同步更新專案頁 badge
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else { toast('❌ ' + (res.error||'更新失敗')); }
 }
@@ -4507,10 +4618,12 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
     id:projectId, target:'vendor', vendorIndex, periodIndex,
     fields:{ vendorPaid:c.vendorPaid, vendorPayDate:dateVal } });
   if (res.success) {
+    // item14: 即時同步快取 + 重新整理專案頁 badge
     const row = (_finRows.payment||[]).find(r=>
       r.proj.id===projectId && r.vendorIdx===vendorIdx && r.periodIdx===periodIdx);
     if (row) { row.c.vendorPaid = c.vendorPaid; row.c.vendorPayDate = dateVal; }
     renderFinancePayment();
+    renderProjectBoard();  // item14: 同步更新專案頁 badge
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else { toast('❌ ' + (res.error||'更新失敗')); }
 }
@@ -5204,76 +5317,6 @@ function emptyRow(cols, msg='尚無資料') {
 }
 function errorRow(cols, msg='❌ 載入失敗，請重試') {
   return `<tr><td colspan="${cols}" style="text-align:center;color:var(--red);padding:28px;font-size:15px">${msg}</td></tr>`;
-}
-// ════════════════════════════════════════════════════════════
-// DEBUG SNAPSHOT — 傳送前端狀態到 GAS DebugLog sheet
-// ════════════════════════════════════════════════════════════
-async function sendDebugSnapshot() {
-  const CHUNK = 1800; // 每片最大字數（GAS cell 上限 ~50000，保守切小讓 Sheet 易讀）
-  const statusEl = document.getElementById('debugSnapStatus');
-  if (statusEl) statusEl.textContent = '準備快照...';
-
-  // ── 完整快照（不壓縮，保留所有欄位方便 debug）──
-  const fuelSummary = (window._fuelProjList || []).map((fp, idx) => ({
-    idx,
-    uid:      fp.uid,
-    attrType: fp.attrType,
-    type:     fp.type,
-    projId:   fp.projId,
-    deptId:   fp.deptId,
-    fieldRows:(fp.fieldRows || []).map(fr => ({
-      date:    fr.date,
-      reason:  fr.reason,
-      end:     fr.end,
-      km:      fr.km,
-      isRound: fr.isRound,
-    })),
-  }));
-
-  const receiptSummary = S.receipts.map(r => ({
-    id:        r.id,
-    cat:       r.category,
-    vendor:    r.vendor,
-    amount:    r.amount,
-    date:      r.date,
-    invoiceNo: r.invoiceNo,
-    ocrKey:    r.ocrKey,
-    parkAttr:  r.otherAttr || r.parkAttr || '',
-    projectId: r.projectId || '',
-    dept:      r.dept      || '',
-    supplement:r.supplement|| '',
-    _isNew:    r._isNew,
-    _isDup:    r._isDuplicate,
-  }));
-
-  const full = JSON.stringify({
-    ts:        new Date().toISOString(),
-    user:      S.user?.name || '?',
-    month:     document.getElementById('global-month')?.value || '?',
-    fuelProj:  fuelSummary,
-    receipts:  receiptSummary,
-  }, null, 0);  // 不縮排，節省字數
-
-  // ── 切片 ──
-  const chunks = [];
-  for (let i = 0; i < full.length; i += CHUNK) {
-    chunks.push(full.slice(i, i + CHUNK));
-  }
-
-  if (statusEl) statusEl.textContent = `傳送中（共 ${chunks.length} 片）...`;
-
-  try {
-    const res = await callGAS({ action: 'debugSnapshot', chunks });
-    if (res.success) {
-      if (statusEl) statusEl.textContent =
-        `✅ 已寫入 ${res.written} 列（共 ${full.length} 字）`;
-    } else {
-      if (statusEl) statusEl.textContent = '❌ ' + (res.error || '未知錯誤');
-    }
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 6000);
-  } catch(e) {
-    if (statusEl) statusEl.textContent = '❌ ' + e.message;
-  }
 }
 
 // ── 辨識失敗卡片的操作函式 ──────────────────────────────────
