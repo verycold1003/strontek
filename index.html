@@ -655,16 +655,17 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="overflow-x:auto">
       <table class="tbl" id="fin-inv-tbl">
         <thead><tr>
-          <th style="white-space:nowrap">專案</th>
+          <th style="white-space:nowrap">專案代號</th>
+          <th style="min-width:160px">專案名稱</th>
           <th style="white-space:nowrap">期次</th>
-          <th style="white-space:nowrap">實收金額</th>
+          <th style="min-width:100px">實收金額</th>
           <th style="white-space:nowrap">收款狀態</th>
           <th style="white-space:nowrap">收款日期</th>
-          <th style="white-space:nowrap">開票日期</th>
+          <th style="min-width:160px">開票日期</th>
           <th></th>
         </tr></thead>
         <tbody id="fin-inv-body">
-          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -704,9 +705,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="navmenu" id="navMenuProject">
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
-      <div id="navMenuProjBack" style="display:none">
-        <button class="navmenu-item" onclick="closeSettingsModal()">← 返回專案</button>
-      </div>
     </div>
     <div class="navmenu" id="navMenuExpense">
       <button class="navmenu-item" onclick="switchExpensePage('upload')">
@@ -3546,8 +3544,6 @@ function switchSection(name) {
   const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
-  const backBtn = document.getElementById('navMenuProjBack');
-  if (backBtn) backBtn.style.display = (name==='proj-settings'||name==='finance') ? 'block' : 'none';
 
   // 費用：完全靠 sec-expense-* sections，appShell 隱藏
   document.getElementById('appShell').style.display = 'none';
@@ -3974,11 +3970,11 @@ function pjClientCard(c, opts) {
   let invBadge;
   if (c.invoiced) {
     invBadge = `<span class="badge bd-blue">📄 已開票${c.invoiceDate?' '+c.invoiceDate:''}</span>`;
-  } else if (showAccept || c.paid) {
-    // item8: 驗收完成後 or 已收款但未開票 → 待開票（不可點，由財務填）
+  } else if (c.paid) {
+    // 已收款但未開票（異常狀態）→ 待開票
     invBadge = `<span class="badge bd-orange" style="cursor:default" title="請至財務專區填寫開票日期">📄 待開票</span>`;
   } else {
-    // item7: 未開始 → 未開票
+    // 未開始或顯示驗收按鈕 → 未開票（不可點）
     invBadge = `<span class="badge bd-muted" style="cursor:default">📄 未開票</span>`;
   }
 
@@ -3988,13 +3984,13 @@ function pjClientCard(c, opts) {
     payBadge = `<span class="badge bd-green" style="cursor:pointer"
       onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
       title="點擊編輯收款狀態">💰 已收款${c.payDate?' '+c.payDate:''} ✎</span>`;
-  } else if (showAccept || c.invoiced) {
-    // item8: 驗收完成後 or 已開票 → 待收款（可點）
+  } else if (c.invoiced) {
+    // 已開票未收款 → 待收款（可點）
     payBadge = `<span class="badge bd-orange" style="cursor:pointer"
       onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
       title="點擊更新收款狀態">💰 待收款 ✎</span>`;
   } else {
-    // item7: 未開始 → 未收款（不可點）
+    // 未開票 → 未收款（不可點）
     payBadge = `<span class="badge bd-muted" style="cursor:default">💰 未收款</span>`;
   }
 
@@ -4104,10 +4100,8 @@ function pjRenderDetail(p) {
 
   const contractAmt = pjSum(clientItems);
   const vendorAmt   = vendors.reduce((s,v)=>s+pjSum(v.periods||[]),0);
-  // item5: 月定額/里程實報核算金額併入專案費用
-  const quotaMileAmt = pjQuotaMileAmount(p);
   const expenseAmt  = (S._projExpenses && S._projExpenses[p.id])
-    ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) + quotaMileAmt : null;
+    ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) : null;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
   // ── 金額摘要（item3: 已收款 - 已付款 - 費用 = 淨利）──────
@@ -4164,15 +4158,15 @@ function pjRenderDetail(p) {
 
   // ── item4: 合約 - 廠商 = 毛利 ───────────────────────────────
   const grossAmt   = contractAmt - vendorAmt;
-  const midSummary = `<div style="padding:10px 14px;background:var(--surface2);border-radius:10px;
-    font-size:13px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
-    <span style="color:var(--muted)">合約</span>
+  const midSummary = `<div style="padding:8px 14px;background:var(--surface2);border-radius:10px;
+    font-size:13px;margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <span style="color:var(--muted);font-size:12px">合約</span>
     <span style="font-weight:800;font-family:monospace">$${contractAmt.toLocaleString()}</span>
-    <span style="color:var(--muted)">-</span>
-    <span style="color:var(--muted)">廠商</span>
+    <span style="color:var(--muted)">−</span>
+    <span style="color:var(--muted);font-size:12px">廠商</span>
     <span style="font-weight:800;font-family:monospace">$${vendorAmt.toLocaleString()}</span>
     <span style="color:var(--muted)">=</span>
-    <span style="font-weight:800;font-family:monospace;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
+    <span style="font-weight:800;font-family:monospace;font-size:16px;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
   </div>`;
 
   // ── 廠商端 ──
@@ -4228,15 +4222,6 @@ function pjToggleEl(id) {
 function pjToggleSection(id) {
   const el = document.getElementById(id);
   if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
-}
-
-// item5: 計算該專案月定額或里程實報的核算金額
-// 月定額：固定為 proj.subsidy
-// 里程實報：無法在專案頁彙總跨人員申報資料，回傳 0（畫面仍顯示「依申報」）
-function pjQuotaMileAmount(proj) {
-  if (!proj) return 0;
-  if (proj.quota) return Number(proj.subsidy) || 0;
-  return 0;
 }
 
 function renderProjExpenseList(items, proj) {
@@ -4339,16 +4324,6 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
       { id:'inv-date', label:'收票日期（可空白）', type:'date', value: c.invReceivedDate||'' },
-    ],
-    extraActions: [
-      { label:'重置收票日期', action: async () => {
-        c.invReceived = false; c.invReceivedDate = '';
-        const res = await callGAS({ action:'updateProjectPeriod',
-          id:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj,
-          fields:{ invReceived:false, invReceivedDate:'' } });
-        if (res.success) { renderProjectBoard(); }
-        else toast('❌ ' + (res.error||'更新失敗'));
-      }}
     ],
     onSave: async (vals) => {
       c.invReceived     = vals['inv-status'] === '已收票';
@@ -4512,11 +4487,12 @@ function renderFinanceInvoice() {
   if (!tbody) return;
   const showAll = document.getElementById('fin-show-inv-done')?.checked;
   const rows    = _finRows.invoice || [];
-  const visible = showAll ? rows : rows.filter(r => !r.c.invoiced || !r.c.paid);
+  const acted  = rows.filter(r => r.c.invoiced || r.c.paid);
+  const visible = showAll ? acted : acted.filter(r => !r.c.invoiced || !r.c.paid);
 
   if (!visible.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
-      ${rows.length ? '✅ 全部已完成' : '尚無業主端分期資料'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
+      ${acted.length ? '✅ 全部已完成' : '尚無已驗收的業主端分期資料'}</td></tr>`;
     return;
   }
 
@@ -4528,7 +4504,8 @@ function renderFinanceInvoice() {
       : `<span class="badge bd-orange">待收款</span>`;
     const rowStyle = invDone ? 'opacity:.55' : '';
     return `<tr style="${rowStyle}">
-      <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
+      <td style="font-weight:700;white-space:nowrap;font-size:12px">${esc(p.code||p.id)}</td>
+      <td style="min-width:160px;font-size:13px">${esc(p.name||'')}</td>
       <td style="white-space:nowrap">${esc(c.label||'—')}</td>
       <td style="font-family:monospace;font-weight:800;white-space:nowrap">
         $${net.toLocaleString()}
