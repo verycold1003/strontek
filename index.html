@@ -285,9 +285,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
              onchange="onGlobalMonthChange(this.value)">
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="font-size:12px;color:var(--muted)" id="syncStatus">尚未同步</div>
+        <span id="syncStatus" style="font-size:12px;color:var(--muted)">尚未同步</span>
         <span id="syncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
-        <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel" style="font-size:11px;color:var(--muted);display:none"></span>
       </div>
   </div>
@@ -364,9 +363,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
              onchange="onGlobalMonthChange(this.value)">
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="font-size:12px;color:var(--muted)" id="syncStatus-ocr">尚未同步</div>
+        <span id="syncStatus-ocr" style="font-size:12px;color:var(--muted)">尚未同步</span>
         <span id="syncDone-ocr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
-        <button class="btn btn-ghost btn-sm" id="btnReload-ocr" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel-ocr" style="font-size:11px;color:var(--muted);display:none"></span>
       </div>
   </div>
@@ -425,7 +423,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <div class="card-hd">
           📄 已產生 PDF
           <span class="badge bd-muted" id="histCnt" style="margin-left:6px"></span>
-          <span id="histSyncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none;margin-left:auto">✅ 同步完成</span>
+          <span id="histSyncDone" style="display:none"></span>
         </div>
         <div style="overflow-x:auto">
           <table class="tbl" id="histTbl">
@@ -444,8 +442,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
   <div class="pg-title">🗂 專案管理</div>
-  <div style="margin-bottom:14px">
-    <select class="inp" id="proj-select" onchange="renderProjectBoard()"></select>
+  <div style="margin-bottom:14px;position:relative">
+    <input class="inp" id="proj-select-input" list="proj-datalist"
+      placeholder="輸入或選擇專案…"
+      oninput="onProjSelectInput(this.value)"
+      style="width:100%">
+    <datalist id="proj-datalist"></datalist>
   </div>
   <div id="projBoard"></div>
 </div>
@@ -706,7 +708,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
     </div>
-    <div class="navmenu" id="navMenuExpense">
+    <div class="navmenu" id="navMenuExpense" style="min-width:200px">
       <button class="navmenu-item" onclick="switchExpensePage('upload')">
         📤 上傳憑證 <span class="nbadge" id="nb-upload-m" style="margin-left:4px;display:none">0</span>
       </button>
@@ -714,6 +716,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         🤖 OCR 辨識 <span class="nbadge" id="nb-ocr-m" style="margin-left:4px;display:none">0</span>
       </button>
       <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
+      <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+      <button class="navmenu-item" onclick="doReloadAll();closeNavMenu()" id="burgerReloadBtn">🔄 重新載入</button>
+      <div id="burgerSyncStatus" style="padding:6px 16px;font-size:12px;color:var(--muted)">尚未同步</div>
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -990,7 +995,10 @@ async function loadConfig() {
         S.config.departments = fallbackDept ? [{ code: fallbackDept, name: fallbackDept }] : [];
       }
       log('✅ 同步完成 ' + now());
-      if (statusEl) statusEl.textContent = '✅ 同步完成 ' + now();
+      const syncMsg = '✅ 同步完成 ' + now();
+      if (statusEl) statusEl.textContent = syncMsg;
+      const burgerSync = document.getElementById('burgerSyncStatus');
+      if (burgerSync) burgerSync.textContent = syncMsg;
       const syncDone = document.getElementById('syncDone');
       if (syncDone) { syncDone.style.display = 'inline'; setTimeout(() => syncDone.style.display='none', 3000); }
     } else {
@@ -3602,7 +3610,8 @@ function isProjectRelated(name) {
   _currentExpensePage = page;
   closeNavMenu();
   ['upload','ocr','history'].forEach(p=> {
-    document.getElementById('sec-expense-'+p)?.classList.toggle('active', p===page);
+    const el = document.getElementById('sec-expense-'+p);
+    if (el) el.classList.toggle('active', p===page);
   });
   // 同步月份欄位（OCR 頁有獨立 id）
   const mainMonth = document.getElementById('global-month')?.value || '';
@@ -4075,22 +4084,51 @@ function pjVendorCard(c, opts) {
 }
 
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
+let _currentProjId = null; // 目前選取的專案 id
+
 function renderProjectBoard() {
   const board = document.getElementById('projBoard');
-  const sel   = document.getElementById('proj-select');
-  if (!board || !sel) return;
+  const inp   = document.getElementById('proj-select-input');
+  const dl    = document.getElementById('proj-datalist');
+  if (!board) return;
+
   const rows = S._pjBoard || [];
   if (!rows.length) {
-    sel.innerHTML = '';
+    if (dl) dl.innerHTML = '';
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
     return;
   }
-  const cur = sel.value;
-  sel.innerHTML = rows.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}（${esc(p.code||p.id)}）</option>`).join('');
-  if (rows.some(p=>p.id===cur)) sel.value = cur;
 
-  const p = rows.find(x=>x.id===sel.value) || rows[0];
+  // 更新 datalist
+  if (dl) dl.innerHTML = rows.map(p=>
+    `<option value="${esc(p.name)}（${esc(p.code||p.id)}）"></option>`).join('');
+
+  // 找目前應顯示的專案
+  let p = null;
+  if (_currentProjId) p = rows.find(x=>x.id===_currentProjId);
+  if (!p) { p = rows[0]; _currentProjId = p.id; }
+
+  // 設定 input 顯示值
+  if (inp && !inp._userTyping) inp.value = `${p.name}（${p.code||p.id}）`;
+
   board.innerHTML = `<div class="card"><div class="card-bd">${pjRenderDetail(p)}</div></div>`;
+}
+
+// 使用者輸入時找匹配專案
+function onProjSelectInput(val) {
+  const rows = S._pjBoard || [];
+  const inp  = document.getElementById('proj-select-input');
+  inp._userTyping = true;
+  const match = rows.find(p=>
+    `${p.name}（${p.code||p.id}）`.toLowerCase() === val.toLowerCase() ||
+    p.name.toLowerCase() === val.toLowerCase() ||
+    (p.code||p.id).toLowerCase() === val.toLowerCase()
+  );
+  if (match) {
+    _currentProjId = match.id;
+    inp._userTyping = false;
+    renderProjectBoard();
+  }
 }
 
 // 專案詳細內容：金額摘要 → 業主端 → 廠商端 → 專案費用
@@ -4171,7 +4209,7 @@ function pjRenderDetail(p) {
 
   // ── 廠商端 ──
   const vendorTotal = vendorAmt;
-  const vendorHtml = midSummary + `<div style="margin-bottom:18px">
+  const vendorHtml = `<div style="margin-bottom:18px">
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🚚 廠商端
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
         $${vendorTotal.toLocaleString()}</span></div>
@@ -4207,7 +4245,7 @@ function pjRenderDetail(p) {
     ? renderProjExpenseList(S._projExpenses[p.id], p)
     : `<button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>`;
 
-  return summaryHtml + clientHtml + vendorHtml + `
+  return summaryHtml + clientHtml + vendorHtml + midSummary + `
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🧾 專案費用
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
         ${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'未載入'}</span></div>
