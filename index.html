@@ -285,8 +285,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
              onchange="onGlobalMonthChange(this.value)">
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span id="syncStatus" style="font-size:12px;color:var(--muted)">尚未同步</span>
+        <div style="font-size:12px;color:var(--muted)" id="syncStatus">尚未同步</div>
         <span id="syncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
+        <button class="btn btn-ghost btn-sm" id="btnReload" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel" style="font-size:11px;color:var(--muted);display:none"></span>
       </div>
   </div>
@@ -363,8 +364,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
              onchange="onGlobalMonthChange(this.value)">
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span id="syncStatus-ocr" style="font-size:12px;color:var(--muted)">尚未同步</span>
+        <div style="font-size:12px;color:var(--muted)" id="syncStatus-ocr">尚未同步</div>
         <span id="syncDone-ocr" style="font-size:13px;color:var(--green);font-weight:700;display:none">✅ 同步完成</span>
+        <button class="btn btn-ghost btn-sm" id="btnReload-ocr" onclick="doReloadAll()" title="重新載入">🔄</button>
         <span id="fuelLastSyncLabel-ocr" style="font-size:11px;color:var(--muted);display:none"></span>
       </div>
   </div>
@@ -423,7 +425,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <div class="card-hd">
           📄 已產生 PDF
           <span class="badge bd-muted" id="histCnt" style="margin-left:6px"></span>
-          <span id="histSyncDone" style="display:none"></span>
+          <span id="histSyncDone" style="font-size:13px;color:var(--green);font-weight:700;display:none;margin-left:auto">✅ 同步完成</span>
         </div>
         <div style="overflow-x:auto">
           <table class="tbl" id="histTbl">
@@ -442,12 +444,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
   <div class="pg-title">🗂 專案管理</div>
-  <div style="margin-bottom:14px;position:relative">
-    <input class="inp" id="proj-select-input" list="proj-datalist"
-      placeholder="輸入或選擇專案…"
-      oninput="onProjSelectInput(this.value)"
-      style="width:100%">
-    <datalist id="proj-datalist"></datalist>
+  <div style="margin-bottom:14px">
+    <select class="inp" id="proj-select" onchange="renderProjectBoard()"></select>
   </div>
   <div id="projBoard"></div>
 </div>
@@ -658,12 +656,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <table class="tbl" id="fin-inv-tbl">
         <thead><tr>
           <th style="white-space:nowrap">專案代號</th>
-          <th style="min-width:160px">專案名稱</th>
+          <th style="min-width:120px">專案名稱</th>
           <th style="white-space:nowrap">期次</th>
-          <th style="min-width:100px">實收金額</th>
+          <th style="white-space:nowrap">實收金額</th>
           <th style="white-space:nowrap">收款狀態</th>
           <th style="white-space:nowrap">收款日期</th>
-          <th style="min-width:160px">開票日期</th>
+          <th style="white-space:nowrap">開票日期</th>
           <th></th>
         </tr></thead>
         <tbody id="fin-inv-body">
@@ -684,7 +682,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="overflow-x:auto">
       <table class="tbl" id="fin-pay-tbl">
         <thead><tr>
-          <th style="white-space:nowrap">專案</th>
+          <th style="white-space:nowrap">專案代號</th>
+          <th style="min-width:120px">專案名稱</th>
           <th style="white-space:nowrap">廠商</th>
           <th style="white-space:nowrap">期次</th>
           <th style="white-space:nowrap">金額</th>
@@ -694,7 +693,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <th></th>
         </tr></thead>
         <tbody id="fin-pay-body">
-          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -706,9 +705,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);width:100%;height:100%">☰</button>
     <div class="navmenu" id="navMenuProject">
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
+      <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
     </div>
-    <div class="navmenu" id="navMenuExpense" style="min-width:200px">
+    <div class="navmenu" id="navMenuExpense">
       <button class="navmenu-item" onclick="switchExpensePage('upload')">
         📤 上傳憑證 <span class="nbadge" id="nb-upload-m" style="margin-left:4px;display:none">0</span>
       </button>
@@ -716,9 +716,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         🤖 OCR 辨識 <span class="nbadge" id="nb-ocr-m" style="margin-left:4px;display:none">0</span>
       </button>
       <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
-      <div style="border-top:1px solid var(--border);margin:4px 0"></div>
-      <button class="navmenu-item" onclick="doReloadAll();closeNavMenu()" id="burgerReloadBtn">🔄 重新載入</button>
-      <div id="burgerSyncStatus" style="padding:6px 16px;font-size:12px;color:var(--muted)">尚未同步</div>
     </div>
     <div class="navmenu" id="navMenuTodo" style="min-width:160px;padding:8px 0">
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -995,10 +992,7 @@ async function loadConfig() {
         S.config.departments = fallbackDept ? [{ code: fallbackDept, name: fallbackDept }] : [];
       }
       log('✅ 同步完成 ' + now());
-      const syncMsg = '✅ 同步完成 ' + now();
-      if (statusEl) statusEl.textContent = syncMsg;
-      const burgerSync = document.getElementById('burgerSyncStatus');
-      if (burgerSync) burgerSync.textContent = syncMsg;
+      if (statusEl) statusEl.textContent = '✅ 同步完成 ' + now();
       const syncDone = document.getElementById('syncDone');
       if (syncDone) { syncDone.style.display = 'inline'; setTimeout(() => syncDone.style.display='none', 3000); }
     } else {
@@ -1521,13 +1515,30 @@ function renderQueue() {
     return;
   }
   c.innerHTML = S.ocrQueue.map((f, i) => {
+    // 縮圖：Drive fileId 可組 thumbnail URL；非圖片（PDF）或無 Drive 連結（重新辨識）用預設圖示
+    const isPdf = (f.mimeType||f.name||'').includes('pdf');
+    const hasDriveId = f.id && !String(f.id).startsWith('retry_');
+    const thumbHtml = hasDriveId && !isPdf
+      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
+             style="width:44px;height:44px;object-fit:cover;border-radius:6px"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:22px'}))">`
+      : `<span style="font-size:22px">${isPdf ? '📄' : '🖼️'}</span>`;
+    // Drive 連結：優先用 driveUrl，否則用 id 組連結（重新辨識的 retry_ id 無連結）
+    const driveHref = f.driveUrl || (hasDriveId
+      ? `https://drive.google.com/file/d/${f.id}/view` : '');
     return `
     <div class="file-item" style="gap:10px">
+      <div class="file-thumb">${thumbHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
         <span class="badge ${f.status==='done'?'bd-green':f.status==='error'?'bd-red':'bd-muted'}">${
           f.status==='done' ? '✅ 完成' : f.status==='error' ? '❌ 失敗' : '⏳ 待辨識'}</span>
       </div>
+      ${driveHref
+        ? `<a href="${driveHref}" target="_blank"
+             style="font-size:18px;color:var(--accent);text-decoration:none;flex-shrink:0"
+             title="在 Google Drive 開啟">↗</a>`
+        : `<span style="font-size:18px;color:var(--border2);flex-shrink:0">—</span>`}
       <button class="btn btn-danger btn-sm" onclick="removeQueue(${i})">✕</button>
     </div>`;
   }).join('');
@@ -1589,6 +1600,8 @@ async function runOCR() {
             rec._isDuplicate    = true;
             rec._duplicateOfKey = item.duplicateOfKey || '';
             rec._tempKey        = item.key || '';
+            rec._duplicateOwner = item.duplicateOwner || '';
+            rec._duplicateOwnerIsSelf = item.duplicateOwnerIsSelf !== false;
           }
           S.receipts.push(rec);
         }
@@ -1654,6 +1667,8 @@ function mkReceipt(id, qf, item, idx, isNew) {
     _isDuplicate:    item.isDuplicate    || false,
     _duplicateOfKey: item.duplicateOfKey || '',
     _tempKey:        item.isDuplicate ? (item.key || '') : '',
+    _duplicateOwner: item.duplicateOwner || '',
+    _duplicateOwnerIsSelf: item.duplicateOwnerIsSelf !== false,
   };
 }
 
@@ -1888,7 +1903,6 @@ function applyOtherAttr() {
     .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
     .forEach(r => {
       upR(r.id, 'otherAttr', item.id);
-      upR(r.id, '_checked', true);
       stashSingle(r.id);
     });
   const inp = document.querySelector('#fd-other-attr .fd-input');
@@ -1896,6 +1910,12 @@ function applyOtherAttr() {
   _otherSelectedItem = null;
   const btn = document.getElementById('btn-other-apply');
   if (btn) btn.disabled = true;
+
+  // ── 套用後檢查：若仍有未設定歸屬的項目，全部取消勾選，方便使用者逐一勾選設定歸屬；
+  //    若已全部設定完畢，全部勾選方便匯出 ──
+  const otherList = S.receipts.filter(r => r.category !== 'fuel' && r.status !== 'error');
+  const hasUnassigned = otherList.some(r => !r.otherAttr);
+  otherList.forEach(r => { r._checked = !hasUnassigned; });
 
   renderOCRResults();
   updateStats();
@@ -2614,9 +2634,21 @@ function rcHTML(r) {
             <input class="inp" id="err-date-${r.id}" type="date" value="${r.date||''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')">
           </div>
+          <div style="width:160px">
+            <label class="lbl">發票號碼</label>
+            <input class="inp" id="err-invoiceno-${r.id}" value="${esc(r.invoiceNo||'')}" placeholder="發票號碼或收據編號"
+              onchange="upR('${r.id}','invoiceNo',this.value);stashSingle('${r.id}')">
+          </div>
         </div>
         <div>
-          <label class="lbl">申請說明</label>
+          <label class="lbl">費用類別</label>
+          <div class="tgl" style="width:200px" id="err-tgl-cat-${r.id}">
+            <button class="tgl-btn ${r.category==='fuel'?'on':''}" onclick="setErrCat('${r.id}','fuel')">⛽ 油資</button>
+            <button class="tgl-btn ${r.category!=='fuel'?'on':''}" onclick="setErrCat('${r.id}','other')">📄 其他</button>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">申請事由</label>
           <input class="inp" id="err-notes-${r.id}" value="${r.supplement||''}" placeholder="說明費用與公務的關聯"
             onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
         </div>
@@ -3302,6 +3334,10 @@ function renderDupModal(r) {
   const oldKeyMonth  = oldKey.match(/^(\d{6})-\d{3}$/) ? oldKey.slice(0, 6) : '';
   const isCrossMonth = oldKeyMonth && oldKeyMonth !== currentMonth;
 
+  // 判斷是否非同一申請人：非本人時不可覆蓋
+  const isOtherPerson = r._duplicateOwnerIsSelf === false;
+  const noOverwrite = isCrossMonth || isOtherPerson;
+
   document.getElementById('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
@@ -3321,7 +3357,13 @@ function renderDupModal(r) {
         <span class="mono" style="color:var(--amber);font-weight:700">${r._duplicateOfKey}</span>
       </div>
     </div>
-    ${isCrossMonth
+    ${isOtherPerson
+      ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
+           <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已由其他申請人登錄</div>
+           <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${r._duplicateOwner || '其他申請人'}</strong> 的紀錄中。</div>
+           <div style="color:var(--muted);margin-top:4px">非同一申請人不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
+         </div>`
+      : isCrossMonth
       ? `<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px;font-size:13px;line-height:1.8;margin-bottom:4px">
            <div style="color:#92400e;font-weight:700;margin-bottom:4px">⚠️ 跨月重複發票</div>
            <div style="color:var(--muted)">此發票號碼 <span class="mono" style="color:var(--text)">${r._duplicateOfKey}</span> 已存在於 <strong>${oldKeyMonth.slice(0,4)}-${oldKeyMonth.slice(4)}</strong> 月份紀錄中。</div>
@@ -3334,12 +3376,12 @@ function renderDupModal(r) {
          </div>`
     }`;
 
-  // 跨月時禁用覆蓋按鈕
+  // 跨月或非同一申請人時禁用覆蓋按鈕
   const btnOverwrite = document.getElementById('btnDupOverwrite');
   if (btnOverwrite) {
-    btnOverwrite.disabled = isCrossMonth;
-    btnOverwrite.style.opacity = isCrossMonth ? '0.35' : '1';
-    btnOverwrite.title = isCrossMonth ? '跨月不可覆蓋' : '';
+    btnOverwrite.disabled = noOverwrite;
+    btnOverwrite.style.opacity = noOverwrite ? '0.35' : '1';
+    btnOverwrite.title = isOtherPerson ? '非同一申請人不可覆蓋' : isCrossMonth ? '跨月不可覆蓋' : '';
   }
 
   document.getElementById('dupRemaining').textContent =
@@ -3552,6 +3594,8 @@ function switchSection(name) {
   const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
+  const backBtn = document.getElementById('navMenuProjBack');
+  if (backBtn) backBtn.style.display = 'none';
 
   // 費用：完全靠 sec-expense-* sections，appShell 隱藏
   document.getElementById('appShell').style.display = 'none';
@@ -3610,8 +3654,7 @@ function isProjectRelated(name) {
   _currentExpensePage = page;
   closeNavMenu();
   ['upload','ocr','history'].forEach(p=> {
-    const el = document.getElementById('sec-expense-'+p);
-    if (el) el.classList.toggle('active', p===page);
+    document.getElementById('sec-expense-'+p)?.classList.toggle('active', p===page);
   });
   // 同步月份欄位（OCR 頁有獨立 id）
   const mainMonth = document.getElementById('global-month')?.value || '';
@@ -3637,6 +3680,15 @@ document.addEventListener('click', (e) => {
 function openSettingsModal() {
   closeNavMenu();
   switchSection('proj-settings');
+}
+function openScheduleNav() {
+  closeNavMenu();
+  switchSection('proj-settings');
+  // 切換到進度設定後捲動到對應 card
+  setTimeout(() => {
+    const el = document.getElementById('pgCard');
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 150);
 }
 function closeSettingsModal() {
   switchSection('project');
@@ -3903,27 +3955,31 @@ async function restoreTask(id) {
 // 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款 / 專案費用
 // ════════════════════════════════════════════════════════════
 // 每期欄位結構: { label, amount, prepayDeduct,
+//                 accepted,                ← 業主端驗收完成（專案頁更新）
 //                 invoiced, invoiceDate,   ← 業主開票（財務更新）
 //                 paid, payDate,           ← 業主收款（專案頁更新）
+//                 invAccepted,             ← 廠商端驗收完成（專案頁更新）
 //                 invReceived, invReceivedDate, ← 廠商收票（專案頁更新）
 //                 vendorPaid, vendorPayDate }   ← 廠商付款（財務更新）
 function pjBlankPeriod() {
   return { label:'', amount:0, prepayDeduct:0,
+           accepted:false,
            invoiced:false, invoiceDate:'', paid:false, payDate:'',
+           invAccepted:false,
            invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'' };
 }
 
-// 業主端：invoiced = 已開票(財務)，paid = 已收款(業主付我)
+// 業主端：accepted = 驗收完成，invoiced = 已開票(財務)，paid = 已收款(業主付我)
 function pjClientStatus(c) {
-  if (c.paid && c.invoiced) return { label:'已完成', cls:'bd-green' };
-  if (c.invoiced)           return { label:'進行中', cls:'bd-blue'  };
-  return                           { label:'未開始', cls:'bd-muted' };
+  if (c.paid && c.invoiced)                   return { label:'已完成', cls:'bd-green' };
+  if (c.accepted || c.invoiced || c.paid)      return { label:'進行中', cls:'bd-blue'  };
+  return                                              { label:'未開始', cls:'bd-muted' };
 }
-// 廠商端：invReceived = 已收票(廠商開票給我)，vendorPaid = 已付款(我付廠商)
+// 廠商端：invAccepted = 驗收完成，invReceived = 已收票(廠商開票給我)，vendorPaid = 已付款(我付廠商)
 function pjVendorPeriodStatus(c) {
-  if (c.vendorPaid && c.invReceived) return { label:'已完成', cls:'bd-green' };
-  if (c.invReceived)                 return { label:'進行中', cls:'bd-blue'  };
-  return                                    { label:'未開始', cls:'bd-muted' };
+  if (c.vendorPaid && c.invReceived)                      return { label:'已完成', cls:'bd-green' };
+  if (c.invAccepted || c.invReceived || c.vendorPaid)      return { label:'進行中', cls:'bd-blue'  };
+  return                                                          { label:'未開始', cls:'bd-muted' };
 }
 
 async function loadProjectsForBoard() {
@@ -3945,17 +4001,17 @@ function pjSum(arr) { return (arr||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
 // 1. 若全未完成 → 第 0 期顯示
 // 2. 否則找第一個已完成之後的下一個未完成期
 function pjAcceptIndex(items, isClient) {
+  // client: accepted=true 即本期已完成（驗收後進入請款流程）
+  // vendor: invAccepted=true 即本期已完成
   const isDone = isClient
-    ? (c) => c.paid
-    : (c) => c.vendorPaid;
+    ? (c) => c.accepted || c.invoiced   // invoiced 相容舊資料
+    : (c) => c.invAccepted || c.vendorPaid; // vendorPaid 相容舊資料
 
   const firstUndone = items.findIndex(c => !isDone(c));
   if (firstUndone < 0) return -1; // 全部完成
 
-  // 若第一個未完成就是第 0 期，且之前沒有完成的，顯示第 0 期
   if (firstUndone === 0) return 0;
 
-  // 確認前一期是否已完成
   return isDone(items[firstUndone - 1]) ? firstUndone : -1;
 }
 
@@ -3970,20 +4026,20 @@ function pjClientCard(c, opts) {
 
   // 整體狀態 badge
   let stLabel, stCls;
-  if (c.paid && c.invoiced)      { stLabel='已完成'; stCls='bd-green'; }
-  else if (showAccept)           { stLabel='進行中'; stCls='bd-blue';  }  // item6
-  else if (c.invoiced || c.paid) { stLabel='進行中'; stCls='bd-blue';  }
-  else                           { stLabel='未開始'; stCls='bd-muted'; }
+  if (c.paid && c.invoiced)                   { stLabel='已完成'; stCls='bd-green'; }
+  else if (c.accepted || c.invoiced || c.paid) { stLabel='進行中'; stCls='bd-blue'; } // item6
+  else if (showAccept)                         { stLabel='進行中'; stCls='bd-blue'; }
+  else                                         { stLabel='未開始'; stCls='bd-muted'; }
 
   // 開票 badge
   let invBadge;
   if (c.invoiced) {
     invBadge = `<span class="badge bd-blue">📄 已開票${c.invoiceDate?' '+c.invoiceDate:''}</span>`;
-  } else if (c.paid) {
-    // 已收款但未開票（異常狀態）→ 待開票
+  } else if (c.accepted || c.paid) {
+    // item8: 驗收完成(accepted)後 → 待開票（不可點，由財務填）
     invBadge = `<span class="badge bd-orange" style="cursor:default" title="請至財務專區填寫開票日期">📄 待開票</span>`;
   } else {
-    // 未開始或顯示驗收按鈕 → 未開票（不可點）
+    // item7: 未開始 / 進行中（驗收前）→ 未開票（不可點）
     invBadge = `<span class="badge bd-muted" style="cursor:default">📄 未開票</span>`;
   }
 
@@ -3993,13 +4049,13 @@ function pjClientCard(c, opts) {
     payBadge = `<span class="badge bd-green" style="cursor:pointer"
       onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
       title="點擊編輯收款狀態">💰 已收款${c.payDate?' '+c.payDate:''} ✎</span>`;
-  } else if (c.invoiced) {
-    // 已開票未收款 → 待收款（可點）
+  } else if (c.accepted || c.invoiced) {
+    // item8: 驗收完成後 → 待收款（可點）
     payBadge = `<span class="badge bd-orange" style="cursor:pointer"
       onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
       title="點擊更新收款狀態">💰 待收款 ✎</span>`;
   } else {
-    // 未開票 → 未收款（不可點）
+    // item7: 未開始 / 進行中（驗收前）→ 未收款（不可點）
     payBadge = `<span class="badge bd-muted" style="cursor:default">💰 未收款</span>`;
   }
 
@@ -4033,10 +4089,10 @@ function pjVendorCard(c, opts) {
 
   // 整體狀態 badge
   let stLabel, stCls;
-  if (c.vendorPaid && c.invReceived) { stLabel='已完成'; stCls='bd-green'; }
-  else if (showAccept)               { stLabel='進行中'; stCls='bd-blue';  }
-  else if (c.invReceived || c.vendorPaid) { stLabel='進行中'; stCls='bd-blue'; }
-  else                               { stLabel='未開始'; stCls='bd-muted'; }
+  if (c.vendorPaid && c.invReceived)                      { stLabel='已完成'; stCls='bd-green'; }
+  else if (c.invAccepted || c.invReceived || c.vendorPaid) { stLabel='進行中'; stCls='bd-blue'; }
+  else if (showAccept)                                     { stLabel='進行中'; stCls='bd-blue'; }
+  else                                                     { stLabel='未開始'; stCls='bd-muted'; }
 
   // 收票 badge
   let invBadge;
@@ -4044,13 +4100,13 @@ function pjVendorCard(c, opts) {
     invBadge = `<span class="badge bd-blue" style="cursor:pointer"
       onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
       title="點擊編輯收票狀態">🧾 已收票${c.invReceivedDate?' '+c.invReceivedDate:''} ✎</span>`;
-  } else if (showAccept || c.vendorPaid) {
-    // item12: 驗收後或已付款未收票 → 待收票（可點）
+  } else if (c.invAccepted || c.vendorPaid) {
+    // item12: 驗收完成(invAccepted)後 → 待收票（可點）
     invBadge = `<span class="badge bd-orange" style="cursor:pointer"
       onclick="pjEditVendorInv('${opts.projectId}',${opts.vendorIndex},${opts.periodIndex})"
       title="點擊更新收票狀態">🧾 待收票 ✎</span>`;
   } else {
-    // item11: 未開始 → 未收票
+    // item11: 未開始 / 進行中（驗收前）→ 未收票（不可點）
     invBadge = `<span class="badge bd-muted" style="cursor:default">🧾 未收票</span>`;
   }
 
@@ -4058,11 +4114,11 @@ function pjVendorCard(c, opts) {
   let payBadge;
   if (c.vendorPaid) {
     payBadge = `<span class="badge bd-green">💸 已付款${c.vendorPayDate?' '+c.vendorPayDate:''}</span>`;
-  } else if (showAccept || c.invReceived) {
+  } else if (c.invAccepted || c.invReceived) {
     // item12: 驗收後或已收票 → 待付款（不可點，由財務填）
     payBadge = `<span class="badge bd-orange" style="cursor:default" title="請至財務專區填寫付款日期">💸 待付款</span>`;
   } else {
-    // item11: 未開始 → 未付款
+    // item11: 未開始 / 進行中（驗收前）→ 未付款（不可點）
     payBadge = `<span class="badge bd-muted" style="cursor:default">💸 未付款</span>`;
   }
 
@@ -4084,51 +4140,22 @@ function pjVendorCard(c, opts) {
 }
 
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
-let _currentProjId = null; // 目前選取的專案 id
-
 function renderProjectBoard() {
   const board = document.getElementById('projBoard');
-  const inp   = document.getElementById('proj-select-input');
-  const dl    = document.getElementById('proj-datalist');
-  if (!board) return;
-
+  const sel   = document.getElementById('proj-select');
+  if (!board || !sel) return;
   const rows = S._pjBoard || [];
   if (!rows.length) {
-    if (dl) dl.innerHTML = '';
+    sel.innerHTML = '';
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
     return;
   }
+  const cur = sel.value;
+  sel.innerHTML = rows.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}（${esc(p.code||p.id)}）</option>`).join('');
+  if (rows.some(p=>p.id===cur)) sel.value = cur;
 
-  // 更新 datalist
-  if (dl) dl.innerHTML = rows.map(p=>
-    `<option value="${esc(p.name)}（${esc(p.code||p.id)}）"></option>`).join('');
-
-  // 找目前應顯示的專案
-  let p = null;
-  if (_currentProjId) p = rows.find(x=>x.id===_currentProjId);
-  if (!p) { p = rows[0]; _currentProjId = p.id; }
-
-  // 設定 input 顯示值
-  if (inp && !inp._userTyping) inp.value = `${p.name}（${p.code||p.id}）`;
-
+  const p = rows.find(x=>x.id===sel.value) || rows[0];
   board.innerHTML = `<div class="card"><div class="card-bd">${pjRenderDetail(p)}</div></div>`;
-}
-
-// 使用者輸入時找匹配專案
-function onProjSelectInput(val) {
-  const rows = S._pjBoard || [];
-  const inp  = document.getElementById('proj-select-input');
-  inp._userTyping = true;
-  const match = rows.find(p=>
-    `${p.name}（${p.code||p.id}）`.toLowerCase() === val.toLowerCase() ||
-    p.name.toLowerCase() === val.toLowerCase() ||
-    (p.code||p.id).toLowerCase() === val.toLowerCase()
-  );
-  if (match) {
-    _currentProjId = match.id;
-    inp._userTyping = false;
-    renderProjectBoard();
-  }
 }
 
 // 專案詳細內容：金額摘要 → 業主端 → 廠商端 → 專案費用
@@ -4196,15 +4223,15 @@ function pjRenderDetail(p) {
 
   // ── item4: 合約 - 廠商 = 毛利 ───────────────────────────────
   const grossAmt   = contractAmt - vendorAmt;
-  const midSummary = `<div style="padding:8px 14px;background:var(--surface2);border-radius:10px;
-    font-size:13px;margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    <span style="color:var(--muted);font-size:12px">合約</span>
+  const midSummary = `<div style="padding:10px 14px;background:var(--surface2);border-radius:10px;
+    font-size:13px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
+    <span style="color:var(--muted)">合約</span>
     <span style="font-weight:800;font-family:monospace">$${contractAmt.toLocaleString()}</span>
-    <span style="color:var(--muted)">−</span>
-    <span style="color:var(--muted);font-size:12px">廠商</span>
+    <span style="color:var(--muted)">-</span>
+    <span style="color:var(--muted)">廠商</span>
     <span style="font-weight:800;font-family:monospace">$${vendorAmt.toLocaleString()}</span>
     <span style="color:var(--muted)">=</span>
-    <span style="font-weight:800;font-family:monospace;font-size:16px;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
+    <span style="font-weight:800;font-family:monospace;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
   </div>`;
 
   // ── 廠商端 ──
@@ -4245,11 +4272,12 @@ function pjRenderDetail(p) {
     ? renderProjExpenseList(S._projExpenses[p.id], p)
     : `<button class="btn btn-ghost btn-sm" onclick="loadProjectExpenses('${p.id}')">🔄 載入專案費用</button>`;
 
-  return summaryHtml + clientHtml + vendorHtml + midSummary + `
+  return summaryHtml + clientHtml + `
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🧾 專案費用
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
         ${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'未載入'}</span></div>
-    <div id="pj-expense-${p.id}">${expenseHtml}</div>`;
+    <div id="pj-expense-${p.id}">${expenseHtml}</div>
+  ` + midSummary + vendorHtml;
 }
 
 function pjToggleEl(id) {
@@ -4317,28 +4345,36 @@ async function loadProjectExpenses(projectId) {
   renderProjectBoard(); // re-render to update expense total
 }
 
-// ── 業主端「待收款」badge 點擊 → 編輯收款狀態 ─────────────
+// ── 業主端「待收款/已收款」badge 點擊 → 編輯收款狀態 ─────────
 function pjEditClientPay(projectId, periodIndex) {
   const p = (S._pjBoard||[]).find(x=>x.id===projectId);
   if (!p) return;
-  const c = (p.client||[])[periodIndex];
+  const idx = Number(periodIndex);
+  const c = (p.client||[])[idx];
   if (!c) return;
-
-  const today = new Date().toISOString().slice(0,10);
-  const existing = c.payDate || today;
 
   showInlineEdit({
     title: `${esc(c.label||'期款')} — 更新收款`,
     fields: [
       { id:'pay-status', label:'狀態', type:'select',
         options:['待查帳','已收款'], value: c.paid?'已收款':'待查帳' },
-      { id:'pay-date', label:'收款日期', type:'date', value: existing },
+      { id:'pay-date', label:'收款日期', type:'date', value: c.payDate||'' },
+    ],
+    extraActions: [
+      { label:'重置收款日期', action: async () => {
+        c.paid = false; c.payDate = '';
+        const res = await callGAS({ action:'updateProjectPeriod',
+          id:p.id, target:'client', periodIndex:idx,
+          fields:{ paid:false, payDate:'' } });
+        if (res.success) { renderProjectBoard(); }
+        else toast('❌ ' + (res.error||'更新失敗'));
+      }}
     ],
     onSave: async (vals) => {
       c.paid    = vals['pay-status'] === '已收款';
       c.payDate = vals['pay-date'] || '';
       const res = await callGAS({ action:'updateProjectPeriod',
-        id:p.id, target:'client', periodIndex:j,
+        id:p.id, target:'client', periodIndex:idx,
         fields:{ paid:c.paid, payDate:c.payDate } });
       if (res.success) { renderProjectBoard(); }
       else { toast('❌ ' + (res.error||'更新失敗')); }
@@ -4397,9 +4433,8 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
     arr = p.client = p.client || [];
     c   = arr[periodIndex];
     if (!c) return;
-    // 驗收完成：僅標記 invoiced（開票由財務填），paid 由待收款 badge 更新
-    // 若已 invoiced 則整體完成標記不重複設定
-    if (!c.invoiced) c.invoiced = true;
+    // item8: 驗收完成標記 accepted=true（不標記 invoiced，由財務填開票日期後才改 invoiced）
+    if (!c.accepted) c.accepted = true;
     // 同時建立「請款」待辦
     const netAmt = Number(c.amount||0) - Number(c.prepayDeduct||0);
     const deductNote = c.prepayDeduct
@@ -4414,7 +4449,8 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
     arr = p.vendors[vendorIndex].periods = p.vendors[vendorIndex].periods || [];
     c   = arr[periodIndex];
     if (!c) return;
-    if (!c.invReceived) c.invReceived = true;
+    // item12: 驗收完成標記 invAccepted=true（不標記 invReceived，由收票 badge 點擊後才改）
+    if (!c.invAccepted) c.invAccepted = true;
     // 建立「索取發票」待辦
     const vName = p.vendors[vendorIndex].name || '廠商';
     await callGAS({ action:'addTask',
@@ -4525,12 +4561,11 @@ function renderFinanceInvoice() {
   if (!tbody) return;
   const showAll = document.getElementById('fin-show-inv-done')?.checked;
   const rows    = _finRows.invoice || [];
-  const acted  = rows.filter(r => r.c.invoiced || r.c.paid);
-  const visible = showAll ? acted : acted.filter(r => !r.c.invoiced || !r.c.paid);
+  const visible = showAll ? rows : rows.filter(r => !r.c.invoiced || !r.c.paid);
 
   if (!visible.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
-      ${acted.length ? '✅ 全部已完成' : '尚無已驗收的業主端分期資料'}</td></tr>`;
+      ${rows.length ? '✅ 全部已完成' : '尚無業主端分期資料'}</td></tr>`;
     return;
   }
 
@@ -4539,11 +4574,13 @@ function renderFinanceInvoice() {
     const invDone = c.invoiced && c.paid;
     const payBadge = c.paid
       ? `<span class="badge bd-green">已收款</span>`
-      : `<span class="badge bd-orange">待收款</span>`;
+      : (c.accepted || c.invoiced)
+        ? `<span class="badge bd-orange">待收款</span>`
+        : `<span class="badge bd-muted">未收款</span>`;
     const rowStyle = invDone ? 'opacity:.55' : '';
     return `<tr style="${rowStyle}">
-      <td style="font-weight:700;white-space:nowrap;font-size:12px">${esc(p.code||p.id)}</td>
-      <td style="min-width:160px;font-size:13px">${esc(p.name||'')}</td>
+      <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
+      <td style="font-size:13px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name||'—')}</td>
       <td style="white-space:nowrap">${esc(c.label||'—')}</td>
       <td style="font-family:monospace;font-weight:800;white-space:nowrap">
         $${net.toLocaleString()}
@@ -4571,7 +4608,7 @@ function renderFinancePayment() {
   const visible = showAll ? rows : rows.filter(r => !r.c.vendorPaid || !r.c.invReceived);
 
   if (!visible.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
       ${rows.length ? '✅ 全部已完成' : '尚無廠商端分期資料'}</td></tr>`;
     return;
   }
@@ -4580,10 +4617,13 @@ function renderFinancePayment() {
     const allDone = c.vendorPaid && c.invReceived;
     const invBadge = c.invReceived
       ? `<span class="badge bd-blue">已收票</span>`
-      : `<span class="badge bd-muted">待收票</span>`;
+      : (c.invAccepted || c.vendorPaid)
+        ? `<span class="badge bd-orange">待收票</span>`
+        : `<span class="badge bd-muted">未收票</span>`;
     const rowStyle = allDone ? 'opacity:.55' : '';
     return `<tr style="${rowStyle}">
       <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
+      <td style="font-size:13px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name||'—')}</td>
       <td style="white-space:nowrap">${esc(v.name||'—')}</td>
       <td style="white-space:nowrap">${esc(c.label||'—')}</td>
       <td style="font-family:monospace;font-weight:800;white-space:nowrap">$${Number(c.amount||0).toLocaleString()}</td>
@@ -4608,15 +4648,15 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
   if (!c) return;
   c.invoiceDate = dateVal;
   c.invoiced    = !!dateVal;
+  if (dateVal && !c.accepted) c.accepted = true; // 開票日期填入時同步標記 accepted
   const res = await callGAS({ action:'updateProjectPeriod',
-    id:projectId, target:'client', periodIndex,
-    fields:{ invoiced:c.invoiced, invoiceDate:dateVal } });
+    id:projectId, target:'client', periodIndex:periodIdx,
+    fields:{ invoiced:c.invoiced, invoiceDate:dateVal, accepted:c.accepted } });
   if (res.success) {
-    // item10: 即時同步快取 + 重新整理專案頁 badge
     const row = (_finRows.invoice||[]).find(r=>r.proj.id===projectId && r.periodIdx===periodIdx);
     if (row) { row.c.invoiced = c.invoiced; row.c.invoiceDate = dateVal; }
     renderFinanceInvoice();
-    renderProjectBoard();  // item10: 同步更新專案頁 badge
+    renderProjectBoard();
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else { toast('❌ ' + (res.error||'更新失敗')); }
 }
@@ -4629,16 +4669,16 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
   if (!c) return;
   c.vendorPayDate = dateVal;
   c.vendorPaid    = !!dateVal;
+  if (dateVal && !c.invAccepted) c.invAccepted = true; // 付款時同步標記 invAccepted
   const res = await callGAS({ action:'updateProjectPeriod',
-    id:projectId, target:'vendor', vendorIndex, periodIndex,
-    fields:{ vendorPaid:c.vendorPaid, vendorPayDate:dateVal } });
+    id:projectId, target:'vendor', vendorIndex:vendorIdx, periodIndex:periodIdx,
+    fields:{ vendorPaid:c.vendorPaid, vendorPayDate:dateVal, invAccepted:c.invAccepted } });
   if (res.success) {
-    // item14: 即時同步快取 + 重新整理專案頁 badge
     const row = (_finRows.payment||[]).find(r=>
       r.proj.id===projectId && r.vendorIdx===vendorIdx && r.periodIdx===periodIdx);
     if (row) { row.c.vendorPaid = c.vendorPaid; row.c.vendorPayDate = dateVal; }
     renderFinancePayment();
-    renderProjectBoard();  // item14: 同步更新專案頁 badge
+    renderProjectBoard();
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else { toast('❌ ' + (res.error||'更新失敗')); }
 }
@@ -5340,13 +5380,29 @@ function errorRow(cols, msg='❌ 載入失敗，請重試') {
 function retryOCR(rcId) {
   const r = S.receipts.find(x => x.id === rcId);
   if (!r) return;
-  // source 即原始檔名，找 ocrQueue 有無對應（避免重複加）
-  const alreadyQueued = S.ocrQueue.find(q => q.name === r.source);
-  if (!alreadyQueued) {
-    S.ocrQueue.push({ id: rcId.replace('_err',''), name: r.source || rcId, status: 'pending', qAttribution: 'project' });
-    badge('nb-ocr', S.ocrQueue.length);
-    renderQueue();
+
+  // 還原原始 Drive fileId（error receipt 的 id 格式為 ${fileId}_err）
+  const driveId = rcId.endsWith('_err') ? rcId.slice(0, -4) : '';
+
+  // 只有仍在等待/處理中的同名項目才算「已在佇列」，已完成/失敗的不擋
+  const active = S.ocrQueue.find(q => q.name === r.source &&
+    (q.status === 'pending' || q.status === 'processing'));
+  if (active) {
+    active.status = 'pending';   // 重設為待辨識
+    if (driveId && !active.id) active.id = driveId;
+  } else {
+    // 嘗試從已載入的 Drive 檔案清單找回正確的 mimeType
+    const driveFile = (S._driveFilesSorted || S.driveFiles || []).find(f => f.name === r.source);
+    S.ocrQueue.push({
+      id:       driveId || ('retry_' + Date.now()),
+      name:     r.source || rcId,
+      mimeType: driveFile?.mimeType || '',
+      status:   'pending',
+      qAttribution: 'project',
+    });
   }
+  badge('nb-ocr', S.ocrQueue.length);
+  renderQueue();
   // 移除失敗卡片，等重新辨識結果
   S.receipts = S.receipts.filter(x => x.id !== rcId);
   renderOCRResults();
@@ -5361,6 +5417,17 @@ function editErrorReceipt(rcId) {
 }
 
 // 確認手動填寫：清除 error 狀態，設 category 為 other
+function setErrCat(rcId, cat) {
+  const r = S.receipts.find(x => x.id === rcId);
+  if (r) r.category = cat;
+  const tgl = document.getElementById('err-tgl-cat-' + rcId);
+  if (tgl) {
+    tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+      b.classList.toggle('on', (cat === 'fuel') === (i === 0)));
+  }
+}
+
+// 確認手動填寫：清除 error 狀態
 function confirmEditError(rcId) {
   const r = S.receipts.find(x => x.id === rcId);
   if (!r) return;
@@ -5368,8 +5435,9 @@ function confirmEditError(rcId) {
   r.vendor   = document.getElementById('err-vendor-' + rcId)?.value || r.vendor;
   r.amount   = +(document.getElementById('err-amt-'    + rcId)?.value || 0);
   r.date     = document.getElementById('err-date-'   + rcId)?.value || '';
+  r.invoiceNo = document.getElementById('err-invoiceno-' + rcId)?.value || '';
   r.supplement = document.getElementById('err-notes-' + rcId)?.value || '';
-  r.category = 'other';
+  r.category = r.category === 'fuel' ? 'fuel' : 'other';
   r._checked = true;
   stashSingle(rcId);
   renderOCRResults();
