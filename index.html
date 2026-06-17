@@ -630,7 +630,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div class="app-section" id="sec-finance" style="overflow-x:auto">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div class="pg-title" style="margin:0">💰 財務專區</div>
-    <button class="btn btn-ghost btn-sm" onclick="loadFinance()">🔄 重新載入</button>
   </div>
 
   <!-- 待發票列表 -->
@@ -1590,7 +1589,12 @@ function renderQueue() {
   }).join('');
 }
 
-function removeQueue(i) { S.ocrQueue.splice(i,1); renderQueue(); badge('nb-ocr', S.ocrQueue.length); }
+function removeQueue(i) {
+  S.ocrQueue.splice(i,1);
+  renderQueue();
+  badge('nb-ocr', S.ocrQueue.length);
+  document.getElementById('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
+}
 function clearQueue()   { S.ocrQueue=[]; renderQueue(); badge('nb-ocr',0); document.getElementById('btnOCR').disabled=true; }
 
 // ════════════════════════════════════════════════════════════
@@ -4120,10 +4124,10 @@ function pjClientCard(c, opts) {
       <span class="badge ${stCls}">${stLabel}</span>
     </div>
     <div style="font-size:20px;font-weight:800;font-family:monospace;margin-bottom:4px">
-      $${Number(c.amount||0).toLocaleString()}
+      $${(c.prepayDeduct ? netAmount : Number(c.amount||0)).toLocaleString()}
     </div>
     ${c.prepayDeduct ? `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">
-      扣抵預收 $${Number(c.prepayDeduct).toLocaleString()} → 實收 $${netAmount.toLocaleString()}
+      本期 $${Number(c.amount||0).toLocaleString()} − 扣抵預收 $${Number(c.prepayDeduct).toLocaleString()}
     </div>` : '<div style="margin-bottom:8px"></div>'}
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       ${invBadge}${payBadge}
@@ -4438,8 +4442,9 @@ function pjEditClientPay(projectId, periodIndex) {
       c.paid    = vals['pay-status'] === '已收款';
       c.payDate = c.paid ? (vals['pay-date'] || '') : '';
       // 此 modal 只能由已進入「待收款／已收款」階段的期款開啟，
-      // 選擇「待查帳」應回到「待收款」而非「未收款」，故保留 accepted 狀態
-      if (!c.paid) c.accepted = true;
+      // 故無論選擇何種狀態都應保持 accepted=true，
+      // 避免選「待查帳」後 badge 因 accepted/invoiced 均為空而誤判回「未收款」
+      c.accepted = true;
       const res = await callGAS({ action:'updateProjectPeriod',
         id:p.id, target:'client', periodIndex:idx,
         fields:{ paid:c.paid, payDate:c.payDate, accepted:c.accepted } });
@@ -4855,11 +4860,6 @@ function pgRenderEditor() {
     ${target==='client' && prepay.enabled ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">
       💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${p.client.reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
     </div>` : ''}
-    ${target==='client' ? `<div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px">
-      ℹ️ 已開票／開票日期由財務專區更新；已收款／收款日期由專案頁更新
-    </div>` : `<div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px">
-      ℹ️ 已收票／付款狀態由專案頁及財務專區更新
-    </div>`}
     ${removeVendorBtn}
     <div id="pg-periods"></div>
     <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddPeriod()">＋ 新增分期</button>
@@ -5485,6 +5485,7 @@ function retryOCR(rcId) {
   }
   badge('nb-ocr', S.ocrQueue.length);
   renderQueue();
+  document.getElementById('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
   // 移除失敗卡片，等重新辨識結果
   S.receipts = S.receipts.filter(x => x.id !== rcId);
   renderOCRResults();
