@@ -482,7 +482,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="card-bd">
         <div class="fg2" style="margin-bottom:14px">
           <div>
-            <label class="lbl">專案代號（即專案 ID）</label>
+            <label class="lbl">專案代號</label>
             <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
           </div>
           <div>
@@ -650,7 +650,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <th style="white-space:nowrap;min-width:90px">收款狀態</th>
           <th style="white-space:nowrap">收款日期</th>
           <th style="white-space:nowrap;min-width:160px">開票日期</th>
-          <th style="white-space:nowrap;min-width:80px"></th>
+          <th style="white-space:nowrap;min-width:100px">完成狀態</th>
         </tr></thead>
         <tbody id="fin-inv-body">
           <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
@@ -678,7 +678,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <th style="white-space:nowrap;min-width:90px">發票狀態</th>
           <th style="white-space:nowrap">發票日期</th>
           <th style="white-space:nowrap">付款日期</th>
-          <th style="white-space:nowrap;min-width:80px"></th>
+          <th style="white-space:nowrap;min-width:100px">完成狀態</th>
         </tr></thead>
         <tbody id="fin-pay-body">
           <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
@@ -778,7 +778,7 @@ const CFG = {
 // ════════════════════════════════════════════════════════════
 const S = {
   user: null,
-  config: { persons:[], departments:[], projects:[], mileageRates:[], userDept:'', userDeptCode:'' },
+  config: { persons:[], departments:[], projects:[], mileageRates:[], userDept:'', userDeptCode:'', prepayDeductMethods:[] },
   pendingFiles: [],
   driveFiles: [],
   ocrQueue: [],
@@ -1054,6 +1054,11 @@ async function loadConfig() {
   populateSelects();
   loadDriveFiles();
   loadExportHistory(false); // 預載入匯出紀錄
+  // 若「進度設定」頁已開啟，loadConfig 完成後補刷新扣抵方式下拉
+  // （避免使用者較快切到此頁時，prepayDeductMethods 尚未到位而顯示「未設定」）
+  if (document.getElementById('sec-schedule')?.classList.contains('active')) {
+    pgPopulateDeductMethods();
+  }
 }
 
 function populateSelects() {
@@ -4107,6 +4112,11 @@ function pjClientCard(c, opts) {
     payBadge = `<span class="badge bd-green" style="cursor:pointer"
       onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
       title="點擊編輯收款狀態">💰 已收款${c.payDate?' '+c.payDate:''} ✎</span>`;
+  } else if (c.underReview) {
+    // item6-2: 曾選擇「待查帳」儲存過，與初始的「待收款」做視覺區分，避免使用者誤以為儲存沒生效
+    payBadge = `<span class="badge bd-orange" style="cursor:pointer"
+      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
+      title="點擊更新收款狀態">💰 待查帳 ✎</span>`;
   } else if (c.accepted || c.invoiced) {
     // item8: 驗收完成後 → 待收款（可點）
     payBadge = `<span class="badge bd-orange" style="cursor:pointer"
@@ -4132,7 +4142,7 @@ function pjClientCard(c, opts) {
       ${invBadge}${payBadge}
     </div>
     ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
-        onclick="pjQuickAccept('${opts.projectId}','client',null,${opts.periodIndex})">
+        onclick="pjQuickAccept('${opts.projectId}','client',null,${opts.periodIndex},this)">
         ✓ 驗收完成</button>` : ''}
   </div>`;
 }
@@ -4192,7 +4202,7 @@ function pjVendorCard(c, opts) {
       ${invBadge}${payBadge}
     </div>
     ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
-        onclick="pjQuickAccept('${opts.projectId}','vendor',${opts.vendorIndex},${opts.periodIndex})">
+        onclick="pjQuickAccept('${opts.projectId}','vendor',${opts.vendorIndex},${opts.periodIndex},this)">
         ✓ 驗收完成</button>` : ''}
   </div>`;
 }
@@ -4323,14 +4333,16 @@ function pjRenderDetail(p) {
           const amt   = pjSum(periods);
           const vAcceptIdx = pjAcceptIndex(periods, false);
           const elId  = `pj-vendor-${p.id}-${vi}`;
-          return `<div class="vendor-row" onclick="pjToggleEl('${elId}')">
+          S._vendorExpand = S._vendorExpand || {};
+          const vExpand = !!S._vendorExpand[p.id + ':' + vi];
+          return `<div class="vendor-row" onclick="pjToggleVendor('${p.id}',${vi})">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div style="font-weight:700">${esc(v.name||'（未命名廠商）')}
                 <span style="color:var(--muted);font-size:13px;font-weight:400">${done}/${total} 期</span></div>
               <div style="font-weight:800;font-family:monospace">$${amt.toLocaleString()}</div>
             </div>
             <div class="proj-progress"><div class="proj-progress-fill" style="width:${pct}%"></div></div>
-            <div id="${elId}" style="display:none;margin-top:10px" onclick="event.stopPropagation()">
+            <div id="${elId}" style="display:${vExpand?'block':'none'};margin-top:10px" onclick="event.stopPropagation()">
               ${!periods.length ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>' :
                 periods.map((c,pj)=>pjVendorCard(c, {
                   projectId:p.id, vendorIndex:vi, periodIndex:pj, acceptIdx:vAcceptIdx
@@ -4367,6 +4379,16 @@ function pjToggleClient(projectId) {
   const next = !S._clientExpand[projectId];
   S._clientExpand[projectId] = next;
   const el = document.getElementById('pj-client-body-'+projectId);
+  if (el) el.style.display = next ? 'block' : 'none';
+}
+
+// 廠商端展開/收合：同步寫回 S._vendorExpand，確保重新渲染後狀態不會被重置（item9）
+function pjToggleVendor(projectId, vendorIndex) {
+  S._vendorExpand = S._vendorExpand || {};
+  const key  = projectId + ':' + vendorIndex;
+  const next = !S._vendorExpand[key];
+  S._vendorExpand[key] = next;
+  const el = document.getElementById('pj-vendor-'+projectId+'-'+vendorIndex);
   if (el) el.style.display = next ? 'block' : 'none';
 }
 
@@ -4445,19 +4467,27 @@ function pjEditClientPay(projectId, periodIndex) {
     title: `${esc(c.label||'期款')} — 更新收款`,
     fields: [
       { id:'pay-status', label:'狀態', type:'select',
-        options:['待查帳','已收款'], value: c.paid?'已收款':'待查帳' },
+        options:['已收款','待查帳'], value: c.paid?'已收款':'待查帳' },
       { id:'pay-date', label:'收款日期', type:'date', value: c.payDate||'' },
     ],
     onSave: async (vals) => {
-      c.paid    = vals['pay-status'] === '已收款';
+      const willPaid = vals['pay-status'] === '已收款';
+      if (willPaid && !vals['pay-date']) {
+        toast('❌ 已收款時，收款日期為必填');
+        return false;
+      }
+      c.paid    = willPaid;
       c.payDate = c.paid ? (vals['pay-date'] || '') : '';
+      // item6-2: 選「待查帳」時標記 underReview=true，讓 badge 顯示「待查帳」而非「待收款」，
+      // 避免使用者誤以為儲存沒有生效；選「已收款」時清除
+      c.underReview = c.paid ? false : true;
       // 此 modal 只能由已進入「待收款／已收款」階段的期款開啟，
       // 故無論選擇何種狀態都應保持 accepted=true，
       // 避免選「待查帳」後 badge 因 accepted/invoiced 均為空而誤判回「未收款」
       c.accepted = true;
       const res = await callGAS({ action:'updateProjectPeriod',
         id:p.id, target:'client', periodIndex:idx,
-        fields:{ paid:c.paid, payDate:c.payDate, accepted:c.accepted } });
+        fields:{ paid:c.paid, payDate:c.payDate, accepted:c.accepted, underReview:c.underReview } });
       if (res.success) {
         // 儲存後業主端區塊應保持展開
         S._clientExpand = S._clientExpand || {};
@@ -4484,15 +4514,25 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
     fields: [
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
-      { id:'inv-date', label:'收票日期（可空白）', type:'date', value: c.invReceivedDate||'' },
+      { id:'inv-date', label:'收票日期（已收票時必填）', type:'date', value: c.invReceivedDate||'' },
     ],
     onSave: async (vals) => {
-      c.invReceived     = vals['inv-status'] === '已收票';
-      c.invReceivedDate = vals['inv-date'] || '';
+      const willReceived = vals['inv-status'] === '已收票';
+      if (willReceived && !vals['inv-date']) {
+        toast('❌ 已收票時，收票日期為必填');
+        return false;
+      }
+      c.invReceived     = willReceived;
+      c.invReceivedDate = c.invReceived ? (vals['inv-date'] || '') : '';
       const res = await callGAS({ action:'updateProjectPeriod',
         id:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj,
         fields:{ invReceived:c.invReceived, invReceivedDate:c.invReceivedDate } });
-      if (res.success) { renderProjectBoard(); }
+      if (res.success) {
+        // 儲存後此廠商區塊應保持展開，方便使用者直接看到 badge 更新（item9）
+        S._vendorExpand = S._vendorExpand || {};
+        S._vendorExpand[projectId + ':' + vi] = true;
+        renderProjectBoard();
+      }
       else { toast('❌ ' + (res.error||'更新失敗')); }
     }
   });
@@ -4511,15 +4551,19 @@ async function _pjSaveAndRefresh(p) {
 }
 
 // ── 驗收完成：業主端標記 invoiced=true，廠商端標記 invReceived=true ──
-async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
+async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl) {
   const p = (S._pjBoard||[]).find(x=>x.id===projectId);
   if (!p) return;
+
+  // 顯示 loading：按鈕換成轉圈圈，避免使用者重複點擊或誤以為沒反應
+  const originalHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<div class="spin"></div>'; }
 
   let arr, c;
   if (target === 'client') {
     arr = p.client = p.client || [];
     c   = arr[periodIndex];
-    if (!c) return;
+    if (!c) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; } return; }
     // item8: 驗收完成標記 accepted=true（不標記 invoiced，由財務填開票日期後才改 invoiced）
     if (!c.accepted) c.accepted = true;
     // 驗收完成後業主端區塊應保持展開
@@ -4538,9 +4582,12 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
     p.vendors[vendorIndex] = p.vendors[vendorIndex] || {name:'',periods:[]};
     arr = p.vendors[vendorIndex].periods = p.vendors[vendorIndex].periods || [];
     c   = arr[periodIndex];
-    if (!c) return;
+    if (!c) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; } return; }
     // item12: 驗收完成標記 invAccepted=true（不標記 invReceived，由收票 badge 點擊後才改）
     if (!c.invAccepted) c.invAccepted = true;
+    // 驗收完成後此廠商區塊應保持展開（item9）
+    S._vendorExpand = S._vendorExpand || {};
+    S._vendorExpand[projectId + ':' + vendorIndex] = true;
     // 建立「索取發票」待辦
     const vName = p.vendors[vendorIndex].name || '廠商';
     await callGAS({ action:'addTask',
@@ -4556,6 +4603,7 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex) {
     if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else {
     toast('❌ ' + (res.error||'更新失敗'));
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; }
   }
 }
 
@@ -4597,11 +4645,28 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
     }
   });
 
-  document.getElementById('ie-save').onclick = async () => {
+  const saveBtn = document.getElementById('ie-save');
+  saveBtn.onclick = async () => {
     const vals = {};
     fields.forEach(f => { vals[f.id] = document.getElementById('ie-'+f.id)?.value; });
-    wrap.remove();
-    await onSave(vals);
+    // 顯示 loading：modal 暫不關閉，避免使用者誤以為沒反應，並防止重複點擊
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<div class="spin"></div>';
+    const cancelBtn = wrap.querySelector('.btn-ghost');
+    if (cancelBtn) cancelBtn.disabled = true;
+    let ok = true;
+    try {
+      ok = await onSave(vals);
+    } finally {
+      if (ok === false) {
+        // 驗證失敗（onSave 已自行 toast 提示）：還原按鈕，保留 modal 讓使用者修正
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '儲存';
+        if (cancelBtn) cancelBtn.disabled = false;
+      } else if (document.getElementById('_inlineEditWrap')) {
+        wrap.remove();
+      }
+    }
   };
 }
 
@@ -4657,7 +4722,8 @@ function renderFinanceInvoice() {
   const tbody   = document.getElementById('fin-inv-body');
   if (!tbody) return;
   const showAll = document.getElementById('fin-show-inv-done')?.checked;
-  const rows    = _finRows.invoice || [];
+  // 僅列出已進入流程的期款（已驗收/已開票/已收款），未驗收（未開始）不顯示，避免列表充斥無關項目
+  const rows    = (_finRows.invoice || []).filter(r => r.c.accepted || r.c.invoiced || r.c.paid);
   const visible = showAll ? rows : rows.filter(r => !(r.c.invoiceDate && r.c.invoiced && r.c.paid));
 
   if (!visible.length) {
@@ -4691,7 +4757,7 @@ function renderFinanceInvoice() {
           onchange="finUpdateInvoiceDate('${p.id}',${j},this.value)"
           title="填入開票日期後自動標記已開票">
       </td>
-      <td>${invDone?'<span class="badge bd-green">已完成</span>':''}</td>
+      <td style="white-space:nowrap">${invDone?'<span class="badge bd-green">已完成</span>':''}</td>
     </tr>`;
   }).join('');
 }
@@ -4711,7 +4777,7 @@ function renderFinancePayment() {
   }
 
   tbody.innerHTML = visible.map(({ proj:p, vendorIdx:vi, vendor:v, periodIdx:pj, c }) => {
-    const allDone = c.vendorPaid && c.invReceived;
+    const allDone = !!c.invReceivedDate && c.invReceived && c.vendorPaid;
     const invBadge = c.invReceived
       ? `<span class="badge bd-blue">已收票</span>`
       : (c.invAccepted || c.vendorPaid)
@@ -4732,7 +4798,7 @@ function renderFinancePayment() {
           onchange="finUpdatePayDate('${p.id}',${vi},${pj},this.value)"
           title="填入付款日期後自動標記已付款">
       </td>
-      <td>${allDone?'<span class="badge bd-green">已完成</span>':''}</td>
+      <td style="white-space:nowrap">${allDone?'<span class="badge bd-green">已完成</span>':''}</td>
     </tr>`;
   }).join('');
 }
