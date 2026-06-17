@@ -1086,6 +1086,8 @@ function onGlobalMonthChange(val) {
   if (ocrM) ocrM.value = val;
   loadDriveFiles();
   loadExportHistory(false);
+  // 換月份後，OCR 頁的「申請專案」歸屬資料屬於不同月份，需重新載入
+  if (_currentExpensePage === 'ocr') reloadOcrWithFuel();
 }
 
 // 🔄 依當前費用子頁決定觸發動作
@@ -1757,7 +1759,10 @@ let _ocrTab = 'fuel';
 
 function renderOCRResults() {
   const c = document.getElementById('ocrResults');
-  if (!S.receipts.length) { c.innerHTML = ''; updateStats(); return; }
+  const hasFuelProj = (window._fuelProjList || []).length > 0;
+  // 「申請專案」卡片（月定額/里程實報歸屬）與 OCR 收據數量無關，
+  // 即使尚未上傳/辨識任何發票，只要已有設定的歸屬項目，仍須顯示油資 tab
+  if (!S.receipts.length && !hasFuelProj) { c.innerHTML = ''; updateStats(); return; }
 
   const sorted = [...S.receipts].sort((a, b) => {
     if (a._isNew !== b._isNew) return a._isNew ? -1 : 1;
@@ -1768,8 +1773,8 @@ function renderOCRResults() {
     other: sorted.filter(r => r.category !== 'fuel'),
   };
 
-  if (!tabs[_ocrTab]?.length) {
-    _ocrTab = tabs.fuel.length ? 'fuel' : 'other';
+  if (!tabs[_ocrTab]?.length && !(_ocrTab === 'fuel' && hasFuelProj)) {
+    _ocrTab = (tabs.fuel.length || hasFuelProj) ? 'fuel' : 'other';
   }
 
   // 油資 tab 顯示的是「申請總額」（來自 FuelProjects），不是單據金額加總
@@ -3722,6 +3727,12 @@ function isProjectRelated(name) {
   const ocrMonth  = document.getElementById('global-month-ocr');
   if (ocrMonth && mainMonth) ocrMonth.value = mainMonth;
   if (page==='history') loadExportHistory(false);
+  // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
+  // 避免使用者誤以為底下空白（之前需手動按 🔄 才會出現「申請專案」卡片）
+  if (page==='ocr' && !S._ocrPageLoadedOnce) {
+    S._ocrPageLoadedOnce = true;
+    reloadOcrWithFuel();
+  }
 }
 
 function toggleNavMenu() {
