@@ -1848,6 +1848,9 @@ let _otherSelectedItem = null;
 function renderOtherTab(otherReceipts) {
   // 預設：未設定歸屬的不勾選；已設定歸屬的勾選
   const rows = otherReceipts.map(r => {
+    // 辨識失敗：改用專用的「重新辨識/手動填寫」卡片，而非一般收據樣式
+    if (r.status === 'error') return rcHTML(r);
+
     // 若尚未有 _checked 狀態，依是否設定歸屬決定
     if (r._checked === undefined) r._checked = !!r.otherAttr;
     const defChk  = r._checked;
@@ -1923,7 +1926,10 @@ function renderOtherTab(otherReceipts) {
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <label class="lbl" style="margin-bottom:4px">套用歸屬到勾選項目</label>
-        ${fdHTML('fd-other-attr', 'fd-other-attr-inp', '搜尋專案 / 部門 / 其他')}
+        ${fdHTML('fd-other-attr', 'fd-other-attr-inp', '搜尋專案 / 部門 / 其他').replace(
+          "oninput=\"fdFilter('fd-other-attr')\"",
+          "oninput=\"fdFilter('fd-other-attr');updateOtherApplyBtn()\""
+        )}
       </div>
       <button class="btn btn-ghost btn-sm" id="btn-other-apply" disabled
         onclick="applyOtherAttr()" style="flex-shrink:0;align-self:flex-end">套用到勾選</button>
@@ -1960,11 +1966,31 @@ function updateOtherApplyBtn() {
   if (!btn) return;
   const hasChecked = S.receipts.filter(r => r.category !== 'fuel')
     .some(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
-  btn.disabled = !(_otherSelectedItem && hasChecked);
+  const inp = document.querySelector('#fd-other-attr .fd-input');
+  const hasInput = !!(_otherSelectedItem || (inp?.value || '').trim());
+  btn.disabled = !(hasInput && hasChecked);
 }
 
 function applyOtherAttr() {
-  if (!_otherSelectedItem) return;
+  // 容錯：若使用者只是輸入文字但沒有點選下拉清單項目，
+  // 嘗試用目前輸入框文字反查唯一符合的項目，避免「明明打完字卻沒套用成功」的誤解
+  if (!_otherSelectedItem) {
+    const inp = document.querySelector('#fd-other-attr .fd-input');
+    const q   = (inp?.value || '').trim();
+    if (q) {
+      const d = _fdData['fd-other-attr'];
+      const candidates = (d?.items || []).filter(p =>
+        (p.id||'').toLowerCase() === q.toLowerCase() ||
+        (p.name||'') === q ||
+        `${p.id} ${p.name}` === q
+      );
+      if (candidates.length === 1) _otherSelectedItem = candidates[0];
+    }
+  }
+  if (!_otherSelectedItem) {
+    toast('⚠️ 請從清單中點選一個專案/部門/其他');
+    return;
+  }
   const item = _otherSelectedItem;
   // 套用歸屬到所有已勾選的其他費用
   S.receipts
@@ -4268,16 +4294,22 @@ function pjRenderDetail(p) {
     ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) : null;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
-  // ── 金額摘要（item3: 已收款 - 已付款 - 費用 = 淨利）──────
+  // ── 金額摘要（item3: 預收款 + 已收款 - 已付款 - 費用 = 淨利）──────
   const paidAmt    = clientItems.reduce((s,c)=>s+(c.paid?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
   const vendorPaidAmt = vendors.reduce((s,v)=>{
     return s + (v.periods||[]).reduce((t,c)=>t+(c.vendorPaid?Number(c.amount||0):0),0);
   },0);
-  const expAmt     = expenseAmt || 0;
-  const netAmt     = paidAmt - vendorPaidAmt - expAmt;
+  const expAmt      = expenseAmt || 0;
+  const prepayAmt   = prepay.enabled ? Number(prepay.amount||0) : 0;
+  const netAmt      = prepayAmt + paidAmt - vendorPaidAmt - expAmt;
   const summaryHtml = `<div style="padding:12px 16px;background:var(--surface2);border-radius:10px;
     font-size:14px;margin-bottom:18px">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">
+      ${prepay.enabled ? `
+      <span style="color:var(--muted)">預收款</span>
+      <span style="font-weight:800;font-family:monospace;color:#7c3aed">$${prepayAmt.toLocaleString()}</span>
+      <span style="color:var(--muted)">+</span>
+      ` : ''}
       <span style="color:var(--muted)">已收款</span>
       <span style="font-weight:800;font-family:monospace">$${paidAmt.toLocaleString()}</span>
       <span style="color:var(--muted)">-</span>
@@ -4289,7 +4321,6 @@ function pjRenderDetail(p) {
       <span style="color:var(--muted)">=</span>
       <span style="font-weight:800;font-family:monospace;color:${netAmt>=0?'var(--green)':'var(--red)'}">$${netAmt.toLocaleString()}</span>
     </div>
-    ${prepay.enabled?`<div style="margin-top:6px"><span class="badge bd-purple">預收款 $${Number(prepay.amount).toLocaleString()}</span></div>`:''}
   </div>`;
 
   // ── 業主端 ──
@@ -4485,7 +4516,8 @@ function pjEditClientPay(projectId, periodIndex) {
     title: `${esc(c.label||'期款')} — 更新收款`,
     fields: [
       { id:'pay-status', label:'狀態', type:'select',
-        options:['已收款','待查帳'], value: c.paid?'已收款':'待查帳' },
+        options:['待收款','已收款','待查帳'],
+        value: c.paid ? '已收款' : (c.underReview ? '待查帳' : '待收款') },
       { id:'pay-date', label:'收款日期', type:'date', value: c.payDate||'' },
     ],
     onSave: async (vals) => {
@@ -4496,9 +4528,9 @@ function pjEditClientPay(projectId, periodIndex) {
       }
       c.paid    = willPaid;
       c.payDate = c.paid ? (vals['pay-date'] || '') : '';
-      // item6-2: 選「待查帳」時標記 underReview=true，讓 badge 顯示「待查帳」而非「待收款」，
-      // 避免使用者誤以為儲存沒有生效；選「已收款」時清除
-      c.underReview = c.paid ? false : true;
+      // item6-2/item4: 「待查帳」標記 underReview=true，顯示為「待查帳」；
+      // 「待收款」則清除 underReview，回到初始未確認狀態
+      c.underReview = (!c.paid && vals['pay-status'] === '待查帳');
       // 此 modal 只能由已進入「待收款／已收款」階段的期款開啟，
       // 故無論選擇何種狀態都應保持 accepted=true，
       // 避免選「待查帳」後 badge 因 accepted/invoiced 均為空而誤判回「未收款」
