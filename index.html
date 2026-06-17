@@ -1021,8 +1021,9 @@ function currentSyncScope() {
 function updateUnifiedSyncUI() { /* 狀態文字常駐於各 scope 元素，切頁不需動作 */ }
 
 // 🔄 重新整理：依目前主分頁與子頁決定動作
+// 注意：不在此呼叫 closeNavMenu()，讓選單維持展開，方便使用者看到選單內
+// 「同步中...」→「✅ 完成」的狀態文字變化，而非按下後選單立刻收起來
 function doUnifiedReload() {
-  closeNavMenu();
   if (_currentSection === 'expense') { doReloadAll(); return; }
   if (_currentSection === 'todo')    { loadTasks(); return; }
   if (_currentSection === 'project') { loadProjectsForBoard(); return; }
