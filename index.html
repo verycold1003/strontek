@@ -788,6 +788,17 @@ const S = {
 // ════════════════════════════════════════════════════════════
 // MILEAGE RATE
 // ════════════════════════════════════════════════════════════
+// ── 取得使用者可申請的專案清單 ───────────────────────────────
+// 規則：無 deptCode（跨部門/通用專案）一律可見；有 deptCode 者，
+// 須落在 S.config.departments（後端已聯集「自身部門＋可顯示部門」）之內，
+// 而非僅比對使用者自身 userDeptCode，否則「可顯示部門」設定形同無效。
+function getVisibleProjects() {
+  const visibleDeptCodes = (S.config.departments || []).map(d => d.code);
+  return (S.config.projects || []).filter(p =>
+    !p.deptCode || visibleDeptCodes.indexOf(p.deptCode) !== -1
+  );
+}
+
 function getMileageRate(yearMonth) {
   const ym     = (yearMonth || todayStr().slice(0,7)).slice(0,7);
   const refDay = ym + '-01';
@@ -1928,8 +1939,7 @@ function toggleOtherRow(id) {
 
 function initOtherAttrDropdown() {
   _otherSelectedItem = null;
-  const items = (S.config.projects||[])
-    .filter(p => !p.deptCode || p.deptCode === (S.config.userDeptCode||''))
+  const items = getVisibleProjects()
     .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
     .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name })))
     .concat([{ id: '其他', name: '其他' }]);
@@ -2177,14 +2187,12 @@ function updateFuelDiff() {
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
 function initFuelProjDropdowns() {
-  const myDeptCode  = S.config.userDeptCode || S.config.userDept || '';
   const selectedIds = window._fuelProjList
     .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
     .filter(Boolean);
 
-  // 所有生效中專案 + 部門 + 其他（排除已選）
-  const projItems = (S.config.projects || [])
-    .filter(p => !p.deptCode || p.deptCode === myDeptCode)
+  // 所有生效中專案（依可顯示部門過濾）+ 部門 + 其他（排除已選，item2：避免重複顯示已列在月定額/里程實報的專案）
+  const projItems = getVisibleProjects()
     .filter(p => !selectedIds.includes(p.id))
     .map(p => ({ id: p.id, name: p.name, quota: p.quota, type: p.quota ? 'quota' : 'mile' }));
   const deptItems = (S.config.departments || [])
@@ -2362,9 +2370,8 @@ function initFuelMileDropdownAt(idx) {
   const el = document.getElementById(wrapperId);
   if (!el) return;
 
-  const myDeptCode = S.config.userDeptCode || '';
-  // 所有生效中專案（含月定額和里程實報）+ 部門 + 其他
-  const projItems = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode)
+  // 所有生效中專案（依可顯示部門過濾，含月定額和里程實報）+ 部門 + 其他
+  const projItems = getVisibleProjects()
     .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
   const deptItems = (S.config.departments || []).map(d => ({ id: d.code, name: d.name, badge: '部門' }));
   const otherItem = [{ id: '其他', name: '其他費用', badge: '其他' }];
@@ -2721,8 +2728,7 @@ function rcHTML(r) {
   const dupBadge = r._isDuplicate
     ? `<span class="badge bd-red" title="發票號碼重複">⚠️ 重複</span>` : '';
 
-  const myDeptCode = S.config.userDeptCode || S.config.userDept || '';
-  const sameDeptProjects = S.config.projects.filter(p => !p.deptCode || p.deptCode === myDeptCode);
+  const sameDeptProjects = getVisibleProjects();
   const recentIds = (S._recentProjIds || []).slice(0, 3);
 
   const isFuel  = r.category === 'fuel';
