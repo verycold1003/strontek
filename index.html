@@ -792,10 +792,11 @@ const S = {
 // 須落在 S.config.departments（後端已聯集「自身部門＋可顯示部門」）之內，
 // 而非僅比對使用者自身 userDeptCode，否則「可顯示部門」設定形同無效。
 function getVisibleProjects() {
-  const visibleDeptCodes = (S.config.departments || []).map(d => d.code);
-  return (S.config.projects || []).filter(p =>
-    !p.deptCode || visibleDeptCodes.indexOf(p.deptCode) !== -1
-  );
+  const visibleDeptCodes = (S.config.departments || []).map(d => String(d.code||'').trim());
+  return (S.config.projects || []).filter(p => {
+    const dc = String(p.deptCode||'').trim();
+    return !dc || visibleDeptCodes.indexOf(dc) !== -1;
+  });
 }
 
 function getMileageRate(yearMonth) {
@@ -1845,13 +1846,19 @@ if (!window._fuelProjList) window._fuelProjList = [];
 let _otherSelectedItem = null;
 
 function renderOtherTab(otherReceipts) {
-  // 預設：未設定歸屬的不勾選；已設定歸屬的勾選
+  // 預設邏輯（整批判斷，而非逐筆判斷）：
+  // - 只要有任何一筆「未設定歸屬」，全部預設不勾，方便使用者逐一勾選設定歸屬
+  // - 若全部都已設定歸屬，才全部預設勾選，方便直接匯出 PDF
+  const nonErrorReceipts = otherReceipts.filter(r => r.status !== 'error');
+  const hasUnset = nonErrorReceipts.some(r => !r.otherAttr);
+  const batchDefault = !hasUnset;
+
   const rows = otherReceipts.map(r => {
     // 辨識失敗：改用專用的「重新辨識/手動填寫」卡片，而非一般收據樣式
     if (r.status === 'error') return rcHTML(r);
 
-    // 若尚未有 _checked 狀態，依是否設定歸屬決定
-    if (r._checked === undefined) r._checked = !!r.otherAttr;
+    // 若尚未有 _checked 狀態，依整批判斷結果決定（而非個別是否有歸屬）
+    if (r._checked === undefined) r._checked = batchDefault;
     const defChk  = r._checked;
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
@@ -2780,7 +2787,7 @@ function rcHTML(r) {
       return `<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px">
         <div>
           <label class="lbl" style="margin-bottom:3px">歸屬（專案/部門/其他）</label>
-          ${fdHTML(`fd-pkattr-${r.id}`, `fd-pkattr-inp-${r.id}`, '輸入專案代碼、部門代碼或「其他」')}
+          ${fdHTML(`fd-pkattr-${r.id}`, `fd-pkattr-inp-${r.id}`, '輸入專案代號、部門代碼或「其他」')}
         </div>
         <div>
           <label class="lbl" style="margin-bottom:3px">申請說明</label>
@@ -4534,6 +4541,9 @@ function pjEditClientPay(projectId, periodIndex) {
         value: c.paid ? '已收款' : (c.underReview ? '待查帳' : '待收款') },
       { id:'pay-date', label:'收款日期', type:'date', value: c.payDate||'' },
     ],
+    extraActions: [
+      { label: '重置日期', clearField: 'pay-date' },
+    ],
     onSave: async (vals) => {
       const willPaid = vals['pay-status'] === '已收款';
       if (willPaid && !vals['pay-date']) {
@@ -4579,6 +4589,9 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
       { id:'inv-date', label:'收票日期', type:'date', value: c.invReceivedDate||'' },
+    ],
+    extraActions: [
+      { label: '重置日期', clearField: 'inv-date' },
     ],
     onSave: async (vals) => {
       const willReceived = vals['inv-status'] === '已收票';
@@ -4705,7 +4718,16 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
     const btn = document.getElementById('ie-extra-'+i);
     if (btn) {
       btn.textContent = a.label;
-      btn.onclick = async () => { wrap.remove(); await a.action(); };
+      if (a.clearField) {
+        // 清除欄位類型：只清空指定欄位的值，不關閉 modal、不觸發儲存，
+        // 方便使用者重置某個欄位後重新填寫（例如清除日期）
+        btn.onclick = () => {
+          const el = document.getElementById('ie-'+a.clearField);
+          if (el) { el.value = ''; el.focus(); }
+        };
+      } else {
+        btn.onclick = async () => { wrap.remove(); await a.action(); };
+      }
     }
   });
 
