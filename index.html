@@ -1970,7 +1970,7 @@ function updateOtherApplyBtn() {
   btn.disabled = !(hasInput && hasChecked);
 }
 
-function applyOtherAttr() {
+async function applyOtherAttr() {
   // 容錯：若使用者只是輸入文字但沒有點選下拉清單項目，
   // 嘗試用目前輸入框文字反查唯一符合的項目，避免「明明打完字卻沒套用成功」的誤解
   if (!_otherSelectedItem) {
@@ -1991,13 +1991,20 @@ function applyOtherAttr() {
     return;
   }
   const item = _otherSelectedItem;
-  // 套用歸屬到所有已勾選的其他費用
-  S.receipts
-    .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'))
-    .forEach(r => {
-      upR(r.id, 'otherAttr', item.id);
-      stashSingle(r.id);
-    });
+  // 套用歸屬到所有已勾選的其他費用，並等待每筆儲存結果，
+  // 確保畫面顯示的「已套用」狀態跟後端 Sheet 真正一致
+  const targets = S.receipts
+    .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'));
+  targets.forEach(r => upR(r.id, 'otherAttr', item.id));
+  const results = await Promise.all(targets.map(r => stashSingle(r.id)));
+  // 若有儲存失敗，回滾該筆的本地歸屬狀態，避免畫面顯示「已設定歸屬」
+  // 但實際上後端沒有儲存成功的不一致情況
+  targets.forEach((r, i) => { if (results[i] === false) upR(r.id, 'otherAttr', ''); });
+  const failCount = results.filter(ok => ok === false).length;
+  if (targets.length) {
+    if (failCount === 0) toast(`✅ 已套用歸屬到 ${targets.length} 筆`);
+    else toast(`⚠️ ${targets.length - failCount}/${targets.length} 筆套用成功，${failCount} 筆失敗`);
+  }
   const inp = document.querySelector('#fd-other-attr .fd-input');
   if (inp) inp.value = '';
   _otherSelectedItem = null;
@@ -2684,13 +2691,14 @@ function rcHTML(r) {
   if (r.status === 'error') {
     return `
     <div id="rc-${r.id}" style="border:2px solid var(--red,#e53935);border-radius:12px;margin-bottom:12px;background:#fff8f8;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#ffebee">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:#ffebee;flex-wrap:wrap">
         <span style="font-size:22px">❌</span>
-        <div style="flex:1;min-width:0">
+        <div style="flex:1 1 100%;min-width:200px">
           <div style="font-weight:700;color:#c62828;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
           <div style="font-size:12px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
           ${r.error ? `<div style="font-size:11px;color:#b71c1c;margin-top:3px">錯誤：${r.error}</div>` : ''}
         </div>
+        <div style="display:flex;gap:8px;margin-left:32px;flex-wrap:wrap">
         <button onclick="retryOCR('${r.id}')"
           style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#1565c0;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
           🔄 重新辨識
@@ -2703,6 +2711,7 @@ function rcHTML(r) {
           style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#b71c1c;font-size:16px;cursor:pointer" title="移除">
           🗑
         </button>
+        </div>
       </div>
       <div id="rc-edit-${r.id}" style="display:none;padding:14px;border-top:1px solid #ffcdd2;flex-direction:column;gap:10px">
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -2771,7 +2780,7 @@ function rcHTML(r) {
       return `<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px">
         <div>
           <label class="lbl" style="margin-bottom:3px">歸屬（專案/部門/其他）</label>
-          ${fdHTML(`fd-pkattr-${r.id}`, `fd-pkattr-inp-${r.id}`, '輸入專案代號、部門代碼或「其他」')}
+          ${fdHTML(`fd-pkattr-${r.id}`, `fd-pkattr-inp-${r.id}`, '輸入專案代碼、部門代碼或「其他」')}
         </div>
         <div>
           <label class="lbl" style="margin-bottom:3px">申請說明</label>
@@ -3073,9 +3082,14 @@ async function stashSingle(id) {
     : undefined;
   const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
   const _stashKey = (r.ocrKey || '').trim() || (r.invoiceNo || '').trim() || '';
-  if (!_stashKey) { /* 無有效 key，跳過暫存 */ return; }
+  if (!_stashKey) {
+    // 無有效 key：本筆收據無法定位到 Sheet 對應列，提醒使用者而非靜默跳過，
+    // 否則畫面看起來已套用但實際上從未存入後端，重新整理後就會打回原狀
+    toast(`⚠️ 「${r.vendor||'此筆'}」缺少可比對的識別碼，未能儲存歸屬，請重新整理頁面後再試`);
+    return false;
+  }
   try {
-    await callGAS({ action: 'stashSelected', updates: [{
+    const res = await callGAS({ action: 'stashSelected', updates: [{
       key: _stashKey,
       attribution, attributionTarget,
       vendor: r.vendor, amount: r.amount, date: r.date,
@@ -3084,7 +3098,15 @@ async function stashSingle(id) {
       ...(fieldRows  !== undefined ? { fieldRows }  : {}),
       ...(supplement !== undefined ? { supplement } : {}),
     }]});
-  } catch(_) { /* 靜默 */ }
+    if (!res.success) {
+      toast(`⚠️ 「${r.vendor||'此筆'}」歸屬儲存失敗：${res.error||'未知錯誤'}`);
+      return false;
+    }
+    return true;
+  } catch(e) {
+    toast(`⚠️ 「${r.vendor||'此筆'}」歸屬儲存失敗：${e.message}`);
+    return false;
+  }
 }
 
 // 油資：dropdown 選好後觸發
@@ -4463,34 +4485,11 @@ function pjToggleSection(id) {
 
 function renderProjExpenseList(items, proj) {
   const icon = { fuel:'⛽', other:'🧾' };
-  // item5: 月定額/里程實報核算金額
-  let quotaHtml = '';
-  if (proj) {
-    const month = document.getElementById('global-month')?.value || '';
-    if (proj.quota && proj.subsidy) {
-      quotaHtml = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
-          display:flex;align-items:center;justify-content:center;font-size:16px">📅</div>
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:14px">月定額補助</div>
-          <div style="font-size:12px;color:var(--muted)">${month||'—'}</div>
-        </div>
-        <div style="font-weight:800;font-family:monospace">$${Number(proj.subsidy).toLocaleString()}</div>
-      </div>`;
-    } else if (!proj.quota) {
-      quotaHtml = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
-          display:flex;align-items:center;justify-content:center;font-size:16px">🛣</div>
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:14px">里程實報</div>
-          <div style="font-size:12px;color:var(--muted)">依實際里程核算</div>
-        </div>
-        <div style="font-weight:800;font-family:monospace;color:var(--muted)">依申報</div>
-      </div>`;
-    }
-  }
-  if (!items.length) return quotaHtml || '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
-  return quotaHtml + items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
+  // 月定額/里程實報（來自 FuelProjects）與其他費用（來自 OcrResults）
+  // 已在後端合併回傳於 items 中，這裡不再顯示靜態的「設定值」提示卡，
+  // 避免跟真實申報資料同時出現造成混淆或重複
+  if (!items.length) return '<div style="color:var(--muted);font-size:13px">尚無費用紀錄</div>';
+  return items.map((e,idx)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;
     ${idx<items.length-1?'border-bottom:1px solid var(--border)':''}">
     <div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);
       display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
