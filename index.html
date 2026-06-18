@@ -362,14 +362,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
-          <div class="card-hd">
+          <div class="card-hd" style="display:flex;align-items:center;gap:10px">
             📥 辨識佇列
             <span class="badge bd-blue" id="queueCnt">0 個</span>
-          </div>
-          <!-- Sheet 載入狀態列（獨立，不蓋 queueList） -->
-          <div id="ocrSheetLoadBar" style="display:none;align-items:center;gap:10px;padding:10px 16px;background:rgba(37,99,235,.05);border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)">
-            <div style="width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0"></div>
-            <span id="ocrSheetLoadMsg">載入中...</span>
+            <!-- Sheet 載入狀態：與標題同一行，靠右顯示 -->
+            <div id="ocrSheetLoadBar" style="display:none;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted);font-weight:400">
+              <div style="width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0"></div>
+              <span id="ocrSheetLoadMsg">載入中...</span>
+            </div>
           </div>
           <div class="card-bd" id="queueList">
           </div>
@@ -410,7 +410,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📋 匯出紀錄</div>
   </div>
-  <div class="pg-sub">本月已產生的 PDF 附件清單</div>
       <div class="card">
         <div class="card-hd">
           📄 已產生 PDF
@@ -4089,6 +4088,10 @@ async function loadProjectsForBoard() {
   setNavSyncStatus('project', '同步中...', true);
   try {
     const res = await callGAS({ action:'getProjects' });
+    // 必須先檢查 success，否則請求失敗時 res.rows 為 undefined，
+    // `undefined || []` 會被誤判成「成功但無資料」而顯示「尚無專案」，
+    // 而非正確顯示「載入失敗」（這正是登入剛完成、與 loadConfig() 同時送出請求時偶發的問題）
+    if (!res.success) throw new Error(res.error || '取得專案失敗');
     S._pjBoard = res.rows || [];
     // 重新整理時順帶清除目前顯示專案的費用快取，確保專案費用一併刷新
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
@@ -4096,7 +4099,7 @@ async function loadProjectsForBoard() {
     setNavSyncStatus('project', '✅ 同步完成 ' + now());
     flashNavSyncDone('project');
   } catch(e) {
-    if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
+    if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗，請點 🔄 重新整理</div>';
     setNavSyncStatus('project', '❌ 連線失敗，請重試');
   }
 }
@@ -4297,7 +4300,9 @@ function pjRenderDetail(p) {
   // ── 金額摘要（item3: 預收款 + 已收款 - 已付款 - 費用 = 淨利）──────
   const paidAmt    = clientItems.reduce((s,c)=>s+(c.paid?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
   const vendorPaidAmt = vendors.reduce((s,v)=>{
-    return s + (v.periods||[]).reduce((t,c)=>t+(c.vendorPaid?Number(c.amount||0):0),0);
+    // 比照廠商端進度條：僅計入「已完成」（已收票且有收票日期）的期款，
+    // 而非單純看付款狀態，避免收票被退回時金額仍誤算入已付款
+    return s + (v.periods||[]).reduce((t,c)=>t+((c.invReceived && c.invReceivedDate)?Number(c.amount||0):0),0);
   },0);
   const expAmt      = expenseAmt || 0;
   const prepayAmt   = prepay.enabled ? Number(prepay.amount||0) : 0;
@@ -4574,7 +4579,7 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
     fields: [
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
-      { id:'inv-date', label:'收票日期（已收票時必填）', type:'date', value: c.invReceivedDate||'' },
+      { id:'inv-date', label:'收票日期', type:'date', value: c.invReceivedDate||'' },
     ],
     onSave: async (vals) => {
       const willReceived = vals['inv-status'] === '已收票';
