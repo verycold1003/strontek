@@ -613,9 +613,18 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </div>
           <div>
             <label class="lbl">預收款扣抵方式（僅套用於業主端）</label>
-            <div style="display:flex;gap:8px">
-              <select class="inp" id="pg-deduct-method" style="flex:1"></select>
-              <button class="btn btn-ghost btn-sm" onclick="pgApplyDeductMethod()">套用</button>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                <input type="radio" name="pg-deduct-mode" id="pg-deduct-mode-pct" value="percent_each" checked>
+                每期扣回
+                <input type="number" class="inp" id="pg-deduct-pct" min="0" max="100" step="0.1" style="width:70px;display:inline-block;padding:4px 8px" value="10">
+                %
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                <input type="radio" name="pg-deduct-mode" id="pg-deduct-mode-last" value="last_full">
+                最後一期扣回剩餘全部
+              </label>
+              <button class="btn btn-ghost btn-sm" style="align-self:flex-start;margin-top:2px" onclick="pgApplyDeductMethod()">套用到全部分期</button>
             </div>
           </div>
         </div>
@@ -1066,8 +1075,8 @@ async function loadConfig() {
   populateSelects();
   loadDriveFiles();
   loadExportHistory(false); // 預載入匯出紀錄
-  // 若「進度設定」頁已開啟，loadConfig 完成後補刷新扣抵方式下拉
-  // （避免使用者較快切到此頁時，prepayDeductMethods 尚未到位而顯示「未設定」）
+  // 若「進度設定」頁已開啟，loadConfig 完成後補同步扣抵比例 UI
+  // （確保畫面顯示的比例跟目前載入專案的 prepay.deductPct 一致）
   if (document.getElementById('sec-schedule')?.classList.contains('active')) {
     pgPopulateDeductMethods();
   }
@@ -4327,11 +4336,11 @@ function pjRenderDetail(p) {
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
   // ── 金額摘要（item3: 預收款 + 已收款 - 已付款 - 費用 = 淨利）──────
-  const paidAmt    = clientItems.reduce((s,c)=>s+(c.paid?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
+  // item4: 與業主端進度條口徑一致，僅計入「已完成」（開票日期+已收款+收款日期）的期款
+  const paidAmt    = clientItems.reduce((s,c)=>s+((!!c.invoiceDate && c.invoiced && c.paid && !!c.payDate)?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
   const vendorPaidAmt = vendors.reduce((s,v)=>{
-    // 比照廠商端進度條：僅計入「已完成」（已收票且有收票日期）的期款，
-    // 而非單純看付款狀態，避免收票被退回時金額仍誤算入已付款
-    return s + (v.periods||[]).reduce((t,c)=>t+((c.invReceived && c.invReceivedDate)?Number(c.amount||0):0),0);
+    // item5: 與廠商端進度條口徑一致，僅計入「已完成」（發票日期+已收票+付款日期）的期款
+    return s + (v.periods||[]).reduce((t,c)=>t+((c.invReceived && !!c.invReceivedDate && !!c.vendorPayDate)?Number(c.amount||0):0),0);
   },0);
   const expAmt      = expenseAmt || 0;
   const prepayAmt   = prepay.enabled ? Number(prepay.amount||0) : 0;
@@ -4370,10 +4379,12 @@ function pjRenderDetail(p) {
         projectId:p.id, periodIndex:j, acceptIdx:clientAcceptIdx
       })).join('');
 
-  const clientDone = clientItems.filter(c=>c.paid).length;
+  // item4: 「已完成」定義 = 1.有開票日期 2.已收款 3.有收款日期，三者皆滿足才計入進度與已收款金額
+  const isClientDone = (c) => !!c.invoiceDate && c.invoiced && c.paid && !!c.payDate;
+  const clientDone = clientItems.filter(isClientDone).length;
   const clientPct  = clientItems.length ? Math.round(clientDone/clientItems.length*100) : 0;
-  // 已完成金額：僅計入已收款的期款（淨額，已扣抵預收款），用於「已完成/合約總額」顯示
-  const clientDoneAmt = clientItems.filter(c=>c.paid)
+  // 已完成金額：僅計入「已完成」（三條件皆滿足）的期款（淨額，已扣抵預收款），用於「已完成/合約總額」顯示
+  const clientDoneAmt = clientItems.filter(isClientDone)
     .reduce((s,c)=>s+(Number(c.amount||0)-Number(c.prepayDeduct||0)),0);
   const clientHtml = `<div style="margin-bottom:18px">
     <div class="vendor-row" onclick="pjToggleClient('${p.id}')">
@@ -4414,15 +4425,15 @@ function pjRenderDetail(p) {
       ? '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'
       : vendors.map((v,vi)=>{
           const periods = v.periods || [];
-          // 進度條「已完成」改用收票完成判斷（已收票 + 有收票日期），
-          // 不再用付款狀態(vendorPaid)，避免收票被退回時誤算進度，
-          // 同時付款狀態保持獨立，不受此進度條影響
-          const done    = periods.filter(c=>c.invReceived && c.invReceivedDate).length;
+          // item5: 「已完成」定義 = 1.有發票(收票)日期 2.已收票 3.有付款日期，三者皆滿足才計入進度與已完成金額
+          // （此判斷取代先前「只看收票、與付款狀態保持獨立」的設計，依最新需求改為三條件並列）
+          const isVendorDone = (c) => c.invReceived && !!c.invReceivedDate && !!c.vendorPayDate;
+          const done    = periods.filter(isVendorDone).length;
           const total   = periods.length;
           const pct     = total ? Math.round(done/total*100) : 0;
           const amt     = pjSum(periods);
-          // 已完成金額：僅計入已收票且有收票日期的期款，用於「已完成/合約總額」顯示
-          const doneAmt = periods.filter(c=>c.invReceived && c.invReceivedDate)
+          // 已完成金額：僅計入「已完成」（三條件皆滿足）的期款
+          const doneAmt = periods.filter(isVendorDone)
                                   .reduce((s,c)=>s+(Number(c.amount)||0),0);
           const vAcceptIdx = pjAcceptIndex(periods, false);
           const elId  = `pj-vendor-${p.id}-${vi}`;
@@ -4810,7 +4821,7 @@ function renderFinanceInvoice() {
   const showAll = document.getElementById('fin-show-inv-done')?.checked;
   // 僅列出已進入流程的期款（已驗收/已開票/已收款），未驗收（未開始）不顯示，避免列表充斥無關項目
   const rows    = (_finRows.invoice || []).filter(r => r.c.accepted || r.c.invoiced || r.c.paid);
-  const visible = showAll ? rows : rows.filter(r => !(r.c.invoiceDate && r.c.invoiced && r.c.paid));
+  const visible = showAll ? rows : rows.filter(r => !(r.c.invoiceDate && r.c.invoiced && r.c.paid && r.c.payDate));
 
   if (!visible.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">
@@ -4820,7 +4831,7 @@ function renderFinanceInvoice() {
 
   tbody.innerHTML = visible.map(({ proj:p, periodIdx:j, c }) => {
     const net = Number(c.amount||0) - Number(c.prepayDeduct||0);
-    const invDone = !!c.invoiceDate && c.invoiced && c.paid;
+    const invDone = !!c.invoiceDate && c.invoiced && c.paid && !!c.payDate;
     const payBadge = c.paid
       ? `<span class="badge bd-green">已收款</span>`
       : (c.accepted || c.invoiced)
@@ -4854,7 +4865,7 @@ function renderFinancePayment() {
   if (!tbody) return;
   const showAll = document.getElementById('fin-show-pay-done')?.checked;
   const rows    = (_finRows.payment || []).filter(r => r.c.invReceived || r.c.invAccepted || r.c.vendorPaid);
-  const visible = showAll ? rows : rows.filter(r => !r.c.vendorPaid || !r.c.invReceived);
+  const visible = showAll ? rows : rows.filter(r => !(r.c.vendorPaid && r.c.invReceived && r.c.invReceivedDate && r.c.vendorPayDate));
 
   if (!visible.length) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
@@ -4863,7 +4874,7 @@ function renderFinancePayment() {
   }
 
   tbody.innerHTML = visible.map(({ proj:p, vendorIdx:vi, vendor:v, periodIdx:pj, c }) => {
-    const allDone = !!c.invReceivedDate && c.invReceived && c.vendorPaid;
+    const allDone = !!c.invReceivedDate && c.invReceived && c.vendorPaid && !!c.vendorPayDate;
     const invBadge = c.invReceived
       ? `<span class="badge bd-blue">已收票</span>`
       : (c.invAccepted || c.vendorPaid)
@@ -4951,15 +4962,16 @@ function pgPopulateProjectSelect() {
   if (inp) inp.value = curItem ? (curItem.id + ' ' + curItem.name) : '';
 }
 
+// item2: 將「進度設定」頁的扣抵方式 UI（radio + 輸入框）同步成目前載入專案
+// 自己的 prepay.deductPct 設定值，確保跟「新增專案」表單顯示一致，不再各自為政
 function pgPopulateDeductMethods() {
-  const sel = document.getElementById('pg-deduct-method');
-  if (!sel) return;
-  const methods = (S.config && S.config.prepayDeductMethods) || [];
-  if (!methods.length) {
-    sel.innerHTML = '<option value="">（SystemSettings 未設定扣抵方式）</option>';
-    return;
-  }
-  sel.innerHTML = methods.map(m=>`<option value="${esc(m.key)}">${esc(m.label)}</option>`).join('');
+  const pctInput = document.getElementById('pg-deduct-pct');
+  const modePct  = document.getElementById('pg-deduct-mode-pct');
+  if (!pctInput || !modePct) return;
+  const p = S._pgProject;
+  const prepay = (p && p.prepay) || {enabled:false,amount:0,deductPct:10};
+  pctInput.value = prepay.deductPct || 10;
+  modePct.checked = true; // 預設停在「每期扣回」模式，使用者可自行切換成「最後一期」
 }
 
 function pgPopulateTargetSelect() {
@@ -4984,6 +4996,7 @@ function pgLoadProject(id) {
   S._pgProject.vendors = S._pgProject.vendors || [];
   pgPopulateTargetSelect();
   document.getElementById('pg-target-select').value = 'client';
+  pgPopulateDeductMethods();
   pgRenderEditor();
 }
 
@@ -5027,7 +5040,7 @@ function pgRenderEditor() {
   }
 
   editor.innerHTML = `
-    ${target==='client' && prepay.enabled ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">
+    ${target==='client' && prepay.enabled ? `<div id="pg-prepay-summary" style="font-size:13px;color:var(--muted);margin-bottom:10px">
       💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${p.client.reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
     </div>` : ''}
     ${removeVendorBtn}
@@ -5084,6 +5097,18 @@ function pgSetPeriod(j,k,v) {
   else if (k==='invoiced'||k==='paid')  arr[j][k] = !!v;
   else arr[j][k] = v;
   if (k==='invoiced'||k==='paid') pgRenderPeriods(); // 重新渲染以反映 checkbox 狀態
+  if (k==='prepayDeduct') pgUpdatePrepaySummary(); // item3: 局部更新已分配扣抵總計，避免輸入框失焦
+}
+
+// item3: 局部更新「已分配扣抵」總計文字，讓使用者手動修改某一期的扣抵金額時，
+// 摘要立即跟著異動，而不需要整頁重繪或切換目標才會看到正確數字
+function pgUpdatePrepaySummary() {
+  const el = document.getElementById('pg-prepay-summary');
+  const p  = S._pgProject;
+  if (!el || !p) return;
+  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
+  const allocated = (p.client||[]).reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0);
+  el.innerHTML = `💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${allocated.toLocaleString()}）`;
 }
 
 function pgRemoveVendor(vi) {
@@ -5094,26 +5119,28 @@ function pgRemoveVendor(vi) {
 }
 
 // 套用預收款扣抵方式至「業主端」全部分期（依序計算，可手動覆寫個別金額）
+// item2: 改為讀取該專案自己的扣抵設定（radio + 輸入框），不再依賴全域 SystemSettings 模板，
+// 避免「新增專案」表單裡的每期扣回比例跟「進度設定」頁顯示的比例互相脫鉤、各自為政
 function pgApplyDeductMethod() {
   const p = S._pgProject;
   if (!p) { toast('請先選擇專案'); return; }
-  const key = document.getElementById('pg-deduct-method')?.value;
-  const methods = (S.config && S.config.prepayDeductMethods) || [];
-  const method = methods.find(m=>m.key===key);
+  const mode = document.querySelector('input[name="pg-deduct-mode"]:checked')?.value || 'percent_each';
+  const pct  = parseFloat(document.getElementById('pg-deduct-pct')?.value) || 0;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-  if (!method) { toast('請先在 SystemSettings 設定預收款扣抵方式'); return; }
   if (!prepay.enabled) { toast('此專案未啟用預收款'); return; }
+
+  // 同步寫回專案的 deductPct，讓「新增專案」表單跟「進度設定」頁顯示一致
+  if (mode === 'percent_each') prepay.deductPct = pct;
+  p.prepay = prepay;
 
   const items = p.client || [];
   let remaining = Number(prepay.amount) || 0;
   items.forEach((c,idx) => {
     const amount = Number(c.amount) || 0;
     let deduct = 0;
-    if (method.type === 'percent_each') {
-      deduct = amount * (method.value/100);
-    } else if (method.type === 'fixed') {
-      deduct = method.value;
-    } else if (method.type === 'last_full') {
+    if (mode === 'percent_each') {
+      deduct = amount * (pct/100);
+    } else if (mode === 'last_full') {
       deduct = (idx === items.length-1) ? remaining : 0;
     }
     deduct = Math.min(deduct, amount, remaining);
@@ -5122,7 +5149,9 @@ function pgApplyDeductMethod() {
     remaining -= c.prepayDeduct;
   });
   if ((document.getElementById('pg-target-select')?.value)==='client') pgRenderPeriods();
-  toast('已套用「' + method.label + '」，剩餘預收款 $' + remaining.toLocaleString());
+  pgUpdatePrepaySummary();
+  const modeLabel = mode === 'percent_each' ? `每期扣回 ${pct}%` : '最後一期扣回剩餘全部';
+  toast('已套用「' + modeLabel + '」，剩餘預收款 $' + remaining.toLocaleString());
 }
 
 async function pgSave() {
