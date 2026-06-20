@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform K</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -278,14 +278,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="pg-title" style="margin:0">💲 費用管理</div>
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📤 上傳憑證 <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
-  </div>
-  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
-    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
-    <div style="display:flex;align-items:center;gap:8px">
-      <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
-      <input type="month" class="inp" id="global-month" style="font-size:14px;padding:7px 10px"
-             onchange="onGlobalMonthChange(this.value)">
-    </div>
   </div>
       <div style="display:flex;flex-direction:column;gap:18px">
         <div class="card">
@@ -351,14 +343,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="pg-title" style="margin:0">💲 費用管理</div>
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">🤖 OCR 辨識 <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
-  </div>
-  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
-    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
-    <div style="display:flex;align-items:center;gap:8px">
-      <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
-      <input type="month" class="inp" id="global-month-ocr" style="font-size:14px;padding:7px 10px"
-             onchange="onGlobalMonthChange(this.value)">
-    </div>
   </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
@@ -706,6 +690,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="navmenu-syncrow" id="navSyncRow-expense">
         <span id="navSyncStatus-expense">尚未同步</span>
         <span id="navSyncDone-expense" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
+      </div>
+      <div class="navmenu-sep"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 16px">
+        <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
+        <input type="month" class="inp" id="global-month" style="font-size:14px;padding:6px 9px;flex:1"
+               onchange="onGlobalMonthChange(this.value)">
       </div>
       <div class="navmenu-sep"></div>
       <button class="navmenu-item" onclick="switchExpensePage('upload')">
@@ -1086,13 +1076,24 @@ function populateSelects() {
 
 // 全域月份變更：同步到各頁
 function onGlobalMonthChange(val) {
-  // sync the OCR section's month input
-  const ocrM = document.getElementById('global-month-ocr');
-  if (ocrM) ocrM.value = val;
   loadDriveFiles();
   loadExportHistory(false);
+  // item4: S.receipts／_fuelProjList 是單一全域累積陣列，過去切換月份時只會
+  // 「加入」新月份的資料（依 key 去重），從未清掉舊月份已載入的項目，導致
+  // 油資/其他 tab 會同時顯示好幾個月份的紀錄混在一起。換月份時先清空，
+  // 確保畫面只會顯示「目前選擇月份」的資料，不會殘留其他月份的舊資料
+  S.receipts = [];
+  window._fuelProjList = [];
+  // 重置「OCR 頁首次造訪」旗標：即使月份是在費用頁以外的分頁切換的，
+  // 之後造訪 OCR 頁時仍會依新月份重新載入，而不是沿用舊月份留下的空狀態
+  S._ocrPageLoadedOnce = false;
   // 換月份後，OCR 頁的「申請專案」歸屬資料屬於不同月份，需重新載入
-  if (_currentExpensePage === 'ocr') reloadOcrWithFuel();
+  if (_currentExpensePage === 'ocr') {
+    S._ocrPageLoadedOnce = true;
+    reloadOcrWithFuel();
+  } else {
+    renderOCRResults(); // 確保即使不在 OCR 頁，殘留的 DOM 內容也同步清空
+  }
 }
 
 // 🔄 依當前費用子頁決定觸發動作
@@ -3775,10 +3776,6 @@ function isProjectRelated(name) {
   ['upload','ocr','history'].forEach(p=> {
     document.getElementById('sec-expense-'+p)?.classList.toggle('active', p===page);
   });
-  // 同步月份欄位（OCR 頁有獨立 id）
-  const mainMonth = document.getElementById('global-month')?.value || '';
-  const ocrMonth  = document.getElementById('global-month-ocr');
-  if (ocrMonth && mainMonth) ocrMonth.value = mainMonth;
   if (page==='history') loadExportHistory(false);
   // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
   // 避免使用者誤以為底下空白（之前需手動按 🔄 才會出現「申請專案」卡片）
@@ -3928,7 +3925,7 @@ async function loadProjectList(showToast, _isRetry) {
   // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
   // 必須明確檢查 res.success，否則請求失敗時 res.rows 是 undefined，
   // `undefined || []` 會被誤判成「成功但無資料」而顯示「尚無專案」
-  const res = await callGAS({ action: 'getProjects' });
+  const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
   if (!res.success) {
     if (tbody) tbody.innerHTML = errorRow(8);
     if (showToast) toast('❌ 載入失敗：' + (res.error || '未知'));
@@ -4112,7 +4109,7 @@ async function loadProjectsForBoard(_isRetry) {
   if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
   setNavSyncStatus('project', '同步中...', true);
   try {
-    const res = await callGAS({ action:'getProjects' });
+    const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId || '' });
     // 必須先檢查 success，否則請求失敗時 res.rows 為 undefined，
     // `undefined || []` 會被誤判成「成功但無資料」而顯示「尚無專案」，
     // 而非正確顯示「載入失敗」（這正是登入剛完成、與 loadConfig() 同時送出請求時偶發的問題）
@@ -4488,26 +4485,40 @@ function renderProjExpenseList(items, proj) {
       display:flex;align-items:center;justify-content:center;font-size:16px">${icon[e.type]||'🧾'}</div>
     <div style="flex:1">
       <div style="font-weight:600;font-size:14px">${esc(e.label||'')}</div>
-      <div style="font-size:12px;color:var(--muted)">${e.date||''}</div>
+      <div style="font-size:12px;color:var(--muted)">${e.date||''}${e.person?' · '+esc(e.person):''}</div>
     </div>
     <div style="font-weight:800;font-family:monospace">$${Number(e.amount||0).toLocaleString()}</div>
   </div>`).join('');
 }
 
-async function loadProjectExpenses(projectId) {
+async function loadProjectExpenses(projectId, _isRetry) {
   if (_projExpenseLoading[projectId]) return;
   _projExpenseLoading[projectId] = true;
   const wrap = document.getElementById('pj-expense-'+projectId);
   if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">載入中...</div>';
+  let rows = [];
+  let ok   = false;
   try {
     const res = await callGAS({ action:'getProjectExpenses', projectId });
-    S._projExpenses = S._projExpenses || {};
-    S._projExpenses[projectId] = (res && res.success && res.rows) ? res.rows : [];
-  } catch(e) {
-    S._projExpenses = S._projExpenses || {};
-    S._projExpenses[projectId] = [];
+    ok   = !!(res && res.success);
+    rows = ok ? (res.rows || []) : [];
+  } catch(e) { /* rows 維持空陣列 */ }
+
+  // item1: 切換到此專案後費用卡片顯示空白，需手動重新整理才會出現——可能是
+  // loadProjectsForBoard 清快取後的競態，也可能是剛在費用頁存完月定額/里程實報，
+  // GAS 端讀取 FuelProjects 尚未反映剛寫入的資料（Sheets 讀寫一致性延遲）。
+  // 兩種情況都靠「成功但回傳空清單時，短暫延遲後重試一次」來緩解，且僅在
+  // 此專案從未成功載入過時才重試，避免對「真的沒有費用」的專案重複發送請求。
+  // 重試等待期間刻意不清除 _projExpenseLoading，避免 pjRenderDetail 自身的
+  // 自動載入觸發在等待空檔誤判成「尚未載入」而又排一次多餘的請求
+  if (ok && !rows.length && !S._projExpenses?.[projectId] && !_isRetry) {
+    setTimeout(() => { delete _projExpenseLoading[projectId]; loadProjectExpenses(projectId, true); }, 700);
+    return;
   }
+
   delete _projExpenseLoading[projectId];
+  S._projExpenses = S._projExpenses || {};
+  S._projExpenses[projectId] = rows;
   renderProjectBoard(); // re-render to update expense total
 }
 
@@ -4526,9 +4537,6 @@ function pjEditClientPay(projectId, periodIndex) {
         options:['待收款','已收款','待查帳'],
         value: c.paid ? '已收款' : (c.underReview ? '待查帳' : '待收款') },
       { id:'pay-date', label:'收款日期', type:'date', value: c.payDate||'' },
-    ],
-    extraActions: [
-      { label: '重置日期', clearField: 'pay-date' },
     ],
     onSave: async (vals) => {
       const willPaid = vals['pay-status'] === '已收款';
@@ -4575,9 +4583,6 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
       { id:'inv-status', label:'收票狀態', type:'select',
         options:['待收票','已收票'], value: c.invReceived?'已收票':'待收票' },
       { id:'inv-date', label:'收票日期', type:'date', value: c.invReceivedDate||'' },
-    ],
-    extraActions: [
-      { label: '重置日期', clearField: 'inv-date' },
     ],
     onSave: async (vals) => {
       const willReceived = vals['inv-status'] === '已收票';
@@ -4663,12 +4668,27 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
   const existing = document.getElementById('_inlineEditWrap');
   if (existing) existing.remove();
 
-  const fHtml = fields.map(f => `<div style="margin-bottom:10px">
+  // item6: date 欄位比照「財務專區」收票/付款日期樣式——輸入框旁直接放 ✕ 按鈕
+  // （取代原本底部獨立的「重置日期」文字按鈕），有值才顯示 ✕
+  const fHtml = fields.map(f => {
+    if (f.type === 'date') {
+      return `<div style="margin-bottom:10px">
+        <label class="lbl">${f.label}</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="ie-${f.id}" value="${esc(f.value||'')}"
+            style="flex:1" onchange="ieRefreshClearBtn('${f.id}')">
+          <button class="btn btn-ghost btn-sm" id="ie-clear-${f.id}" style="padding:4px 8px;flex-shrink:0;
+            display:${f.value?'inline-flex':'none'}" title="清除日期" onclick="ieClearDateField('${f.id}')">✕</button>
+        </div>
+      </div>`;
+    }
+    return `<div style="margin-bottom:10px">
     <label class="lbl">${f.label}</label>
     ${f.type==='select'
       ? `<select class="inp" id="ie-${f.id}">${f.options.map(o=>`<option${o===f.value?' selected':''}>${o}</option>`).join('')}</select>`
       : `<input type="${f.type}" class="inp" id="ie-${f.id}" value="${esc(f.value||'')}">`}
-  </div>`).join('');
+  </div>`;
+  }).join('');
 
   const extraHtml = (extraActions||[]).map((_,i)=>
     `<button class="btn btn-ghost btn-sm" id="ie-extra-${i}"></button>`).join('');
@@ -4687,29 +4707,12 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
   </div>`;
   document.body.appendChild(wrap);
 
-  // set extra button labels after insert
+  // set extra button labels after insert（item6 後僅保留一般 action 用途，clearField 已不再使用）
   (extraActions||[]).forEach((a,i) => {
     const btn = document.getElementById('ie-extra-'+i);
     if (btn) {
       btn.textContent = a.label;
-      if (a.clearField) {
-        // 清除欄位類型：只清空指定欄位的值，不關閉 modal、不觸發儲存，
-        // 方便使用者重置某個欄位後重新填寫（例如清除日期）
-        // item4: type="date" 欄位不可呼叫 .focus()，LINE LIFF WebView 對「剛清空、
-        // 立刻 focus」的 native date input 會重新彈出日曆並把值補回今天/上次選擇，
-        // 導致「重置」後送出仍帶有舊日期。改為失焦清空，並補發 input/change 事件，
-        // 確保任何依賴這兩個事件同步狀態的邏輯都能拿到清空後的值。
-        btn.onclick = () => {
-          const el = document.getElementById('ie-'+a.clearField);
-          if (!el) return;
-          el.value = '';
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-          el.blur();
-        };
-      } else {
-        btn.onclick = async () => { wrap.remove(); await a.action(); };
-      }
+      btn.onclick = async () => { wrap.remove(); await a.action(); };
     }
   });
 
@@ -4738,6 +4741,29 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
   };
 }
 
+// item6: showInlineEdit 內 date 欄位的 ✕ 清除按鈕——比照財務專區收票/付款日期樣式，
+// 直接清空輸入框並隱藏 ✕（不關閉 modal、不觸發儲存）。
+// 改為失焦清空並補發 input/change 事件（同舊版註解原因：LINE LIFF WebView 對
+// 「剛清空、立刻 focus」的 native date input 會重新彈出日曆並把值補回，需避免 focus）。
+function ieClearDateField(fieldId) {
+  const el = document.getElementById('ie-'+fieldId);
+  if (!el) return;
+  el.value = '';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.blur();
+  const btn = document.getElementById('ie-clear-'+fieldId);
+  if (btn) btn.style.display = 'none';
+}
+
+// item6: date 欄位手動改值後，依是否有值同步顯示/隱藏 ✕ 按鈕
+function ieRefreshClearBtn(fieldId) {
+  const el  = document.getElementById('ie-'+fieldId);
+  const btn = document.getElementById('ie-clear-'+fieldId);
+  if (!el || !btn) return;
+  btn.style.display = el.value ? 'inline-flex' : 'none';
+}
+
 
 // ════════════════════════════════════════════════════════════
 // 財務專區 — 待發票（業主端）/ 待付款（廠商端）
@@ -4755,7 +4781,7 @@ async function loadFinance() {
     // 若 pjBoard 已有資料直接用，否則先載入
     const rows = S._pjBoard || [];
     if (!rows.length) {
-      const res = await callGAS({ action:'getProjects' });
+      const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId || '' });
       // 同步 loadProjectsForBoard 的修正：請求失敗時不可覆寫成空陣列，
       // 否則會把可能已存在的資料意外清空
       if (!res.success) throw new Error(res.error || '取得專案失敗');
@@ -5196,7 +5222,12 @@ function doEditProject(i) {
       <div><label class="lbl">生效日</label>
         <input type="date" class="inp" id="ep-effect-${i}" value="${p.effectDate||''}"></div>
       <div><label class="lbl">結案日</label>
-        <input type="date" class="inp" id="ep-close-${i}" value="${p.closeDate||''}"></div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="ep-close-${i}" value="${p.closeDate||''}" style="flex:1"
+            onchange="epRefreshCloseClearBtn(${i})">
+          <button class="btn btn-ghost btn-sm" id="ep-close-clear-${i}" style="padding:4px 8px;flex-shrink:0;
+            display:${p.closeDate?'inline-flex':'none'}" title="清除結案日" onclick="epClearCloseDate(${i})">✕</button>
+        </div></div>
     </div>
     <div style="margin-bottom:10px;padding:12px;border:1px solid var(--border);border-radius:10px">
       <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-ep-prepay-${i}">
@@ -5237,6 +5268,25 @@ function setEpQuota(i, isQuota) {
     b.classList.toggle('on', j === (isQuota ? 0 : 1)));
   const sub = document.getElementById(`ep-subsidy-${i}`);
   if (sub) { sub.disabled = !isQuota; if (!isQuota) sub.value = ''; }
+}
+
+// item6: 結案日 ✕ 清除按鈕——比照財務專區收票/付款日期樣式
+function epClearCloseDate(i) {
+  const el = document.getElementById(`ep-close-${i}`);
+  if (!el) return;
+  el.value = '';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.blur();
+  const btn = document.getElementById(`ep-close-clear-${i}`);
+  if (btn) btn.style.display = 'none';
+}
+
+function epRefreshCloseClearBtn(i) {
+  const el  = document.getElementById(`ep-close-${i}`);
+  const btn = document.getElementById(`ep-close-clear-${i}`);
+  if (!el || !btn) return;
+  btn.style.display = el.value ? 'inline-flex' : 'none';
 }
 
 async function doSaveProject(id, i) {
