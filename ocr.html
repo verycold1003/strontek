@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>工程報價辨識</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -284,17 +285,32 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbx3cQMDpX8k_RyAdEd2X3Ro6juWzIKe-2g1XYAp-zEO9p6im-30FmpV0qpeaJHtAMJO/exec',
 };
 
-async function callGAS(payload) {
-  const res = await fetch(CFG.GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return JSON.parse(await res.text());
+// callGAS：ocrEngineering 會在 GAS 端依序嘗試多個 Gemini 模型 fallback
+// （見 common.gs 的 callGemini），單次請求可能耗時超過一般網路逾時的合理值。
+// 先前完全沒有逾時保護，遇到網路不穩時 fetch 可能無限期掛起，使用者只能看著
+// 「辨識中」卡住、無從得知是真的在跑還是已經卡死。加上 AbortController 逾時，
+// 並讓逾時錯誤訊息明確區分於其他錯誤，方便使用者判斷是否該重試。
+async function callGAS(payload, timeoutMs = 110000) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(CFG.GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return JSON.parse(await res.text());
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error(`請求逾時（${Math.round(timeoutMs/1000)}s）`);
+    throw err;
+  } finally {
+    clearTimeout(tid);
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -443,16 +459,66 @@ function selectVendor(key) {
 // ════════════════════════════════════════════════════════════
 // 檔案處理
 // ════════════════════════════════════════════════════════════
-function onFilePick(fileList) {
+async function onFilePick(fileList) {
   if (!fileList?.length) return;
-  Array.from(fileList).forEach(f => {
-    if (!f.type.startsWith('image/') && f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) return;
-    const id  = 'f' + Date.now() + Math.random().toString(36).slice(2,5);
-    const url = f.type.startsWith('image/') ? URL.createObjectURL(f) : null;
-    _files.push({ id, file: f, previewUrl: url, name: f.name });
-  });
-  renderThumbs();
-  refreshOcrBtn();
+  const picked = Array.from(fileList).filter(f =>
+    f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (!picked.length) return;
+
+  for (const f of picked) {
+    const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      // PDF 需先轉成真正的 JPEG 圖片再加入佇列，否則送進 OCR 的會是原始 PDF
+      // bytes 卻標成 image/jpeg，Gemini 端必定辨識失敗或產生亂碼結果
+      const jpegFiles = await pdfFileToJpegFiles(f);
+      jpegFiles.forEach(jf => {
+        const id  = 'f' + Date.now() + Math.random().toString(36).slice(2,5);
+        _files.push({ id, file: jf, previewUrl: URL.createObjectURL(jf), name: jf.name });
+      });
+    } else {
+      const id  = 'f' + Date.now() + Math.random().toString(36).slice(2,5);
+      _files.push({ id, file: f, previewUrl: URL.createObjectURL(f), name: f.name });
+    }
+    // 每處理完一個檔案就更新畫面，避免多個 PDF 轉換時畫面長時間無回應
+    renderThumbs();
+    refreshOcrBtn();
+  }
+}
+
+// 將 PDF 逐頁轉成 JPEG File 物件（與主費用系統的 pdfToJpegFiles 邏輯一致）
+async function pdfFileToJpegFiles(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    toast('⚠️ pdf.js 未載入，無法轉換 PDF');
+    return [];
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const baseName = file.name.replace(/\.pdf$/i, '');
+  const results  = [];
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const total       = pdf.numPages;
+    toast(`⏳ ${file.name} 共 ${total} 頁轉換中...`);
+
+    for (let p = 1; p <= total; p++) {
+      const page     = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas   = document.createElement('canvas');
+      canvas.width   = viewport.width;
+      canvas.height  = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+      const blob    = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+      const suffix  = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
+      results.push(new File([blob], baseName + suffix + '.jpg', { type: 'image/jpeg' }));
+    }
+  } catch (e) {
+    toast('⚠️ ' + file.name + ' PDF 轉換失敗：' + e.message);
+    return [];
+  }
+  return results;
 }
 
 function renderThumbs() {
@@ -645,6 +711,13 @@ function fillCell(ctx, text, x, y, w, h, align='left', color='#111', size=12) {
   ctx.restore();
 }
 
+// 小計／稅金(5%)／總計 — 三個廠商模板共用同一套計算，原本各自重複一份
+function calcTotals() {
+  const sub = _items.reduce((s,it)=>s+(it.amount||0),0);
+  const tax = Math.round(sub*0.05);
+  return { sub, tax, total: sub+tax };
+}
+
 // ── 銘松 ──────────────────────────────────────────────────
 function drawMingsong(ctx, W) {
   const tpl = VENDORS.mingsong;
@@ -709,9 +782,7 @@ function drawMingsong(ctx, W) {
   }
 
   // 合計 / 稅金 / 總價
-  const sub   = _items.reduce((s,it)=>s+(it.amount||0),0);
-  const tax   = Math.round(sub*0.05);
-  const total = sub+tax;
+  const { sub, tax, total } = calcTotals();
 
   // 右側對齊金額欄寬 = 總額欄(90) + 備註欄(72)
   const amtX = W - PAD - 90 - 72;
@@ -807,9 +878,7 @@ function drawYuhui(ctx, W) {
     y += ROW;
   }
 
-  const sub   = _items.reduce((s,it)=>s+(it.amount||0),0);
-  const tax   = Math.round(sub*0.05);
-  const total = sub+tax;
+  const { sub, tax, total } = calcTotals();
 
   const amtX = W - PAD - 90 - 58;
   const amtW = 90;
@@ -821,6 +890,7 @@ function drawYuhui(ctx, W) {
   }
   drawRect(ctx, PAD, y, W-PAD*2, ROW+6, '#d8d8d8');
   ctxFont(ctx, 13, 'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+6, y+(ROW+6)/2);
   ctx.textAlign='right'; ctx.fillText('總合計（含稅）', amtX - 6, y+(ROW+6)/2);
   ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(), amtX+amtW-6, y+(ROW+6)/2);
   y += ROW+6;
@@ -881,13 +951,16 @@ function drawGeneric(ctx, W) {
     y+=ROW;
   }
 
-  const sub=_items.reduce((s,it)=>s+(it.amount||0),0), tax=Math.round(sub*.05), total=sub+tax;
+  const { sub, tax, total } = calcTotals();
   for (const [lbl,val] of [['小計','$'+sub.toLocaleString()],['稅金 5%','$'+tax.toLocaleString()],['合計（含稅）','$'+total.toLocaleString()]]) {
     drawRect(ctx, PAD, y, W-PAD*2, ROW, lbl.includes('合計')?'#d8d8d8':'#f0f0f0');
     fillCell(ctx, lbl, PAD, y, W-PAD*2-100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
     fillCell(ctx, val, W-PAD-100, y, 100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
     y+=ROW;
   }
+
+  ctxFont(ctx, 11); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD, y+11); y+=18;
 
   return y+20;
 }
