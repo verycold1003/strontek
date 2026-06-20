@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform v1</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v1</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -3592,7 +3592,7 @@ function renderPdfResultList(urls, labels) {
       color:var(--accent);font-size:14px;font-weight:700;text-decoration:none;
       transition:background .15s;
     `;
-    row.innerHTML = `<span style="font-size:18px">📄</span><span>${label}</span><span style="margin-left:auto;font-size:13px">↗ 開啟</span>`;
+    row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
     row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
     row.onmouseout  = () => row.style.background = 'var(--surface)';
     wrap.appendChild(row);
@@ -4861,10 +4861,14 @@ function renderFinanceInvoice() {
       <td>${payBadge}</td>
       <td style="white-space:nowrap">${c.payDate||'—'}</td>
       <td>
-        <input type="date" class="inp" style="font-size:13px;padding:4px 8px;min-width:140px"
-          value="${c.invoiceDate||''}"
-          onchange="finUpdateInvoiceDate('${p.id}',${j},this.value)"
-          title="填入開票日期後自動標記已開票">
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="fin-inv-date-${p.id}-${j}" style="font-size:13px;padding:4px 8px;min-width:120px"
+            value="${c.invoiceDate||''}"
+            onchange="finUpdateInvoiceDate('${p.id}',${j},this.value)"
+            title="填入開票日期後自動標記已開票">
+          ${c.invoiceDate ? `<button class="btn btn-ghost btn-sm" style="padding:4px 8px;flex-shrink:0"
+            onclick="finUpdateInvoiceDate('${p.id}',${j},'')" title="清除開票日期">✕</button>` : ''}
+        </div>
       </td>
       <td style="white-space:nowrap">${invDone?'<span class="badge bd-green">已完成</span>':''}</td>
     </tr>`;
@@ -4902,10 +4906,14 @@ function renderFinancePayment() {
       <td>${invBadge}</td>
       <td style="white-space:nowrap">${c.invReceivedDate||'—'}</td>
       <td>
-        <input type="date" class="inp" style="font-size:13px;padding:4px 8px;min-width:140px"
-          value="${c.vendorPayDate||''}"
-          onchange="finUpdatePayDate('${p.id}',${vi},${pj},this.value)"
-          title="填入付款日期後自動標記已付款">
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="fin-pay-date-${p.id}-${vi}-${pj}" style="font-size:13px;padding:4px 8px;min-width:120px"
+            value="${c.vendorPayDate||''}"
+            onchange="finUpdatePayDate('${p.id}',${vi},${pj},this.value)"
+            title="填入付款日期後自動標記已付款">
+          ${c.vendorPayDate ? `<button class="btn btn-ghost btn-sm" style="padding:4px 8px;flex-shrink:0"
+            onclick="finUpdatePayDate('${p.id}',${vi},${pj},'')" title="清除付款日期">✕</button>` : ''}
+        </div>
       </td>
       <td style="white-space:nowrap">${allDone?'<span class="badge bd-green">已完成</span>':''}</td>
     </tr>`;
