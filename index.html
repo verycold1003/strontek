@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v1</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform K</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -417,7 +417,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </div>
         <div style="overflow-x:auto">
           <table class="tbl" id="histTbl">
-            <thead><tr><th>附件</th><th style="white-space:nowrap">匯出時間</th><th></th></tr></thead>
+            <thead><tr><th style="min-width:200px">附件</th><th style="white-space:nowrap">匯出時間</th><th></th></tr></thead>
             <tbody id="histTblBody"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:28px">
               <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
                 <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
@@ -1471,10 +1471,11 @@ async function loadDriveFiles() {
   const tbl = document.getElementById('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
 
-  try {
-    const res = await callGAS({ action:'listFiles', person, month });
-    S.driveFiles = res.files || [];
-  } catch {
+  // 注意：callGAS 內部已捕捉所有失敗（網路錯誤、逾時、HTTP 錯誤）並回傳
+  // { success:false, error }，永遠不會 reject，因此這裡必須明確檢查
+  // res.success，不能只靠 try/catch 偵測失敗，否則失敗會被誤判為「成功但無資料」。
+  const res = await callGAS({ action:'listFiles', person, month });
+  if (!res.success) {
     if (tbl) tbl.innerHTML = errorRow(4, '❌ 載入失敗，請點 🔄 重試');
     if (S._newUploadedNames?.size) {
       S.driveFiles = [...S._newUploadedNames].map(name => ({
@@ -1484,6 +1485,7 @@ async function loadDriveFiles() {
     }
     return;
   }
+  S.driveFiles = res.files || [];
   renderDriveFiles();
 }
 
@@ -1570,10 +1572,6 @@ function addQueue(file) {
   badge('nb-ocr', S.ocrQueue.length);
 }
 
-function setQueueAttribution(i, val) {
-  if (S.ocrQueue[i]) S.ocrQueue[i].qAttribution = val;
-}
-
 function renderQueue() {
   document.getElementById('queueCnt').textContent = S.ocrQueue.length + ' 個';
   const c = document.getElementById('queueList');
@@ -1646,6 +1644,7 @@ async function runOCR() {
       let b64 = '';
       if (qf.id) {
         const fr = await callGAS({ action: 'getFileBase64', fileId: qf.id });
+        if (!fr.success) throw new Error(fr.error || '無法讀取檔案');
         b64 = fr.base64 || '';
       }
 
@@ -2396,21 +2395,6 @@ function fuelFRRowHTML(idx, fi, fr) {
   </div>`;
 }
 
-// ── 新增里程實報項目 ─────────────────────────────────────────
-function addFuelMile() {
-  const uid = 'fp_' + Date.now();
-  window._fuelProjList.push({ uid, projId: '', deptId: '', attrType: '', type: 'mile', fieldRows: [] });
-  const idx = window._fuelProjList.length - 1;
-  const list = document.getElementById('fuel-mile-list');
-  if (list) {
-    const div = document.createElement('div');
-    div.innerHTML = fuelMileRowHTML(window._fuelProjList[idx], idx);
-    list.appendChild(div.firstElementChild);
-    setTimeout(() => initFuelMileDropdownAt(idx), 0);
-  }
-  updateFuelDiff();
-}
-
 function removeFuelProj(idx) {
   window._fuelProjList.splice(idx, 1);
   renderOCRResults();
@@ -2645,13 +2629,12 @@ async function _syncFuelProjToSheet(idx) {
 
   // key = attrType|attrTarget，讓 GAS 端以此 upsert（覆蓋舊筆）
   const fuelProjKey = attrType + '|' + attrTarget;
-  try {
-    await callGAS({
-      action: 'saveFuelProject',
-      month, person, attrType, attrTarget, amount, supplement,
-      key: fuelProjKey,   // GAS 端以此 key 比對覆蓋
-    });
-  } catch(_) { /* 靜默 */ }
+  // 自動儲存：靜默失敗（callGAS 內部已將所有失敗轉為 {success:false}，不會 reject）
+  await callGAS({
+    action: 'saveFuelProject',
+    month, person, attrType, attrTarget, amount, supplement,
+    key: fuelProjKey,   // GAS 端以此 key 比對覆蓋
+  });
 }
 
 // 全量暫存 _fuelProjList（🔄 前呼叫）
@@ -3262,15 +3245,18 @@ async function queryMapsFR(rid, i) {
   const txtEl = document.getElementById(`fr-km-txt-${rid}-${i}`);
   const kmEl  = document.getElementById(`fr-km-${rid}-${i}`);
   if (txtEl) txtEl.textContent = '查詢中...';
-  try {
-    const res = await callGAS({ action: 'getDirections', origin: start, destination: end });
-    const km  = res.distanceKm || 0;
-    if (kmEl)  kmEl.value = km;
-    if (txtEl) txtEl.textContent = `${km} 公里`;
-    saveFRs(rid);
-  } catch(e) {
-    if (txtEl) txtEl.textContent = '查詢失敗';
+  // 修正：原本呼叫不存在的 action 'getDirections'（GAS 路由僅有 'getDistance'），
+  // 且參數名為 'dest' 而非 'destination'，導致永遠落入未知 action 分支、查詢必定
+  // 失敗，但 UI 因未檢查 res.success 而靜默顯示「0 公里」，看起來像是查到距離 0
+  const res = await callGAS({ action: 'getDistance', origin: start, dest: end });
+  if (!res.success) {
+    if (txtEl) txtEl.textContent = '查詢失敗：' + (res.error || '未知錯誤');
+    return;
   }
+  const km = res.km || 0;
+  if (kmEl)  kmEl.value = km;
+  if (txtEl) txtEl.textContent = `${km} 公里`;
+  saveFRs(rid);
 }
 
 function setCat(id, cat) {
@@ -3304,7 +3290,8 @@ async function delR(id) {
   if (!r) return;
   const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
   if (key) {
-    try { await callGAS({ action: 'deleteOcrResult', key }); } catch(e) { /* 靜默 */ }
+    const res = await callGAS({ action: 'deleteOcrResult', key });
+    if (!res.success) toast(`⚠️ 「${r.vendor||'此筆'}」後端刪除失敗：${res.error||'未知錯誤'}（已從畫面移除）`);
   }
   S.receipts = S.receipts.filter(x => x.id !== id);
   renderOCRResults();
@@ -3327,11 +3314,12 @@ async function delSelected() {
   const btn = document.getElementById('btnDelSelected');
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 刪除中...'; }
 
-  let done = 0;
+  let done = 0, failed = 0;
   for (const r of selected) {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : '');
     if (key) {
-      try { await callGAS({ action: 'deleteOcrResult', key }); } catch(e) { /* 靜默 */ }
+      const res = await callGAS({ action: 'deleteOcrResult', key });
+      if (!res.success) failed++;
     }
     S.receipts = S.receipts.filter(x => x.id !== r.id);
     done++;
@@ -3341,7 +3329,8 @@ async function delSelected() {
   renderOCRResults();
   updateStats();
   syncAllOcrChk();
-  toast(`🗑 已刪除 ${done} 筆`);
+  if (failed === 0) toast(`🗑 已刪除 ${done} 筆`);
+  else toast(`🗑 已從畫面移除 ${done} 筆，其中 ${failed} 筆後端刪除失敗`);
 }
 
 // 全選 / 全不選
@@ -3821,9 +3810,6 @@ function openScheduleNav() {
   closeNavMenu();
   switchSection('schedule');
 }
-function closeSettingsModal() {
-  switchSection('project');
-}
 
 // ════════════════════════════════════════════════════════════
 // NAVIGATION
@@ -3935,21 +3921,30 @@ async function doAddProject() {
 }
 
 // 載入專案列表
-async function loadProjectList(showToast) {
+async function loadProjectList(showToast, _isRetry) {
   const tbody   = document.getElementById('projListTbl');
   const cntEl   = document.getElementById('projListCnt');
   if (tbody) tbody.innerHTML = loadingRow(8);
-  try {
-    const res = await callGAS({ action: 'getProjects' });
-    const rows = res.rows || [];
-    if (cntEl) cntEl.textContent = rows.length + ' 筆';
-    renderProjectList(rows);
-    flashNavSyncDone('project');
-    if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
-  } catch(e) {
+  // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
+  // 必須明確檢查 res.success，否則請求失敗時 res.rows 是 undefined，
+  // `undefined || []` 會被誤判成「成功但無資料」而顯示「尚無專案」
+  const res = await callGAS({ action: 'getProjects' });
+  if (!res.success) {
     if (tbody) tbody.innerHTML = errorRow(8);
-    if (showToast) toast('❌ 載入失敗');
+    if (showToast) toast('❌ 載入失敗：' + (res.error || '未知'));
+    return;
   }
+  // 首次載入（尚無任何快取）若回傳空清單，靜默重試一次再顯示，避免登入瞬間
+  // 多個請求同時打到 GAS（loadConfig/loadProjectsForBoard 等）造成的偶發延遲
+  // 被誤判為「真的沒有專案」
+  if (!res.rows?.length && !S._projList && !_isRetry) {
+    return loadProjectList(showToast, true);
+  }
+  const rows = res.rows || [];
+  if (cntEl) cntEl.textContent = rows.length + ' 筆';
+  renderProjectList(rows);
+  flashNavSyncDone('project');
+  if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
 // 渲染專案列表（newest first，已由 GAS 排序）
@@ -3992,21 +3987,26 @@ function renderProjectList(rows) {
 // ════════════════════════════════════════════════════════════
 // 待辦事項 (Tasks)
 // ════════════════════════════════════════════════════════════
-async function loadTasks() {
+async function loadTasks(_isRetry) {
   const list = document.getElementById('taskList');
   if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
   setNavSyncStatus('todo', '同步中...', true);
-  try {
-    const res  = await callGAS({ action: 'getTasks' });
-    const rows = res.rows || [];
-    S._taskList = rows;
-    renderTaskList();
-    setNavSyncStatus('todo', '✅ 同步完成 ' + now());
-    flashNavSyncDone('todo');
-  } catch(e) {
+  // callGAS 永遠不會 reject，必須明確檢查 res.success，否則失敗時會誤顯示
+  // 「✅ 同步完成」且任務清單變成空白，使用者會誤以為待辦事項真的被清空
+  const res = await callGAS({ action: 'getTasks' });
+  if (!res.success) {
     if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
     setNavSyncStatus('todo', '❌ 連線失敗，請重試');
+    return;
   }
+  // 首次載入若回傳空清單，靜默重試一次，避免登入瞬間多請求併發造成的偶發延遲
+  if (!res.rows?.length && !S._taskList && !_isRetry) {
+    return loadTasks(true);
+  }
+  S._taskList = res.rows || [];
+  renderTaskList();
+  setNavSyncStatus('todo', '✅ 同步完成 ' + now());
+  flashNavSyncDone('todo');
 }
 
 function renderTaskList() {
@@ -4105,19 +4105,6 @@ function pjBlankPeriod() {
            invoiced:false, invoiceDate:'', paid:false, payDate:'',
            invAccepted:false,
            invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'' };
-}
-
-// 業主端：accepted = 驗收完成，invoiced = 已開票(財務)，paid = 已收款(業主付我)
-function pjClientStatus(c) {
-  if (c.paid && c.invoiced)                   return { label:'已完成', cls:'bd-green' };
-  if (c.accepted || c.invoiced || c.paid)      return { label:'進行中', cls:'bd-blue'  };
-  return                                              { label:'未開始', cls:'bd-muted' };
-}
-// 廠商端：invAccepted = 驗收完成，invReceived = 已收票(廠商開票給我)，vendorPaid = 已付款(我付廠商)
-function pjVendorPeriodStatus(c) {
-  if (c.vendorPaid && c.invReceived)                      return { label:'已完成', cls:'bd-green' };
-  if (c.invAccepted || c.invReceived || c.vendorPaid)      return { label:'進行中', cls:'bd-blue'  };
-  return                                                          { label:'未開始', cls:'bd-muted' };
 }
 
 async function loadProjectsForBoard(_isRetry) {
@@ -4341,7 +4328,7 @@ function pjRenderDetail(p) {
     ? S._projExpenses[p.id].reduce((s,e)=>s+(Number(e.amount)||0),0) : null;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
-  // ── 金額摘要（item3: 預收款 + 已收款 - 已付款 - 費用 = 淨利）──────
+  // ── 金額摘要（item3: 合約已完成收款/合約金額 - 廠商已完成付款/廠商總額 - 費用 = 淨利分子/分母）──
   // item4: 與業主端進度條口徑一致，僅計入「已完成」（開票日期+已收款+收款日期）的期款
   const paidAmt    = clientItems.reduce((s,c)=>s+((!!c.invoiceDate && c.invoiced && c.paid && !!c.payDate)?Number(c.amount||0)-Number(c.prepayDeduct||0):0),0);
   const vendorPaidAmt = vendors.reduce((s,v)=>{
@@ -4349,26 +4336,23 @@ function pjRenderDetail(p) {
     return s + (v.periods||[]).reduce((t,c)=>t+((c.invReceived && !!c.invReceivedDate && !!c.vendorPayDate)?Number(c.amount||0):0),0);
   },0);
   const expAmt      = expenseAmt || 0;
-  const prepayAmt   = prepay.enabled ? Number(prepay.amount||0) : 0;
-  const netAmt      = prepayAmt + paidAmt - vendorPaidAmt - expAmt;
+  // item3: 淨利分子/分母 — 不再計入預收款，預收款已透過業主端區塊的紫色 badge 顯示，
+  // 此處只反映「已完成收款 vs 合約總額」扣除廠商與費用後的進度比例，避免重複呈現
+  const netNumerator   = paidAmt - vendorPaidAmt - expAmt;
+  const netDenominator = contractAmt - vendorAmt - expAmt;
   const summaryHtml = `<div style="padding:12px 16px;background:var(--surface2);border-radius:10px;
     font-size:14px;margin-bottom:18px">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">
-      ${prepay.enabled ? `
-      <span style="color:var(--muted)">預收款</span>
-      <span style="font-weight:800;font-family:monospace;color:#7c3aed">$${prepayAmt.toLocaleString()}</span>
-      <span style="color:var(--muted)">+</span>
-      ` : ''}
-      <span style="color:var(--muted)">已收款</span>
-      <span style="font-weight:800;font-family:monospace">$${paidAmt.toLocaleString()}</span>
+      <span style="color:var(--muted)">合約</span>
+      <span style="font-weight:800;font-family:monospace">$${paidAmt.toLocaleString()} / $${contractAmt.toLocaleString()}</span>
       <span style="color:var(--muted)">-</span>
-      <span style="color:var(--muted)">已付款</span>
-      <span style="font-weight:800;font-family:monospace">$${vendorPaidAmt.toLocaleString()}</span>
+      <span style="color:var(--muted)">廠商</span>
+      <span style="font-weight:800;font-family:monospace">$${vendorPaidAmt.toLocaleString()} / $${vendorAmt.toLocaleString()}</span>
       <span style="color:var(--muted)">-</span>
       <span style="color:var(--muted)">費用</span>
       <span style="font-weight:800;font-family:monospace">${expenseAmt!==null?'$'+expAmt.toLocaleString():'—'}</span>
       <span style="color:var(--muted)">=</span>
-      <span style="font-weight:800;font-family:monospace;color:${netAmt>=0?'var(--green)':'var(--red)'}">$${netAmt.toLocaleString()}</span>
+      <span style="font-weight:800;font-family:monospace;color:${netNumerator>=0?'var(--green)':'var(--red)'}">$${netNumerator.toLocaleString()} / $${netDenominator.toLocaleString()}</span>
     </div>
   </div>`;
 
@@ -4473,11 +4457,6 @@ function pjRenderDetail(p) {
   `;
 }
 
-function pjToggleEl(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
-}
-
 // 業主端展開/收合：同步寫回 S._clientExpand，確保重新渲染後狀態不會被重置
 function pjToggleClient(projectId) {
   S._clientExpand = S._clientExpand || {};
@@ -4495,11 +4474,6 @@ function pjToggleVendor(projectId, vendorIndex) {
   S._vendorExpand[key] = next;
   const el = document.getElementById('pj-vendor-'+projectId+'-'+vendorIndex);
   if (el) el.style.display = next ? 'block' : 'none';
-}
-
-function pjToggleSection(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
 function renderProjExpenseList(items, proj) {
@@ -4625,18 +4599,6 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
       else { toast('❌ ' + (res.error||'更新失敗')); }
     }
   });
-}
-
-// ── 共用：儲存 + 重新整理 ──────────────────────────────────
-async function _pjSaveAndRefresh(p) {
-  const res = await callGAS({ action:'updateProject', id:p.id,
-    client:p.client||[], vendors:p.vendors||[] });
-  if (res.success) {
-    renderProjectBoard();
-    if (S._pgProject && S._pgProject.id===p.id) pgLoadProject(p.id);
-  } else {
-    toast('❌ ' + (res.error||'更新失敗'));
-  }
 }
 
 // ── 驗收完成：業主端標記 invoiced=true，廠商端標記 invReceived=true ──
@@ -5355,40 +5317,6 @@ function showConfirm(msg) {
 }
 
 // ════════════════════════════════════════════════════════════
-// GOOGLE MAPS — 查詢最短距離 + 靜態地圖截圖
-// GAS 回傳：{ km, distText, duration }
-// ════════════════════════════════════════════════════════════
-async function queryMaps(pid, i) {
-  const origin = document.getElementById(`a2s-${pid}-${i}`)?.value?.trim();
-  const dest   = document.getElementById(`a2e-${pid}-${i}`)?.value?.trim();
-  if (!origin || !dest) { toast('⚠️ 請填入起點和終點'); return; }
-
-  const resEl = document.getElementById(`a2km-result-${pid}-${i}`);
-  const kmEl  = document.getElementById(`a2km-${pid}-${i}`);
-  if (resEl) resEl.textContent = '查詢中...';
-
-  try {
-    const res = await callGAS({ action: 'getDistance', origin, dest });
-    if (!res.success) throw new Error(res.error || 'GAS 查詢失敗');
-
-    const { km, distText, duration } = res;
-    if (kmEl) kmEl.value = km;
-
-    const mapsLink = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${encodeURIComponent(dest)}`;
-    if (resEl) {
-      resEl.innerHTML =
-        `<span style="font-size:13px;font-weight:700">📍 ${distText}（${km} km）· ⏱ ${duration}</span>` +
-        `&nbsp;<a href="${mapsLink}" target="_blank" style="color:var(--accent);font-size:13px">↗ Maps</a>`;
-    }
-    toast(`✅ 最短距離：${distText}（${km} km）`);
-  } catch(e) {
-    if (resEl) resEl.textContent = '查詢失敗';
-    toast('❌ Maps 查詢失敗：' + e.message);
-  }
-}
-
-
-// ════════════════════════════════════════════════════════════
 // STASH
 // ════════════════════════════════════════════════════════════
 async function stashThenExport() {
@@ -5455,13 +5383,6 @@ async function doStashAll(silent = false) {
   }
 }
 
-function syncOcrMonth(val) {
-  const el = document.getElementById('global-month');
-  if (el && val) el.value = val;
-  loadDriveFiles();
-  loadExportHistory(false);
-}
-
 // ════════════════════════════════════════════════════════════
 // EXPORT HISTORY（匯出紀錄頁）
 // ════════════════════════════════════════════════════════════
@@ -5471,32 +5392,33 @@ async function loadExportHistory(showToast) {
   const tbody  = document.getElementById('histTblBody');
   const cntEl  = document.getElementById('histCnt');
   if (tbody) tbody.innerHTML = loadingRow(3);
-  try {
-    const res = await callGAS({ action: 'getExportHistory', person, month });
-    const rows = res.rows || [];
-    if (cntEl) cntEl.textContent = rows.length + ' 筆';
-    if (!tbody) return;
-    if (!rows.length) {
-      tbody.innerHTML = emptyRow(3, '此月份尚無匯出紀錄');
-    } else {
-      tbody.innerHTML = rows.map(r => `<tr>
-        <td style="font-size:14px;font-weight:700">
-          ${r.pdfUrl
-            ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
-            : `<span style="color:var(--muted)">📄 ${r.label||'PDF'}</span>`}
-        </td>
-        <td style="font-size:13px;color:var(--muted);white-space:nowrap">${r.exportedAt||''}</td>
-        <td>${r.pdfUrl
-          ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-ghost btn-sm">↗ 開啟</a>`
-          : ''}</td>
-      </tr>`).join('');
-    }
-    flashNavSyncDone('expense');
-    if (showToast) toast(`📋 載入 ${rows.length} 筆匯出紀錄`);
-  } catch(e) {
+  // callGAS 永遠不會 reject，必須明確檢查 res.success
+  const res = await callGAS({ action: 'getExportHistory', person, month });
+  if (!res.success) {
     if (tbody) tbody.innerHTML = errorRow(3, '❌ 載入失敗，請點 ☰ 重試');
-    if (showToast) toast('❌ 載入失敗：' + e.message);
+    if (showToast) toast('❌ 載入失敗：' + (res.error || '未知'));
+    return;
   }
+  const rows = res.rows || [];
+  if (cntEl) cntEl.textContent = rows.length + ' 筆';
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = emptyRow(3, '此月份尚無匯出紀錄');
+  } else {
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td style="font-size:14px;font-weight:700;min-width:200px">
+        ${r.pdfUrl
+          ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
+          : `<span style="color:var(--muted)">📄 ${r.label||'PDF'}</span>`}
+      </td>
+      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${r.exportedAt||''}</td>
+      <td>${r.pdfUrl
+        ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-ghost btn-sm">↗ 開啟</a>`
+        : ''}</td>
+    </tr>`).join('');
+  }
+  flashNavSyncDone('expense');
+  if (showToast) toast(`📋 載入 ${rows.length} 筆匯出紀錄`);
 }
 
 // ════════════════════════════════════════════════════════════
