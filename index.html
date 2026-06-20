@@ -938,8 +938,12 @@ function finishLogin(person) {
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = document.getElementById('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
-  loadConfig(); // loadConfig 結尾會呼叫 loadDriveFiles
+  // item3: 先切換分頁（立即顯示「載入中」UI），再觸發兩個資料載入請求，
+  // 並讓 loadProjectsForBoard 的請求略微錯開 loadConfig，
+  // 避免兩個請求同時打到同一個 GAS Web App 部署造成互相延遲，
+  // 偶發導致其中一個請求逾時/被截斷而誤判為「成功但無資料」
   switchSection('project'); // 登入後預設顯示「專案」分頁
+  loadConfig(); // loadConfig 結尾會呼叫 loadDriveFiles
 }
 
 function showBindNameUI() {
@@ -1252,7 +1256,7 @@ async function loadOcrResults(auto = false) {
 
   const rows = res.rows || [];
   if (!rows.length) {
-    if (!auto) toast('ℹ️ OcrResults 無紀錄（或全部已標記刪除）');
+    if (!auto) toast('ℹ️ 本月尚無辨識紀錄');
     return;
   }
 
@@ -1987,6 +1991,8 @@ function updateOtherApplyBtn() {
 }
 
 async function applyOtherAttr() {
+  const btn = document.getElementById('btn-other-apply');
+  const btnOriginalHtml = btn ? btn.innerHTML : '';
   // 容錯：若使用者只是輸入文字但沒有點選下拉清單項目，
   // 嘗試用目前輸入框文字反查唯一符合的項目，避免「明明打完字卻沒套用成功」的誤解
   if (!_otherSelectedItem) {
@@ -2012,6 +2018,8 @@ async function applyOtherAttr() {
   const targets = S.receipts
     .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'));
   targets.forEach(r => upR(r.id, 'otherAttr', item.id));
+  // 顯示 loading：避免使用者在多筆儲存進行中重複點擊，也讓畫面有明確的處理中提示
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div>'; }
   const results = await Promise.all(targets.map(r => stashSingle(r.id)));
   // 若有儲存失敗，回滾該筆的本地歸屬狀態，避免畫面顯示「已設定歸屬」
   // 但實際上後端沒有儲存成功的不一致情況
@@ -2024,8 +2032,7 @@ async function applyOtherAttr() {
   const inp = document.querySelector('#fd-other-attr .fd-input');
   if (inp) inp.value = '';
   _otherSelectedItem = null;
-  const btn = document.getElementById('btn-other-apply');
-  if (btn) btn.disabled = true;
+  if (btn) { btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
 
   // ── 套用後檢查：若仍有未設定歸屬的項目，全部取消勾選，方便使用者逐一勾選設定歸屬；
   //    若已全部設定完畢，全部勾選方便匯出 ──
@@ -2676,7 +2683,7 @@ async function saveFuelProjToSheet(silent = false) {
 async function queryFuelMaps(idx, fi) {
   const start = S.config.startAddress || '';
   const end   = document.getElementById(`fpe-${idx}-${fi}`)?.value?.trim();
-  if (!start || !end) { toast('⚠️ 請先在 SystemSettings 設定 START_ADDRESS 並填入終點'); return; }
+  if (!start || !end) { toast('⚠️ 請先請管理員設定出發地址，並填入終點地址'); return; }
   const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
   const kmEl  = document.getElementById(`fpkm-${idx}-${fi}`);
   if (txtEl) txtEl.textContent = '查詢中...';
@@ -3320,7 +3327,7 @@ async function delSelected() {
   if (!selected.length) { toast('⚠️ 請先勾選要刪除的項目'); return; }
 
   const confirmed = await showConfirm(
-    `確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步標記刪除 OcrResults，無法復原。`
+    `確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步刪除後端的辨識紀錄，無法復原。`
   );
   if (!confirmed) return;
 
@@ -3494,7 +3501,7 @@ function renderDupModal(r) {
            <div style="color:var(--muted);margin-top:4px">跨月不可覆蓋，請選擇「新增流水號」保留本筆，或確認是否為重複申請。</div>
          </div>`
       : `<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
-           <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於 OcrResults</div>
+           <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於系統紀錄中</div>
            <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
            <div style="color:#888;margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
          </div>`
@@ -4120,7 +4127,7 @@ function pjVendorPeriodStatus(c) {
   return                                                          { label:'未開始', cls:'bd-muted' };
 }
 
-async function loadProjectsForBoard() {
+async function loadProjectsForBoard(_isRetry) {
   const board = document.getElementById('projBoard');
   if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
   setNavSyncStatus('project', '同步中...', true);
@@ -4130,6 +4137,12 @@ async function loadProjectsForBoard() {
     // `undefined || []` 會被誤判成「成功但無資料」而顯示「尚無專案」，
     // 而非正確顯示「載入失敗」（這正是登入剛完成、與 loadConfig() 同時送出請求時偶發的問題）
     if (!res.success) throw new Error(res.error || '取得專案失敗');
+    // item3: 首次載入（尚無任何快取）若回傳空清單，靜默重試一次再顯示，
+    // 避免登入瞬間偶發的後端延遲被誤判為「真的沒有專案」，
+    // 使用者得手動重新整理才能看到資料
+    if (!res.rows?.length && !S._pjBoard && !_isRetry) {
+      return loadProjectsForBoard(true);
+    }
     S._pjBoard = res.rows || [];
     // 重新整理時順帶清除目前顯示專案的費用快取，確保專案費用一併刷新
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
@@ -4402,25 +4415,20 @@ function pjRenderDetail(p) {
     </div>
   </div>`;
 
-  // ── item4: 合約 - 廠商 = 毛利 ───────────────────────────────
+  // ── item6: 合約 - 廠商 = 餘額（已併入下方「專案費用」標題顯示，不再單獨佔一行）──
   const grossAmt   = contractAmt - vendorAmt;
-  const midSummary = `<div style="padding:10px 14px;background:var(--surface2);border-radius:10px;
-    font-size:13px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
-    <span style="color:var(--muted)">合約</span>
-    <span style="font-weight:800;font-family:monospace">$${contractAmt.toLocaleString()}</span>
-    <span style="color:var(--muted)">-</span>
-    <span style="color:var(--muted)">廠商</span>
-    <span style="font-weight:800;font-family:monospace">$${vendorAmt.toLocaleString()}</span>
-    <span style="color:var(--muted)">=</span>
-    <span style="font-weight:800;font-family:monospace;color:${grossAmt>=0?'var(--green)':'var(--red)'}">$${grossAmt.toLocaleString()}</span>
-  </div>`;
 
   // ── 廠商端 ──
   const vendorTotal = vendorAmt;
+  // item5: 廠商端標題旁顯示「已完成付款總額 / 合約總額」，已完成定義同各廠商卡片（三條件皆滿足）
+  const vendorTotalDoneAmt = vendors.reduce((s,v)=>{
+    return s + (v.periods||[]).reduce((t,c)=>
+      t + ((c.invReceived && !!c.invReceivedDate && !!c.vendorPayDate) ? Number(c.amount||0) : 0), 0);
+  },0);
   const vendorHtml = `<div style="margin-bottom:18px">
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🚚 廠商端
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
-        $${vendorTotal.toLocaleString()}</span></div>
+        $${vendorTotalDoneAmt.toLocaleString()} / $${vendorTotal.toLocaleString()}</span></div>
     ${!vendors.length
       ? '<div style="color:var(--muted);font-size:13px">尚無廠商</div>'
       : vendors.map((v,vi)=>{
@@ -4464,10 +4472,10 @@ function pjRenderDetail(p) {
     ? renderProjExpenseList(S._projExpenses[p.id], p)
     : `<div style="color:var(--muted);font-size:13px">載入中...</div>`;
 
-  return summaryHtml + clientHtml + vendorHtml + midSummary + `
+  return summaryHtml + clientHtml + vendorHtml + `
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🧾 專案費用
       <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">
-        ${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'未載入'}</span></div>
+        ${expenseAmt!==null?'$'+expenseAmt.toLocaleString():'未載入'} / $${grossAmt.toLocaleString()}</span></div>
     <div id="pj-expense-${p.id}">${expenseHtml}</div>
   `;
 }
@@ -4785,6 +4793,9 @@ async function loadFinance() {
     const rows = S._pjBoard || [];
     if (!rows.length) {
       const res = await callGAS({ action:'getProjects' });
+      // 同步 loadProjectsForBoard 的修正：請求失敗時不可覆寫成空陣列，
+      // 否則會把可能已存在的資料意外清空
+      if (!res.success) throw new Error(res.error || '取得專案失敗');
       S._pjBoard = res.rows || [];
     }
 
@@ -5430,7 +5441,7 @@ async function doStashAll(silent = false) {
   const res = await callGAS({ action: 'stashSelected', updates });
 
   if (!silent) {
-    if (res.success) toast(`✅ 已暫存 ${res.updated} 筆至 OcrResults`);
+    if (res.success) toast(`✅ 已暫存 ${res.updated} 筆`);
     else toast('❌ 暫存失敗：' + (res.error || '未知'));
   }
 }
