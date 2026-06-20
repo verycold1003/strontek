@@ -153,7 +153,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s ease}
 
 /* Spinner */
-.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:rot .7s linear infinite}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(127,127,127,.25);border-top-color:currentColor;border-radius:50%;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 
 /* Receipt card */
@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform K</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Expense Management Platform v1</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -417,8 +417,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </div>
         <div style="overflow-x:auto">
           <table class="tbl" id="histTbl">
-            <thead><tr><th>附件</th><th>匯出時間</th><th>專案</th><th></th></tr></thead>
-            <tbody id="histTblBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:28px">
+            <thead><tr><th>附件</th><th style="white-space:nowrap">匯出時間</th><th></th></tr></thead>
+            <tbody id="histTblBody"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:28px">
               <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
                 <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
                 載入中...
@@ -529,16 +529,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
           </div>
           <input type="hidden" id="np-prepay-enabled" value="false">
-          <div class="fg2" id="np-prepay-fields" style="display:none">
+          <div id="np-prepay-fields" style="display:none">
             <div>
               <label class="lbl">預收金額</label>
               <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
             </div>
-            <div>
-              <label class="lbl">每期扣回比例 (%)</label>
-              <input type="number" class="inp" id="np-prepay-deductpct" placeholder="10" min="0" max="100" value="10">
-            </div>
           </div>
+          <!-- item1: 每期扣回比例已移至「進度設定」頁，新增專案時不再重複設定 -->
+          <input type="hidden" id="np-prepay-deductpct" value="10">
         </div>
         <!-- 按鈕：left bottom -->
         <div style="margin-top:4px">
@@ -613,18 +611,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </div>
           <div>
             <label class="lbl">預收款扣抵方式（僅套用於業主端）</label>
-            <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px">
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                <input type="radio" name="pg-deduct-mode" id="pg-deduct-mode-pct" value="percent_each" checked>
-                每期扣回
-                <input type="number" class="inp" id="pg-deduct-pct" min="0" max="100" step="0.1" style="width:70px;display:inline-block;padding:4px 8px" value="10">
-                %
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                <input type="radio" name="pg-deduct-mode" id="pg-deduct-mode-last" value="last_full">
-                最後一期扣回剩餘全部
-              </label>
-              <button class="btn btn-ghost btn-sm" style="align-self:flex-start;margin-top:2px" onclick="pgApplyDeductMethod()">套用到全部分期</button>
+            <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">
+              <span style="font-size:13px">每期扣回</span>
+              <input type="number" class="inp" id="pg-deduct-pct" min="0" max="100" step="0.1" style="width:70px;display:inline-block;padding:4px 8px" value="10">
+              <span style="font-size:13px">%</span>
+              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="pgApplyDeductMethod()">套用到全部分期</button>
             </div>
           </div>
         </div>
@@ -2019,7 +2010,7 @@ async function applyOtherAttr() {
     .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'));
   targets.forEach(r => upR(r.id, 'otherAttr', item.id));
   // 顯示 loading：避免使用者在多筆儲存進行中重複點擊，也讓畫面有明確的處理中提示
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div>'; }
+  if (btn) { btn.disabled = true; btn.style.opacity = '1'; btn.innerHTML = '<div class="spin"></div> 套用中...'; }
   const results = await Promise.all(targets.map(r => stashSingle(r.id)));
   // 若有儲存失敗，回滾該筆的本地歸屬狀態，避免畫面顯示「已設定歸屬」
   // 但實際上後端沒有儲存成功的不一致情況
@@ -2032,7 +2023,7 @@ async function applyOtherAttr() {
   const inp = document.querySelector('#fd-other-attr .fd-input');
   if (inp) inp.value = '';
   _otherSelectedItem = null;
-  if (btn) { btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
+  if (btn) { btn.style.opacity = ''; btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
 
   // ── 套用後檢查：若仍有未設定歸屬的項目，全部取消勾選，方便使用者逐一勾選設定歸屬；
   //    若已全部設定完畢，全部勾選方便匯出 ──
@@ -2501,7 +2492,7 @@ function addFuelFR(idx) {
   const fp = window._fuelProjList[idx];
   if (!fp) return;
   fp.fieldRows = fp.fieldRows || [];
-  fp.fieldRows.push({ date:'', reason:'', end:'', km:'', isRound:true });
+  fp.fieldRows.push({ date:'', reason:'', end:'', km:'', isRound:true, start: S.config.startAddress || '' });
   const fi   = fp.fieldRows.length - 1;
   const list = document.getElementById(`fuel-fr-list-${idx}`);
   if (list) {
@@ -2577,6 +2568,8 @@ function saveFuelFRs(idx) {
     fr.end     = document.getElementById(`fpe-${idx}-${fi}`)?.value    || fr.end;
     fr.km      = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || fr.km;
     fr.isRound = document.getElementById(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    // item5: 補上起點，避免附件二的「起點」欄位空白；若已有值（例如曾手動調整）不覆蓋
+    if (!fr.start) fr.start = S.config.startAddress || '';
   });
   _updateMileRowAmt(idx);  // 即時更新「核算 $xxx」badge
   updateFuelDiff();
@@ -2695,7 +2688,7 @@ async function queryFuelMaps(idx, fi) {
     if (kmEl) kmEl.value = km;
     // 更新 fieldRows km
     const fp = window._fuelProjList[idx];
-    if (fp?.fieldRows?.[fi]) { fp.fieldRows[fi].km = km; fp.fieldRows[fi].end = end; }
+    if (fp?.fieldRows?.[fi]) { fp.fieldRows[fi].km = km; fp.fieldRows[fi].end = end; fp.fieldRows[fi].start = start; }
     const isRound = fp?.fieldRows?.[fi]?.isRound !== false;
     const amt = Math.round(km * (isRound ? 2 : 1) * rate);
     if (txtEl) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
@@ -3876,7 +3869,7 @@ function setNpPrepay(enabled) {
   if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
     b.classList.toggle('on', i === (enabled ? 1 : 0)));
   const fields = document.getElementById('np-prepay-fields');
-  if (fields) fields.style.display = enabled ? 'grid' : 'none';
+  if (fields) fields.style.display = enabled ? 'block' : 'none';
 }
 
 // 新增專案
@@ -4981,16 +4974,14 @@ function pgPopulateProjectSelect() {
   if (inp) inp.value = curItem ? (curItem.id + ' ' + curItem.name) : '';
 }
 
-// item2: 將「進度設定」頁的扣抵方式 UI（radio + 輸入框）同步成目前載入專案
+// item2: 將「進度設定」頁的扣抵方式 UI（僅每期扣回 % 輸入框）同步成目前載入專案
 // 自己的 prepay.deductPct 設定值，確保跟「新增專案」表單顯示一致，不再各自為政
 function pgPopulateDeductMethods() {
   const pctInput = document.getElementById('pg-deduct-pct');
-  const modePct  = document.getElementById('pg-deduct-mode-pct');
-  if (!pctInput || !modePct) return;
+  if (!pctInput) return;
   const p = S._pgProject;
   const prepay = (p && p.prepay) || {enabled:false,amount:0,deductPct:10};
   pctInput.value = prepay.deductPct || 10;
-  modePct.checked = true; // 預設停在「每期扣回」模式，使用者可自行切換成「最後一期」
 }
 
 function pgPopulateTargetSelect() {
@@ -5138,30 +5129,24 @@ function pgRemoveVendor(vi) {
 }
 
 // 套用預收款扣抵方式至「業主端」全部分期（依序計算，可手動覆寫個別金額）
-// item2: 改為讀取該專案自己的扣抵設定（radio + 輸入框），不再依賴全域 SystemSettings 模板，
+// item2: 改為讀取該專案自己的扣抵設定（僅每期扣回 % 輸入框），不再依賴全域 SystemSettings 模板，
 // 避免「新增專案」表單裡的每期扣回比例跟「進度設定」頁顯示的比例互相脫鉤、各自為政
 function pgApplyDeductMethod() {
   const p = S._pgProject;
   if (!p) { toast('請先選擇專案'); return; }
-  const mode = document.querySelector('input[name="pg-deduct-mode"]:checked')?.value || 'percent_each';
   const pct  = parseFloat(document.getElementById('pg-deduct-pct')?.value) || 0;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
   if (!prepay.enabled) { toast('此專案未啟用預收款'); return; }
 
   // 同步寫回專案的 deductPct，讓「新增專案」表單跟「進度設定」頁顯示一致
-  if (mode === 'percent_each') prepay.deductPct = pct;
+  prepay.deductPct = pct;
   p.prepay = prepay;
 
   const items = p.client || [];
   let remaining = Number(prepay.amount) || 0;
   items.forEach((c,idx) => {
     const amount = Number(c.amount) || 0;
-    let deduct = 0;
-    if (mode === 'percent_each') {
-      deduct = amount * (pct/100);
-    } else if (mode === 'last_full') {
-      deduct = (idx === items.length-1) ? remaining : 0;
-    }
+    let deduct = amount * (pct/100);
     deduct = Math.min(deduct, amount, remaining);
     deduct = Math.max(deduct, 0);
     c.prepayDeduct = Math.round(deduct);
@@ -5169,7 +5154,7 @@ function pgApplyDeductMethod() {
   });
   if ((document.getElementById('pg-target-select')?.value)==='client') pgRenderPeriods();
   pgUpdatePrepaySummary();
-  const modeLabel = mode === 'percent_each' ? `每期扣回 ${pct}%` : '最後一期扣回剩餘全部';
+  const modeLabel = `每期扣回 ${pct}%`;
   toast('已套用「' + modeLabel + '」，剩餘預收款 $' + remaining.toLocaleString());
 }
 
@@ -5400,12 +5385,19 @@ async function queryMaps(pid, i) {
 // ════════════════════════════════════════════════════════════
 async function stashThenExport() {
   const btn = document.getElementById('btnGoExport');
+  const btnOriginalHtml = btn ? btn.innerHTML : '📄 匯出 Pdf →';
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 準備中...'; }
   try {
     await doStashAll(true); // true = 靜默模式
   } catch(e) { /* 靜默 */ }
-  if (btn) { btn.disabled = false; btn.innerHTML = '📄 匯出 Pdf →'; }
-  await _doExport(true);
+  // item4: 不在此提前恢復按鈕，PDF 產生（_doExport 內的 exportAll 呼叫）才是真正
+  // 耗時的步驟，loading 應持續到那一步完成（成功或失敗）才解除
+  if (btn) { btn.innerHTML = '<div class="spin"></div> 產生 PDF 中...'; }
+  try {
+    await _doExport(true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = btnOriginalHtml; }
+  }
 }
 
 async function doStashAll(silent = false) {
@@ -5470,14 +5462,14 @@ async function loadExportHistory(showToast) {
   const month  = document.getElementById('global-month')?.value || '';
   const tbody  = document.getElementById('histTblBody');
   const cntEl  = document.getElementById('histCnt');
-  if (tbody) tbody.innerHTML = loadingRow(4);
+  if (tbody) tbody.innerHTML = loadingRow(3);
   try {
     const res = await callGAS({ action: 'getExportHistory', person, month });
     const rows = res.rows || [];
     if (cntEl) cntEl.textContent = rows.length + ' 筆';
     if (!tbody) return;
     if (!rows.length) {
-      tbody.innerHTML = emptyRow(4, '此月份尚無匯出紀錄');
+      tbody.innerHTML = emptyRow(3, '此月份尚無匯出紀錄');
     } else {
       tbody.innerHTML = rows.map(r => `<tr>
         <td style="font-size:14px;font-weight:700">
@@ -5485,8 +5477,7 @@ async function loadExportHistory(showToast) {
             ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
             : `<span style="color:var(--muted)">📄 ${r.label||'PDF'}</span>`}
         </td>
-        <td style="font-size:13px;color:var(--muted)">${r.exportedAt||''}</td>
-        <td style="font-size:13px;color:var(--muted)">${r.project||r.person||'—'}</td>
+        <td style="font-size:13px;color:var(--muted);white-space:nowrap">${r.exportedAt||''}</td>
         <td>${r.pdfUrl
           ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-ghost btn-sm">↗ 開啟</a>`
           : ''}</td>
@@ -5495,7 +5486,7 @@ async function loadExportHistory(showToast) {
     flashNavSyncDone('expense');
     if (showToast) toast(`📋 載入 ${rows.length} 筆匯出紀錄`);
   } catch(e) {
-    if (tbody) tbody.innerHTML = errorRow(4, '❌ 載入失敗，請點 ☰ 重試');
+    if (tbody) tbody.innerHTML = errorRow(3, '❌ 載入失敗，請點 ☰ 重試');
     if (showToast) toast('❌ 載入失敗：' + e.message);
   }
 }
