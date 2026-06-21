@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -1247,10 +1247,6 @@ async function loadOcrResults(auto = false) {
   }
 
   const rows = res.rows || [];
-  if (!rows.length) {
-    if (!auto) toast('ℹ️ 本月尚無辨識紀錄');
-    return;
-  }
 
   // 合併到 S.receipts（以 ocrKey 去重，ocrKey 是 Sheet Key 欄的唯一識別）
   const existKeys = new Set(S.receipts.map(r => r.ocrKey).filter(Boolean));
@@ -1297,11 +1293,17 @@ async function loadOcrResults(auto = false) {
   // 顯示同步完成（漢堡選單統一同步狀態）
   flashNavSyncDone('expense');
 
-  // OCR 頁：先渲染佇列 + 辨識結果（不等 fuelProj）
+  // OCR 頁：先渲染佇列 + 辨識結果（不等 fuelProj）。即使本月 OcrResults 沒有任何
+  // 紀錄（rows.length === 0）也必須執行這一步，否則 DOM 會停留在切換月份前的
+  // 舊資料，看起來像是月份篩選沒有生效（S.receipts 其實已被 onGlobalMonthChange
+  // 正確清空，只是沒有東西觸發重繪）
   renderQueue();
   renderOCRResults();
+  if (!rows.length && !auto) toast('ℹ️ 本月尚無辨識紀錄');
 
-  // 非同步還原 _fuelProjList（不管有無油資發票，Sheet 可能已有申請專案資料）
+  // 非同步還原 _fuelProjList（不管有無油資發票，Sheet 可能已有申請專案資料）。
+  // 這一步不可只在 rows.length > 0 時才執行，否則「本月沒有發票但有申請專案」
+  // 的情況會被跳過，導致切換月份後申請專案卡片同樣停留在舊資料
   const _fpPerson = S.user?.name || '';
   const _fpMonth  = document.getElementById('global-month')?.value || '';
   if (_fpPerson && _fpMonth) {
@@ -1320,7 +1322,7 @@ async function loadOcrResults(auto = false) {
   }
   if (!auto) {
     nav('ocr');
-    toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
+    if (rows.length) toast(`✅ 載入 ${added} 筆（共 ${rows.length} 筆，已過濾重複）`);
   } else if (added > 0) {
     toast(`📥 已載入 ${added} 筆歷史紀錄`);
   }
@@ -1767,7 +1769,13 @@ function renderOCRResults() {
   const hasFuelProj = (window._fuelProjList || []).length > 0;
   // 「申請專案」卡片（月定額/里程實報歸屬）與 OCR 收據數量無關，
   // 即使尚未上傳/辨識任何發票，只要已有設定的歸屬項目，仍須顯示油資 tab
-  if (!S.receipts.length && !hasFuelProj) { c.innerHTML = ''; updateStats(); return; }
+  if (!S.receipts.length && !hasFuelProj) {
+    c.innerHTML = '';
+    const doneBar = document.getElementById('ocrDoneBar');
+    if (doneBar) doneBar.style.display = 'none';
+    updateStats();
+    return;
+  }
 
   const sorted = [...S.receipts].sort((a, b) => {
     if (a._isNew !== b._isNew) return a._isNew ? -1 : 1;
@@ -4349,9 +4357,7 @@ function pjRenderDetail(p) {
       <span style="color:var(--muted)">費用</span>
       <span style="font-weight:800;font-family:monospace">${expenseAmt!==null?'$'+expAmt.toLocaleString():'—'}</span>
       <span style="color:var(--muted)">=</span>
-      <span style="font-weight:800;font-family:monospace;color:${netNumerator>=0?'var(--green)':'var(--red)'}">$${netNumerator.toLocaleString()}</span>
-      <span style="font-weight:800;font-family:monospace;color:var(--muted)">/</span>
-      <span style="font-weight:800;font-family:monospace;color:${netDenominator>=0?'var(--green)':'var(--red)'}">$${netDenominator.toLocaleString()}</span>
+      <span style="font-weight:800;font-family:monospace;color:${netNumerator>=0?'var(--green)':'var(--red)'}">$${netNumerator.toLocaleString()} / $${netDenominator.toLocaleString()}</span>
     </div>
   </div>`;
 
