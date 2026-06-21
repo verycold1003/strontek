@@ -613,6 +613,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div class="app-section" id="sec-finance" style="overflow-x:auto">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div class="pg-title" style="margin:0">💰 財務專區</div>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto" id="fin-export-report-btn"
+      onclick="exportProjectFinanceReport()">📊 匯出專案報表</button>
   </div>
 
   <!-- 待開票列表 -->
@@ -4803,6 +4805,33 @@ function ieRefreshClearBtn(fieldId) {
   btn.style.display = el.value ? 'inline-flex' : 'none';
 }
 
+
+// ════════════════════════════════════════════════════════════
+// 財務專區 — 匯出專案 Excel 報表（所有專案/部門/其他彙整）
+// ════════════════════════════════════════════════════════════
+async function exportProjectFinanceReport() {
+  const btn = document.getElementById('fin-export-report-btn');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 產生中...'; }
+  toast('⏳ 正在彙整所有專案/部門資料並產生報表...');
+  try {
+    const res = await callGAS({
+      action: 'exportProjectFinanceReport',
+      lineId: S.user?.lineId || '',
+    }, 60000);
+    if (res.success) {
+      toast('✅ 報表已產生');
+      // 與其他匯出流程一致：直接開啟 Drive 下載連結
+      window.open(res.downloadUrl || res.url, '_blank');
+    } else {
+      toast('❌ ' + (res.error || '匯出失敗'));
+    }
+  } catch (e) {
+    toast('❌ ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 // 財務專區 — 待發票（業主端）/ 待付款（廠商端）
