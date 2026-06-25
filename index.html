@@ -794,7 +794,7 @@ function getVisibleProjects() {
 // ── 共用 helper：統一原本散落各處的重複判斷/查詢 ───────────────
 // 目前選擇的申請月份（單一來源：漢堡選單的 #global-month）
 function curMonth() {
-  return document.getElementById('global-month')?.value || '';
+  return $('global-month')?.value || '';
 }
 // 依正負值統一上色（0 視為正，綠色）
 function colorBySign(n) {
@@ -828,9 +828,9 @@ function getMileageRate(yearMonth) {
 // ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   const ym = new Date().toISOString().slice(0,7);
-  document.getElementById('global-month').value = ym;
+  $('global-month').value = ym;
 
-  const dz = document.getElementById('dz');
+  const dz = $('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); onFilePick(e.dataTransfer.files); });
@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // LINE LOGIN
 // ════════════════════════════════════════════════════════════
 async function startLineLogin() {
-  const btn = document.getElementById('btnLineLogin');
+  const btn = $('btnLineLogin');
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 連線 GAS 中...'; }
 
   let chId = '', redirect = '', gasErr = '';
@@ -880,7 +880,7 @@ function handleLineCallback() {
   const code  = qs.get('code');
   const state = qs.get('state');
   if (!code) return;
-  document.getElementById('loginCallbackMsg').style.display = 'block';
+  $('loginCallbackMsg').style.display = 'block';
   if (state !== localStorage.getItem('line_state')) {
     toast('❌ LINE 登入 state 不符，請重試'); return;
   }
@@ -890,10 +890,10 @@ function handleLineCallback() {
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
   const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
   const CALLBACK_TIMEOUT_MS = 30000;  // 30 秒 timeout
-  const btnLine = document.getElementById('btnLineLogin');
+  const btnLine = $('btnLineLogin');
   function restoreLineBtn() {
     if (btnLine) { btnLine.disabled = false; btnLine.innerHTML = LINE_BTN_LABEL; }
-    document.getElementById('loginCallbackMsg').style.display = 'none';
+    $('loginCallbackMsg').style.display = 'none';
   }
   if (btnLine) { btnLine.disabled = true; btnLine.innerHTML = '<div class="spin"></div> 驗證中...'; }
   const callbackTimer = setTimeout(() => {
@@ -932,14 +932,14 @@ function handleLineCallback() {
 
 function finishLogin(person) {
   S.user = person;
-  document.getElementById('loginCallbackMsg').style.display = 'none';
-  document.getElementById('bindNameSection').style.display  = 'none';
-  document.getElementById('loginWrap').style.display = 'none';
+  $('loginCallbackMsg').style.display = 'none';
+  $('bindNameSection').style.display  = 'none';
+  $('loginWrap').style.display = 'none';
   document.body.classList.add('has-mainnav');
-  document.getElementById('mainNav').style.display = 'flex';
+  $('mainNav').style.display = 'flex';
   renderUserBar();
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
-  const tbl = document.getElementById('driveFileTbl');
+  const tbl = $('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
   // item3: 先切換分頁（立即顯示「載入中」UI），再觸發兩個資料載入請求，
   // 並讓 loadProjectsForBoard 的請求略微錯開 loadConfig，
@@ -950,22 +950,22 @@ function finishLogin(person) {
 }
 
 function showBindNameUI() {
-  document.getElementById('loginCallbackMsg').style.display = 'none';
-  document.getElementById('bindNameSection').style.display = 'block';
+  $('loginCallbackMsg').style.display = 'none';
+  $('bindNameSection').style.display = 'block';
   const b = S._pendingBind;
   if (b && b.lineName) {
-    const el = document.getElementById('bindLineName');
+    const el = $('bindLineName');
     if (el) el.textContent = 'LINE 顯示名稱：' + b.lineName;
   }
-  document.getElementById('bindNameInput').focus();
+  $('bindNameInput').focus();
 }
 
 async function doBindName() {
-  const name  = document.getElementById('bindNameInput').value.trim();
-  const errEl = document.getElementById('bindNameErr');
+  const name  = $('bindNameInput').value.trim();
+  const errEl = $('bindNameErr');
   errEl.style.display = 'none';
   if (!name) { errEl.textContent = '⚠️ 請輸入姓名'; errEl.style.display = 'block'; return; }
-  const btn = document.getElementById('btnBindName');
+  const btn = $('btnBindName');
   btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 比對中...';
   const b = S._pendingBind;
   const res = await callGAS({ action: 'bindName', name, ...b });
@@ -975,199 +975,128 @@ async function doBindName() {
 }
 
 function renderUserBar() {
-  const u = S.user;
-  if (!u) return;
-  const p      = S.config?.persons?.find(x => x.name === u.name);
-  const dept   = (p?.dept  || u.dept  || '');
-  const title  = (p?.title || u.title || '');
-  const depts  = (p?.depts && p.depts.length) ? p.depts : (dept ? [dept] : []);
-  // uName/uAvatar/uDeptTitle are only in loginWrap section now — safe to skip if missing
-  const nm = document.getElementById('uName');
-  const av = document.getElementById('uAvatar');
-  const dt = document.getElementById('uDeptTitle');
+  const u = S.user; if (!u) return;
+  const p     = S.config?.persons?.find(x => x.name === u.name);
+  const dept  = p?.dept  || u.dept  || '';
+  const title = p?.title || u.title || '';
+  const depts = p?.depts?.length ? p.depts : (dept ? [dept] : []);
+  const nm = $('uName'), av = $('uAvatar'), dt = $('uDeptTitle');
   if (nm) nm.textContent = u.name;
   if (dt) dt.textContent = depts.join(' / ') + (title ? ' · ' + title : '');
-  if (av) {
-    if (u.avatar) av.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">`;
-    else av.textContent = u.name.slice(0,1);
-  }
-  if (dept)         S.user.dept     = dept;
-  if (title)        S.user.title    = title;
-  if (depts.length) S.user.depts    = depts;
-  if (dept)         S.config.userDept = dept;
-  // 財務部門才顯示財務專區入口
+  if (av) av.innerHTML = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : u.name[0];
+  if (dept)         { S.user.dept = dept; S.config.userDept = dept; }
+  if (title)        S.user.title = title;
+  if (depts.length) S.user.depts = depts;
   const isFinance = dept.includes('FI') || dept.includes('財務');
-  const finBtn = document.getElementById('navFinanceBtn');
+  const finBtn = $('navFinanceBtn');
   if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
+  const permission = String(p?.permission || u.permission || '');
+  const hasSysAdmin = permission.includes('員工表');
+  ['project','expense','todo'].forEach(scope => {
+    const btn = $('navSysAdminBtn-' + scope), sep = $('navSysAdminSep-' + scope);
+    if (btn) btn.style.display = hasSysAdmin ? 'block' : 'none';
+    if (sep) sep.style.display = hasSysAdmin ? 'block' : 'none';
+  });
+  S.user.permission = permission;
 }
 
 function logout() {
   S.user = null;
-  document.getElementById('appShell').style.display  = 'none';
-  document.getElementById('loginWrap').style.display = 'flex';
+  $('appShell').style.display  = 'none';
+  $('loginWrap').style.display = 'flex';
 }
 
-// ════════════════════════════════════════════════════════════
-// CONFIG FROM SHEET
-// ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// 統一同步狀態（漢堡選單內 🔄 重新整理 共用）
-// scope: 'project' | 'expense' | 'todo'
-// ════════════════════════════════════════════════════════════
+// ── 統一同步狀態 ──────────────────────────────────────────────
 function setNavSyncStatus(scope, text, isLoading) {
-  const el = document.getElementById('navSyncStatus-' + scope);
-  if (!el) return;
+  const el = $('navSyncStatus-' + scope); if (!el) return;
   el.innerHTML = isLoading
     ? `<span style="display:inline-flex;align-items:center;gap:6px"><div style="width:11px;height:11px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>${text}</span>`
     : text;
-  // 統一規則：只要顯示「同步中...」，就確保對應的漢堡選單是開啟的——
-  // 不管同步是由「🔄 重新整理」按鈕觸發，還是點頁籤切換（如費用→OCR辨識）
-  // 順帶觸發的，使用者都看得到進度，不必再手動點開一次選單
   if (isLoading) openNavMenuFor(scope);
 }
 function openNavMenuFor(scope) {
-  const menuId = { project:'navMenuProject', expense:'navMenuExpense', todo:'navMenuTodo' }[scope];
-  const menu = menuId && document.getElementById(menuId);
+  const menu = $({ project:'navMenuProject', expense:'navMenuExpense', todo:'navMenuTodo' }[scope]);
   if (menu && !menu.classList.contains('menu-hidden')) menu.classList.add('open');
 }
 function flashNavSyncDone(scope) {
-  const el = document.getElementById('navSyncDone-' + scope);
-  if (!el) return;
+  const el = $('navSyncDone-' + scope); if (!el) return;
   el.style.display = 'inline';
-  // item3: 同步中→同步完成期間選單維持展開（doUnifiedReload 不主動 closeNavMenu），
-  // 讓使用者看得到「✅ 完成」狀態文字；停留一段時間後才自動收合選單
-  setTimeout(() => {
-    el.style.display = 'none';
-    closeNavMenu();
-  }, 1500);
+  setTimeout(() => { el.style.display = 'none'; closeNavMenu(); }, 1500);
 }
-// 依目前主分頁/子頁判斷對應的同步 scope
-function currentSyncScope() {
-  if (_currentSection === 'todo') return 'todo';
-  if (_currentSection === 'expense') return 'expense';
-  return 'project'; // project / proj-settings / schedule / finance
-}
-// 切換分頁時，沿用該 scope 已記錄的狀態文字（不重複觸發載入）
-function updateUnifiedSyncUI() { /* 狀態文字常駐於各 scope 元素，切頁不需動作 */ }
+const currentSyncScope = () =>
+  _currentSection === 'todo' ? 'todo' : _currentSection === 'expense' ? 'expense' : 'project';
+function updateUnifiedSyncUI() {}
 
-// 🔄 重新整理：依目前主分頁與子頁決定動作
-// 注意：不在此呼叫 closeNavMenu()，讓選單維持展開，方便使用者看到選單內
-// 「同步中...」→「✅ 完成」的狀態文字變化，而非按下後選單立刻收起來
 function doUnifiedReload() {
-  if (_currentSection === 'expense') { doReloadAll(); return; }
-  if (_currentSection === 'todo')    { loadTasks(); return; }
-  if (_currentSection === 'project') { loadProjectsForBoard(); return; }
-  if (_currentSection === 'proj-settings') {
-    loadConfig();
-    loadProjectList(true);
-    return;
-  }
-  if (_currentSection === 'schedule') {
-    loadProjectsForBoard().then(pgPopulateProjectSelect);
-    return;
-  }
-  if (_currentSection === 'finance') { loadFinance(); return; }
-  loadConfig();
+  const actions = {
+    expense:        doReloadAll,
+    todo:           loadTasks,
+    project:        loadProjectsForBoard,
+    'proj-settings':() => { loadConfig(); loadProjectList(true); },
+    schedule:       () => loadProjectsForBoard().then(pgPopulateProjectSelect),
+    finance:        loadFinance,
+  };
+  (actions[_currentSection] || loadConfig)();
 }
 
 async function loadConfig() {
   const scope = currentSyncScope();
   setNavSyncStatus(scope, '同步中...', true);
   try {
-    const res = await callGAS({ action:'getConfig', lineId: S.user?.lineId || '' });
-    if (res.success) {
-      S.config = res.data;
-      S.config.userDeptCode = res.data.userDeptCode || '';
-      S.config.startAddress = res.data.startAddress || '';
-      // 部門 fallback：Departments 無資料時，用 Persons 裡的部門
-      if (!S.config.departments || !S.config.departments.length) {
-        const fallbackDept = res.data.userDept || S.user?.dept || '';
-        S.config.departments = fallbackDept ? [{ code: fallbackDept, name: fallbackDept }] : [];
-      }
-      setNavSyncStatus(scope, '✅ 同步完成 ' + now());
-      flashNavSyncDone(scope);
-    } else {
-      throw new Error(res.error);
+    const res = await callGAS({ action:'getConfig', lineId: S.user?.lineId ?? '' });
+    if (!res.success) throw new Error(res.error);
+    S.config = res.data;
+    S.config.userDeptCode = res.data.userDeptCode ?? '';
+    S.config.startAddress = res.data.startAddress ?? '';
+    if (!S.config.departments?.length) {
+      const fb = res.data.userDept || S.user?.dept || '';
+      S.config.departments = fb ? [{ code:fb, name:fb }] : [];
     }
+    setNavSyncStatus(scope, '✅ 同步完成 ' + now());
+    flashNavSyncDone(scope);
   } catch(e) {
     setNavSyncStatus(scope, '❌ 連線失敗，請重試');
   }
   if (S.user) renderUserBar();
   populateSelects();
   loadDriveFiles();
-  loadExportHistory(false); // 預載入匯出紀錄
-  // 若「進度設定」頁已開啟，loadConfig 完成後補同步扣抵比例 UI
-  // （確保畫面顯示的比例跟目前載入專案的 prepay.deductPct 一致）
-  if (document.getElementById('sec-schedule')?.classList.contains('active')) {
-    pgPopulateDeductMethods();
-  }
+  loadExportHistory(false);
+  if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
 function populateSelects() {
-  // 若新增專案頁已開啟，同步部門下拉
-  if (document.getElementById('page-project')?.classList.contains('active')) {
-    populateNpDept();
-  }
+  if ($('page-project')?.classList.contains('active')) populateNpDept();
 }
 
-// 全域月份變更：同步到各頁
 function onGlobalMonthChange(val) {
   loadDriveFiles();
   loadExportHistory(false);
-  // item4: S.receipts／_fuelProjList 是單一全域累積陣列，過去切換月份時只會
-  // 「加入」新月份的資料（依 key 去重），從未清掉舊月份已載入的項目，導致
-  // 油資/其他 tab 會同時顯示好幾個月份的紀錄混在一起。換月份時先清空，
-  // 確保畫面只會顯示「目前選擇月份」的資料，不會殘留其他月份的舊資料
   S.receipts = [];
   window._fuelProjList = [];
-  // 重置「OCR 頁首次造訪」旗標：即使月份是在費用頁以外的分頁切換的，
-  // 之後造訪 OCR 頁時仍會依新月份重新載入，而不是沿用舊月份留下的空狀態
   S._ocrPageLoadedOnce = false;
-  // 換月份後，OCR 頁的「申請專案」歸屬資料屬於不同月份，需重新載入
-  if (_currentExpensePage === 'ocr') {
-    S._ocrPageLoadedOnce = true;
-    reloadOcrWithFuel();
-  } else {
-    renderOCRResults(); // 確保即使不在 OCR 頁，殘留的 DOM 內容也同步清空
-  }
+  if (_currentExpensePage === 'ocr') { S._ocrPageLoadedOnce = true; reloadOcrWithFuel(); }
+  else renderOCRResults();
 }
 
-// 🔄 依當前費用子頁決定觸發動作
 function doReloadAll() {
   const page = _currentExpensePage || 'upload';
-  if (page === 'upload') {
-    loadConfig();
-  } else if (page === 'ocr') {
-    reloadOcrWithFuel();
-  } else if (page === 'history') {
-    loadExportHistory(true);
-  } else {
-    loadConfig();
-  }
+  if (page === 'upload') { loadConfig(); }
+  else if (page === 'ocr') { reloadOcrWithFuel(); }
+  else if (page === 'history') { loadExportHistory(true); }
+  else { loadConfig(); }
 }
 
 async function reloadOcrWithFuel() {
-  const person = S.user?.name || '';
-  const month  = curMonth();
+  const person = S.user?.name ?? '', month = curMonth();
   setNavSyncStatus('expense', '同步中...', true);
   try {
-    // 1. 先回寫目前 _fuelProjList 到 sheet
     await saveFuelProjToSheet(true);
-
-    // 2. 從 sheet 取 FuelProjects，還原 _fuelProjList
     if (person && month) {
-      const res = await callGAS({ action: 'getFuelProjects', month, person });
-      if (res.success && res.rows?.length) {
-        await restoreFuelProjList(res.rows);
-      }
+      const res = await callGAS({ action:'getFuelProjects', month, person });
+      if (res.success && res.rows?.length) await restoreFuelProjList(res.rows);
     }
-
-    // 3. 更新上次同步時間
     _fuelLastSync = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit' });
-
-    // 4. 載入 OcrResults
     await loadOcrResults(false);
-
     setNavSyncStatus('expense', '✅ 同步完成 ' + _fuelLastSync);
     flashNavSyncDone('expense');
   } catch(e) {
@@ -1177,55 +1106,36 @@ async function reloadOcrWithFuel() {
 }
 
 async function restoreFuelProjList(rows) {
-  const todayStr = new Date().toISOString().slice(0,10);
   window._fuelProjList = [];
-
-  // 去重：同 attrType + attrTarget，保留「最有資料」的一筆
-  // 優先順序：金額最大 > supplement 最長（代表外勤資料最完整）> 最新更新時間
-  const seen = new Map();
+  const today = todayStr();
+  const seen  = new Map();
   rows.forEach(row => {
-    const key = (row.attrType || '') + '|' + (row.attrTarget || '');
-    if (!seen.has(key)) {
-      seen.set(key, row);
-    } else {
-      const prev = seen.get(key);
-      const prevAmt     = parseFloat(prev.amount    || 0);
-      const currAmt     = parseFloat(row.amount     || 0);
-      const prevSupp    = (prev.supplement || '').length;
-      const currSupp    = (row.supplement  || '').length;
-      const prevUpdated = prev.updatedAt || prev.month || '';
-      const currUpdated = row.updatedAt  || row.month  || '';
-      // 更新時間較新優先；相同時間再看金額與 supplement 長度
-      const currNewer = currUpdated > prevUpdated;
-      const sameTime  = currUpdated === prevUpdated;
-      if (currNewer || (sameTime && currAmt > prevAmt) || (sameTime && currAmt === prevAmt && currSupp > prevSupp)) {
-        seen.set(key, row);
-      }
-    }
+    const key  = (row.attrType || '') + '|' + (row.attrTarget || '');
+    const prev = seen.get(key);
+    if (!prev) { seen.set(key, row); return; }
+    const [pa,ca,ps,cs,pu,cu] = [
+      parseFloat(prev.amount||0), parseFloat(row.amount||0),
+      (prev.supplement||'').length, (row.supplement||'').length,
+      prev.updatedAt||prev.month||'', row.updatedAt||row.month||'',
+    ];
+    if (cu > pu || (cu===pu && ca > pa) || (cu===pu && ca===pa && cs > ps)) seen.set(key, row);
   });
-
-  seen.forEach((row) => {
-    const rawAttrType = row.attrType || '';
-    // 正規化：舊版本存 'mile'，統一對應到 'project'
-    const attrType   = rawAttrType === 'mile' ? 'project' : rawAttrType;
+  seen.forEach(row => {
+    const attrType   = row.attrType === 'mile' ? 'project' : (row.attrType || '');
     const attrTarget = row.attrTarget || '';
-    const proj = (attrType !== 'dept' && attrType !== 'other')
-      ? S.config.projects.find(p => p.id === attrTarget)
-      : null;
-    const isExpired = proj ? !!(proj.closeDate && proj.closeDate < todayStr) : false;
+    const proj       = (attrType !== 'dept' && attrType !== 'other')
+      ? S.config.projects.find(p => p.id === attrTarget) : null;
     let fieldRows = [];
     if (attrType !== 'quota' && row.supplement) {
       try { fieldRows = JSON.parse(row.supplement); } catch(_) {}
       fieldRows = fieldRows.map(fr => ({ ...fr, start: fr.start || S.config.startAddress || '' }));
     }
     window._fuelProjList.push({
-      uid:       'fp_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      uid: 'fp_' + Date.now() + '_' + Math.random().toString(36).slice(2),
       projId:    (attrType !== 'dept' && attrType !== 'other') ? attrTarget : '',
       deptId:    attrType === 'dept' ? attrTarget : '',
-      attrType,
-      type:      attrType === 'quota' ? 'quota' : 'mile',
-      fieldRows,
-      _isExpired: isExpired,
+      attrType, type: attrType === 'quota' ? 'quota' : 'mile',
+      fieldRows, _isExpired: proj ? !!(proj.closeDate && proj.closeDate < today) : false,
     });
   });
 }
@@ -1236,53 +1146,23 @@ async function restoreFuelProjList(rows) {
 //   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
 // ════════════════════════════════════════════════════════════
 async function loadOcrResults(auto = false) {
-  const month = curMonth();
-
-  const btnOcr  = document.getElementById('btnLoadOcr');
-  const loadBar = document.getElementById('ocrSheetLoadBar');
-  const loadMsg = document.getElementById('ocrSheetLoadMsg');
-
-  if (loadBar) { loadBar.style.display = 'flex'; }
-  if (loadMsg) { loadMsg.textContent = '載入中...'; }
+  const month   = curMonth();
+  const btnOcr  = $('btnLoadOcr'), loadBar = $('ocrSheetLoadBar'), loadMsg = $('ocrSheetLoadMsg');
+  if (loadBar) loadBar.style.display = 'flex';
+  if (loadMsg) loadMsg.textContent = '載入中...';
   if (btnOcr)  { btnOcr.disabled = true; btnOcr.innerHTML = '<div class="spin"></div>'; }
-
-  const hideLoading = () => {
-    if (loadBar) loadBar.style.display = 'none';
-    if (btnOcr)  { btnOcr.disabled = false; btnOcr.innerHTML = '🔄'; }
-  };
+  const hideLoading = () => { if(loadBar) loadBar.style.display='none'; if(btnOcr){btnOcr.disabled=false;btnOcr.innerHTML='🔄';} };
 
   let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    hideLoading();
-    if (!auto) toast('⚠️ 載入逾時，請按 🔄 重試');
-  }, 20000);
+  const timer = setTimeout(() => { timedOut=true; hideLoading(); if(!auto) toast('⚠️ 載入逾時，請按 🔄 重試'); }, 20000);
 
-  let res;
-  try {
-    res = await callGAS({
-      action:  'getOcrResults',
-      lineId:  S.user?.lineId || '',
-      month,
-    });
-  } catch(e) {
-    clearTimeout(timer);
-    if (timedOut) return;
-    hideLoading();
-    if (!auto) toast('❌ 載入失敗：' + e.message);
-    return;
-  }
-
+  const res = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', month });
   clearTimeout(timer);
   if (timedOut) return;
   hideLoading();
+  if (!res.success) { if(!auto) toast('❌ 載入失敗：' + (res.error||'未知')); return; }
 
-  if (!res.success) {
-    if (!auto) toast('❌ 載入失敗：' + (res.error || '未知'));
-    return;
-  }
-
-  const rows = res.rows || [];
+  const rows      = res.rows ?? [];
 
   // 合併到 S.receipts（以 ocrKey 去重，ocrKey 是 Sheet Key 欄的唯一識別）
   const existKeys = new Set(S.receipts.map(r => r.ocrKey).filter(Boolean));
@@ -1354,7 +1234,7 @@ async function loadOcrResults(auto = false) {
       .catch(e => { console.error('[getFuelProjs] catch', e); });
   }
   if (added > 0) {
-    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+    $('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
   }
   if (!auto) {
     nav('ocr');
@@ -1374,7 +1254,7 @@ function onFilePick(files) {
     if (!dup) S.pendingFiles.push(f);
   });
   renderPendingFiles();
-  document.getElementById('btnUpload').disabled = !S.pendingFiles.length;
+  $('btnUpload').disabled = !S.pendingFiles.length;
 }
 
 function isHeicFile(f) {
@@ -1385,7 +1265,7 @@ function isHeicFile(f) {
 }
 
 function renderPendingFiles() {
-  const c = document.getElementById('fileList');
+  const c = $('fileList');
   c.innerHTML = S.pendingFiles.map((f,i) => {
     const isPdf  = (f.type === 'application/pdf') || f.name.toLowerCase().endsWith('.pdf');
     const isHeic = isHeicFile(f);
@@ -1405,7 +1285,7 @@ function renderPendingFiles() {
     if (!(f.type||'').startsWith('image/')) return;
     const r = new FileReader();
     r.onload = e => {
-      const t = document.getElementById('ft-'+i);
+      const t = $('ft-'+i);
       if (t) t.innerHTML = `<img src="${e.target.result}" alt="">`;
     };
     r.onerror = () => {};               // 靜默失敗
@@ -1416,7 +1296,7 @@ function renderPendingFiles() {
 function removePending(i) {
   S.pendingFiles.splice(i,1);
   renderPendingFiles();
-  document.getElementById('btnUpload').disabled = !S.pendingFiles.length;
+  $('btnUpload').disabled = !S.pendingFiles.length;
 }
 
 async function doUpload() {
@@ -1427,10 +1307,10 @@ async function doUpload() {
   if (!month)  { toast('⚠️ 請選擇申請月份'); return; }
 
   setBtnLoading('btnUpload', true, '上傳中...');
-  const progCard = document.getElementById('upProgCard');
-  const bar = document.getElementById('upProgBar');
-  const txt = document.getElementById('upProgTxt');
-  const fl  = document.getElementById('upProgFile');
+  const progCard = $('upProgCard');
+  const bar = $('upProgBar');
+  const txt = $('upProgTxt');
+  const fl  = $('upProgFile');
   progCard.style.display = 'block';
 
   const done = [];
@@ -1466,14 +1346,26 @@ async function doUpload() {
         if (res.sheetOk === false) {
           toast('⚠️ ' + f.name + ' 已上傳 Drive，但 Sheet 紀錄失敗：' + (res.sheetErr || ''));
         }
+        const uploadedName = `${month}_${person}_${f.name}`;
         done.push({
           id:       res.fileId || 'sim_' + Date.now(),
-          name:     `${month}_${person}_${f.name}`,
+          name:     uploadedName,
           size:     (f.size / 1024).toFixed(1) + ' KB',
           time:     now(),
           driveUrl: res.fileUrl || res.driveUrl || '#',
           mimeType: f.type,
         });
+        // 記錄本次上傳時 GAS 直接回傳的正確 fileId/driveUrl，
+        // 供 renderDriveFiles() 在 listFiles 讀回的資料尚未補齊（read-after-write 時間差）時 fallback 使用，
+        // 避免「Drive ID 已寫入 Sheet，但畫面因刷新時機過早而顯示 —」的情況
+        if (res.fileId) {
+          S._freshUploadMap = S._freshUploadMap || new Map();
+          S._freshUploadMap.set(uploadedName, {
+            id:       res.fileId,
+            driveUrl: res.fileUrl || res.driveUrl || '',
+            mimeType: f.type,
+          });
+        }
       }
     } catch (e) {
       toast('❌ ' + rawFile.name + ' 上傳失敗：' + e.message);
@@ -1493,7 +1385,7 @@ async function doUpload() {
 function renderUploadedList(files) {
   // card 已預設顯示，直接更新計數與提示
   if (files.length) {
-    document.getElementById('uploadedCnt').textContent = files.length + ' 個（本次）';
+    $('uploadedCnt').textContent = files.length + ' 個（本次）';
   }
   // 本次上傳的完整檔名（含月份前綴，與 Drive 一致）
   S._newUploadedNames = new Set(files.map(f => f.name));
@@ -1507,7 +1399,7 @@ async function loadDriveFiles() {
   const month  = curMonth();
 
   // 顯示 loading（card 已預設顯示，直接更新 tbody）
-  const tbl = document.getElementById('driveFileTbl');
+  const tbl = $('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
 
   // 注意：callGAS 內部已捕捉所有失敗（網路錯誤、逾時、HTTP 錯誤）並回傳
@@ -1530,10 +1422,24 @@ async function loadDriveFiles() {
 
 function renderDriveFiles() {
   const newNames = S._newUploadedNames || new Set();
+  const freshMap = S._freshUploadMap || new Map();
   const sorted   = [...S.driveFiles].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // ── Fallback：listFiles 讀回的資料若缺 id/driveUrl（read-after-write 時間差），
+  //    用本次上傳當下 GAS 直接回傳的正確值補上，避免畫面顯示 — 或 OCR 佇列缺 id ──
+  sorted.forEach(f => {
+    const missing = !f.id || !f.driveUrl || f.driveUrl === '#';
+    if (missing && freshMap.has(f.name)) {
+      const fresh = freshMap.get(f.name);
+      if (!f.id)                          f.id       = fresh.id;
+      if (!f.driveUrl || f.driveUrl==='#') f.driveUrl = fresh.driveUrl || f.driveUrl;
+      if (!f.mimeType)                    f.mimeType = fresh.mimeType;
+    }
+  });
+
   S._driveFilesSorted = sorted;
 
-  document.getElementById('driveFileTbl').innerHTML = sorted.map((f, i) => {
+  $('driveFileTbl').innerHTML = sorted.map((f, i) => {
     const isNew  = newNames.has(f.name);
     const newTag = isNew
       ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">新產生</span>`
@@ -1552,12 +1458,12 @@ function renderDriveFiles() {
 
   // 若有新上傳檔案，自動啟用辨識按鈕
   if (newNames.size > 0) {
-    document.getElementById('btnSendOCR').disabled = false;
+    $('btnSendOCR').disabled = false;
   }
 
   // 更新計數（card 已預設顯示，不需再 display:block）
   const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
-  document.getElementById('uploadedCnt').textContent =
+  $('uploadedCnt').textContent =
     sorted.length
       ? sorted.length + ' 個'
       : S._newUploadedNames?.size
@@ -1566,35 +1472,35 @@ function renderDriveFiles() {
 }
 
 function toggleDriveChk(i) {
-  document.getElementById('dc-'+i)?.classList.toggle('on');
+  $('dc-'+i)?.classList.toggle('on');
   const files = S._driveFilesSorted || S.driveFiles;
-  const any = files.some((_,j) => document.getElementById('dc-'+j)?.classList.contains('on'));
-  document.getElementById('btnSendOCR').disabled = !any;
+  const any = files.some((_,j) => $('dc-'+j)?.classList.contains('on'));
+  $('btnSendOCR').disabled = !any;
 }
 
 function toggleAllDrive() {
-  const box     = document.getElementById('chkAll');
+  const box     = $('chkAll');
   box.classList.toggle('on');
   const checked = box.classList.contains('on');
   const files   = S._driveFilesSorted || S.driveFiles;
   files.forEach((_,i) => {
-    const b = document.getElementById('dc-'+i);
+    const b = $('dc-'+i);
     if (b) { if(checked) b.classList.add('on'); else b.classList.remove('on'); }
   });
-  document.getElementById('btnSendOCR').disabled = !checked;
+  $('btnSendOCR').disabled = !checked;
 }
 
 function sendToOCR() {
   const files = S._driveFilesSorted || S.driveFiles;
-  const sel   = files.filter((_,i) => document.getElementById('dc-'+i)?.classList.contains('on'));
+  const sel   = files.filter((_,i) => $('dc-'+i)?.classList.contains('on'));
   if (!sel.length) { toast('⚠️ 請先勾選檔案'); return; }
 
   clearQueue();
   sel.forEach(f => addQueue(f));
 
-  document.getElementById('chkAll')?.classList.remove('on');
-  files.forEach((_,i) => document.getElementById('dc-'+i)?.classList.remove('on'));
-  document.getElementById('btnSendOCR').disabled = true;
+  $('chkAll')?.classList.remove('on');
+  files.forEach((_,i) => $('dc-'+i)?.classList.remove('on'));
+  $('btnSendOCR').disabled = true;
 
   nav('ocr');
   toast(`已清空佇列並加入 ${sel.length} 個檔案`);
@@ -1607,13 +1513,13 @@ function addQueue(file) {
   if (S.ocrQueue.find(q => q.id === file.id)) { toast('已在佇列'); return; }
   S.ocrQueue.push({ ...file, status:'pending', qAttribution:'project' });
   renderQueue();
-  document.getElementById('btnOCR').disabled = false;
+  $('btnOCR').disabled = false;
   badge('nb-ocr', S.ocrQueue.length);
 }
 
 function renderQueue() {
-  document.getElementById('queueCnt').textContent = S.ocrQueue.length + ' 個';
-  const c = document.getElementById('queueList');
+  $('queueCnt').textContent = S.ocrQueue.length + ' 個';
+  const c = $('queueList');
   if (!S.ocrQueue.length) {
     c.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:15px">佇列為空</div>';
     return;
@@ -1652,9 +1558,9 @@ function removeQueue(i) {
   S.ocrQueue.splice(i,1);
   renderQueue();
   badge('nb-ocr', S.ocrQueue.length);
-  document.getElementById('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
+  $('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
 }
-function clearQueue()   { S.ocrQueue=[]; renderQueue(); badge('nb-ocr',0); document.getElementById('btnOCR').disabled=true; }
+function clearQueue()   { S.ocrQueue=[]; renderQueue(); badge('nb-ocr',0); $('btnOCR').disabled=true; }
 
 // ════════════════════════════════════════════════════════════
 // RUN OCR
@@ -1663,8 +1569,8 @@ async function runOCR() {
   const pending = S.ocrQueue.filter(q => q.status==='pending');
   if (!pending.length) { toast('沒有待辨識項目'); return; }
   setBtnLoading('btnOCR', true, '辨識中');
-  document.getElementById('ocrProgCard').style.display='block';
-  const bar=document.getElementById('ocrProgBar'), txt=document.getElementById('ocrProgTxt'), fl=document.getElementById('ocrProgFile');
+  $('ocrProgCard').style.display='block';
+  const bar=$('ocrProgBar'), txt=$('ocrProgTxt'), fl=$('ocrProgFile');
 
   _ocrCountBefore = S.receipts.length;
 
@@ -1751,7 +1657,7 @@ async function runOCR() {
     toast(`⚠️ 發現 ${dupItems.length} 筆重複發票號碼，請逐一確認`);
     startDupResolution(dupItems);
   } else {
-    document.getElementById('ocrDoneBar').style.cssText='display:flex;margin-top:12px;gap:8px';
+    $('ocrDoneBar').style.cssText='display:flex;margin-top:12px;gap:8px';
     toast(`✅ 本次辨識完成：新增 ${newCount} 張憑證`);
   }
 }
@@ -1801,13 +1707,13 @@ function detectCat(item) {
 let _ocrTab = 'fuel';
 
 function renderOCRResults() {
-  const c = document.getElementById('ocrResults');
+  const c = $('ocrResults');
   const hasFuelProj = (window._fuelProjList || []).length > 0;
   // 「申請專案」卡片（月定額/里程實報歸屬）與 OCR 收據數量無關，
   // 即使尚未上傳/辨識任何發票，只要已有設定的歸屬項目，仍須顯示油資 tab
   if (!S.receipts.length && !hasFuelProj) {
     c.innerHTML = '';
-    const doneBar = document.getElementById('ocrDoneBar');
+    const doneBar = $('ocrDoneBar');
     if (doneBar) doneBar.style.display = 'none';
     updateStats();
     return;
@@ -1875,7 +1781,7 @@ function renderOCRResults() {
 
   updateStats();
   badge('nb-ocr', S.receipts.length);
-  const doneBar = document.getElementById('ocrDoneBar');
+  const doneBar = $('ocrDoneBar');
   if (doneBar) doneBar.style.cssText = 'display:flex;margin-top:12px;gap:10px;flex-wrap:wrap;align-items:center';
 }
 
@@ -1952,7 +1858,7 @@ function renderOtherTab(otherReceipts) {
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
             <input type="number" class="inp" value="${r.amount}"
-              onchange="upR('${r.id}','amount',+this.value);(function(id,v){const el=document.getElementById('rc-amt-'+id);if(el)el.textContent='$'+(+v).toLocaleString()})('${r.id}',this.value);updateStats();stashSingle('${r.id}')"></div>
+              onchange="upR('${r.id}','amount',+this.value);(function(id,v){const el=$('rc-amt-'+id);if(el)el.textContent='$'+(+v).toLocaleString()})('${r.id}',this.value);updateStats();stashSingle('${r.id}')"></div>
           <div><label class="lbl">日期</label>
             <input type="date" class="inp" value="${r.date||''}"
               onchange="upR('${r.id}','date',this.value);stashSingle('${r.id}')"></div>
@@ -1995,8 +1901,8 @@ function renderOtherTab(otherReceipts) {
 }
 
 function toggleOtherRow(id) {
-  const body = document.getElementById('other-body-' + id);
-  const chev = document.getElementById('other-chev-' + id);
+  const body = $('other-body-' + id);
+  const chev = $('other-chev-' + id);
   if (!body) return;
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
@@ -2016,17 +1922,17 @@ function initOtherAttrDropdown() {
 }
 
 function updateOtherApplyBtn() {
-  const btn = document.getElementById('btn-other-apply');
+  const btn = $('btn-other-apply');
   if (!btn) return;
   const hasChecked = S.receipts.filter(r => r.category !== 'fuel')
-    .some(r => document.getElementById('rck-'+r.id)?.classList.contains('on'));
+    .some(r => $('rck-'+r.id)?.classList.contains('on'));
   const inp = document.querySelector('#fd-other-attr .fd-input');
   const hasInput = !!(_otherSelectedItem || (inp?.value || '').trim());
   btn.disabled = !(hasInput && hasChecked);
 }
 
 async function applyOtherAttr() {
-  const btn = document.getElementById('btn-other-apply');
+  const btn = $('btn-other-apply');
   const btnOriginalHtml = btn ? btn.innerHTML : '';
   // 容錯：若使用者只是輸入文字但沒有點選下拉清單項目，
   // 嘗試用目前輸入框文字反查唯一符合的項目，避免「明明打完字卻沒套用成功」的誤解
@@ -2051,7 +1957,7 @@ async function applyOtherAttr() {
   // 套用歸屬到所有已勾選的其他費用，並等待每筆儲存結果，
   // 確保畫面顯示的「已套用」狀態跟後端 Sheet 真正一致
   const targets = S.receipts
-    .filter(r => r.category !== 'fuel' && document.getElementById('rck-'+r.id)?.classList.contains('on'));
+    .filter(r => r.category !== 'fuel' && $('rck-'+r.id)?.classList.contains('on'));
   targets.forEach(r => upR(r.id, 'otherAttr', item.id));
   // 顯示 loading：避免使用者在多筆儲存進行中重複點擊，也讓畫面有明確的處理中提示
   if (btn) { btn.disabled = true; btn.style.opacity = '1'; btn.innerHTML = '<div class="spin"></div> 套用中...'; }
@@ -2242,7 +2148,7 @@ function updateFuelDiff() {
   const diff         = invoiceTotal - applyTotal;
   const diffOk       = diff >= 0;
 
-  const bar = document.getElementById('fuel-diff-bar');
+  const bar = $('fuel-diff-bar');
   if (bar) {
     bar.style.background  = diffOk ? 'rgba(21,128,61,.07)' : 'rgba(220,38,38,.07)';
     bar.style.borderColor = diffOk ? 'rgba(21,128,61,.2)'  : 'rgba(220,38,38,.2)';
@@ -2257,11 +2163,11 @@ function updateFuelDiff() {
       <span style="color:${diffOk?'var(--green)':'var(--red)'};font-weight:800;font-size:14px">${msg}</span>
     </div>`;
   }
-  const applyEl = document.getElementById('fuel-apply-total');
+  const applyEl = $('fuel-apply-total');
   if (applyEl) applyEl.textContent = `申請總額 $${applyTotal.toLocaleString()}`;
 
   // 更新月定額 badge 列
-  const badgeEl = document.getElementById('fuel-quota-badges');
+  const badgeEl = $('fuel-quota-badges');
   if (badgeEl) {
     const quotaList = window._fuelProjList.filter(fp => fp.type === 'quota');
     badgeEl.innerHTML = quotaList.map(fp => {
@@ -2323,7 +2229,7 @@ function initFuelProjDropdowns() {
       window._fuelProjList.push(fp);
       const newIdx = window._fuelProjList.length - 1;
       // 更新里程列表 DOM（不整頁重繪）
-      const list = document.getElementById('fuel-mile-list');
+      const list = $('fuel-mile-list');
       if (list) {
         const noMsg = list.querySelector('span');
         if (noMsg && noMsg.textContent === '尚未選擇') noMsg.remove();
@@ -2448,7 +2354,7 @@ function removeFuelProj(idx) {
 // ── 初始化里程實報 dropdown ──────────────────────────────────
 function initFuelMileDropdownAt(idx) {
   const wrapperId = `fd-fuelmile-${idx}`;
-  const el = document.getElementById(wrapperId);
+  const el = $(wrapperId);
   if (!el) return;
 
   // 所有生效中專案（依可顯示部門過濾，含月定額和里程實報）+ 部門 + 其他
@@ -2489,7 +2395,7 @@ function initFuelMileDropdownAt(idx) {
     }
     S._recentProjIds = [item.id, ...(S._recentProjIds||[]).filter(x=>x!==item.id)].slice(0,3);
     // 重繪此列
-    const row = document.getElementById(`fuel-mile-row-${idx}`);
+    const row = $(`fuel-mile-row-${idx}`);
     if (row) {
       const div = document.createElement('div');
       div.innerHTML = fuelMileRowHTML(window._fuelProjList[idx], idx);
@@ -2523,7 +2429,7 @@ function addFuelFR(idx) {
   fp.fieldRows = fp.fieldRows || [];
   fp.fieldRows.push({ date:'', reason:'', end:'', km:'', isRound:true, start: S.config.startAddress || '' });
   const fi   = fp.fieldRows.length - 1;
-  const list = document.getElementById(`fuel-fr-list-${idx}`);
+  const list = $(`fuel-fr-list-${idx}`);
   if (list) {
     const div = document.createElement('div');
     div.innerHTML = fuelFRRowHTML(idx, fi, fp.fieldRows[fi]);
@@ -2538,7 +2444,7 @@ function removeFuelFR(idx, fi) {
   if (!fp) return;
   fp.fieldRows.splice(fi, 1);
   // 重繪外勤列表
-  const list = document.getElementById(`fuel-fr-list-${idx}`);
+  const list = $(`fuel-fr-list-${idx}`);
   if (list) list.innerHTML = fp.fieldRows.map((fr, i) => fuelFRRowHTML(idx, i, fr)).join('');
   updateFuelDiff();
   syncFuelProjToSheet(idx);
@@ -2547,13 +2453,13 @@ function removeFuelFR(idx, fi) {
 function setFuelFRRound(idx, fi, val) {
   const fp = window._fuelProjList[idx];
   if (fp?.fieldRows?.[fi]) fp.fieldRows[fi].isRound = val;
-  document.getElementById(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
-  document.getElementById(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
+  $(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
+  $(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
   // 立即更新單筆公里數文字
-  const km   = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || 0;
+  const km   = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || 0;
   const rate = getMileageRate(curMonth());
   const amt  = km ? Math.round(km * (val ? 2 : 1) * rate) : 0;
-  const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
+  const txtEl = $(`fpkm-txt-${idx}-${fi}`);
   if (txtEl && km) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
   saveFuelFRs(idx);
   // 即時更新「核算 $xxx」badge
@@ -2572,12 +2478,12 @@ function _updateMileRowAmt(idx) {
     return s + Math.round(km * (fr.isRound !== false ? 2 : 1) * rate);
   }, 0);
   // 找 row header 裡的 amtDisplay span（第一個 gold span）
-  const row = document.getElementById(`fuel-mile-row-${idx}`);
+  const row = $(`fuel-mile-row-${idx}`);
   if (!row) return;
   const amtSpan = row.querySelector('.badge.bd-blue + span, span[style*="gold"]') ||
                   row.querySelector(`span[style*="color:var(--gold)"]`);
   // 更新 fuel-mile-amt-{idx} 元素（統一用 id 定位）
-  const amtEl = document.getElementById(`fuel-mile-amt-${idx}`);
+  const amtEl = $(`fuel-mile-amt-${idx}`);
   if (amtEl) {
     if (mileAmt > 0) {
       amtEl.innerHTML = `<span style="color:var(--gold);font-weight:800">核算 $${mileAmt.toLocaleString()}</span><span style="color:var(--muted);font-size:12px">（${rate} 元/km）</span>`;
@@ -2592,11 +2498,11 @@ function saveFuelFRs(idx) {
   if (!fp) return;
   const rows = fp.fieldRows || [];
   rows.forEach((fr, fi) => {
-    fr.date    = document.getElementById(`fpd-${idx}-${fi}`)?.value    || fr.date;
-    fr.reason  = document.getElementById(`fprsn-${idx}-${fi}`)?.value  || fr.reason;
-    fr.end     = document.getElementById(`fpe-${idx}-${fi}`)?.value    || fr.end;
-    fr.km      = parseFloat(document.getElementById(`fpkm-${idx}-${fi}`)?.value) || fr.km;
-    fr.isRound = document.getElementById(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    fr.date    = $(`fpd-${idx}-${fi}`)?.value    || fr.date;
+    fr.reason  = $(`fprsn-${idx}-${fi}`)?.value  || fr.reason;
+    fr.end     = $(`fpe-${idx}-${fi}`)?.value    || fr.end;
+    fr.km      = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || fr.km;
+    fr.isRound = $(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
     // item5: 補上起點，避免附件二的「起點」欄位空白；若已有值（例如曾手動調整）不覆蓋
     if (!fr.start) fr.start = S.config.startAddress || '';
   });
@@ -2703,10 +2609,10 @@ async function saveFuelProjToSheet(silent = false) {
 
 async function queryFuelMaps(idx, fi) {
   const start = S.config.startAddress || '';
-  const end   = document.getElementById(`fpe-${idx}-${fi}`)?.value?.trim();
+  const end   = $(`fpe-${idx}-${fi}`)?.value?.trim();
   if (!start || !end) { toast('⚠️ 請先請管理員設定出發地址，並填入終點地址'); return; }
-  const txtEl = document.getElementById(`fpkm-txt-${idx}-${fi}`);
-  const kmEl  = document.getElementById(`fpkm-${idx}-${fi}`);
+  const txtEl = $(`fpkm-txt-${idx}-${fi}`);
+  const kmEl  = $(`fpkm-${idx}-${fi}`);
   if (txtEl) txtEl.textContent = '查詢中...';
   try {
     const res = await callGAS({ action: 'getDistance', origin: start, dest: end });
@@ -2793,7 +2699,7 @@ function rcHTML(r) {
             onchange="upR('${r.id}','supplement',this.value);stashSingle('${r.id}')">
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px">
-          <button class="btn" onclick="document.getElementById('rc-edit-${r.id}').style.display='none'">取消</button>
+          <button class="btn" onclick="$('rc-edit-${r.id}').style.display='none'">取消</button>
           <button class="btn btn-primary" onclick="confirmEditError('${r.id}')">✅ 確認填寫</button>
         </div>
       </div>
@@ -2943,7 +2849,7 @@ function rcHTML(r) {
       fdInit(`fd-otattr-${rid}`, otItems, item => {
         upR(rid, 'otherAttr', item.id);
         // 設定歸屬後自動勾選此筆
-        const chk = document.getElementById('rck-' + rid);
+        const chk = $('rck-' + rid);
         if (chk && !chk.classList.contains('on')) chk.classList.add('on');
         upR(rid, '_checked', true);
         syncAllOcrChk();
@@ -2994,7 +2900,7 @@ function fdInit(wrapperId, items, onSelect, recentIds) {
 function fdRender(wrapperId, q) {
   const d = _fdData[wrapperId];
   if (!d) return;
-  const list = document.getElementById(wrapperId + '-list');
+  const list = $(wrapperId + '-list');
   if (!list) return;
 
   const recentIds = d.recentIds || [];
@@ -3039,21 +2945,21 @@ function fdRender(wrapperId, q) {
 }
 
 function fdFilter(wrapperId) {
-  const inp = document.getElementById(wrapperId.replace('-wrap','') + '-input') ||
+  const inp = $(wrapperId.replace('-wrap','') + '-input') ||
               document.querySelector(`#${wrapperId} .fd-input`);
   if (!inp) return;
-  const list = document.getElementById(wrapperId + '-list');
+  const list = $(wrapperId + '-list');
   if (list) list.classList.add('open');
   fdRender(wrapperId, inp.value);
 }
 
 function fdOpen(wrapperId) {
-  const list = document.getElementById(wrapperId + '-list');
+  const list = $(wrapperId + '-list');
   if (list) { list.classList.add('open'); fdRender(wrapperId, document.querySelector(`#${wrapperId} .fd-input`)?.value || ''); }
 }
 
 function fdClose(wrapperId) {
-  const list = document.getElementById(wrapperId + '-list');
+  const list = $(wrapperId + '-list');
   if (list) list.classList.remove('open');
 }
 
@@ -3077,7 +2983,7 @@ function fdSelect(wrapperId, idx) {
 }
 
 function fdKey(e, wrapperId) {
-  const list = document.getElementById(wrapperId + '-list');
+  const list = $(wrapperId + '-list');
   if (!list) return;
   const items = list.querySelectorAll('.fd-item');
   let focused = list.querySelector('.fd-item.focused');
@@ -3157,9 +3063,9 @@ async function stashSingle(id) {
 function onFuelProjSelect(id, proj) {
   if (!proj) {
     upR(id, 'projectId', '');
-    const extra = document.getElementById(`fp-extra-${id}`);
+    const extra = $(`fp-extra-${id}`);
     if (extra) extra.innerHTML = '';
-    const frDiv = document.getElementById(`fp-fieldrows-${id}`);
+    const frDiv = $(`fp-fieldrows-${id}`);
     if (frDiv) frDiv.style.display = 'none';
     stashSingle(id);
     return;
@@ -3168,7 +3074,7 @@ function onFuelProjSelect(id, proj) {
   // 記錄最近使用
   S._recentProjIds = [proj.id, ...(S._recentProjIds||[]).filter(x=>x!==proj.id)].slice(0,3);
   // 顯示核定補助或里程實報
-  const extra = document.getElementById(`fp-extra-${id}`);
+  const extra = $(`fp-extra-${id}`);
   if (extra) {
     if (proj.quota) {
       extra.innerHTML = `<div style="font-size:13px;color:var(--green);margin-top:4px">核定補助 <strong>$${(proj.subsidy||0).toLocaleString()}</strong>/月</div>`;
@@ -3177,7 +3083,7 @@ function onFuelProjSelect(id, proj) {
     }
   }
   // 里程實報才顯示外勤紀錄區塊
-  const frDiv = document.getElementById(`fp-fieldrows-${id}`);
+  const frDiv = $(`fp-fieldrows-${id}`);
   if (frDiv) frDiv.style.display = proj.quota ? 'none' : '';
   stashSingle(id);
 }
@@ -3187,7 +3093,7 @@ const _frCount = {}; // rid → count
 function addFieldRow(rid) {
   if (!_frCount[rid]) _frCount[rid] = 0;
   const i   = _frCount[rid]++;
-  const list = document.getElementById(`fp-fr-list-${rid}`);
+  const list = $(`fp-fr-list-${rid}`);
   if (!list) return;
   const div = document.createElement('div');
   div.innerHTML = fieldRowHTML(rid, i);
@@ -3250,13 +3156,13 @@ function fieldRowHTML(rid, i, pf) {
 }
 
 function removeFR(rid, i) {
-  document.getElementById(`fr-${rid}-${i}`)?.remove();
+  $(`fr-${rid}-${i}`)?.remove();
   saveFRs(rid);
 }
 
 function setFRRound(rid, i, val) {
-  document.getElementById(`fr-rnd-${rid}-${i}`)?.classList.toggle('on', val);
-  document.getElementById(`fr-one-${rid}-${i}`)?.classList.toggle('on', !val);
+  $(`fr-rnd-${rid}-${i}`)?.classList.toggle('on', val);
+  $(`fr-one-${rid}-${i}`)?.classList.toggle('on', !val);
   saveFRs(rid);
 }
 
@@ -3267,15 +3173,15 @@ function saveFRs(rid) {
   const cnt = _frCount[rid] || 0;
   const rows = [];
   for (let i = 0; i < cnt; i++) {
-    if (!document.getElementById(`fr-${rid}-${i}`)) continue;
+    if (!$(`fr-${rid}-${i}`)) continue;
     rows.push({
-      date:    document.getElementById(`fr-d-${rid}-${i}`)?.value    || '',
-      reason:  document.getElementById(`fr-rsn-${rid}-${i}`)?.value  || '',
-      start:   document.getElementById(`fr-s-${rid}-${i}`)?.value    || '',
-      end:     document.getElementById(`fr-e-${rid}-${i}`)?.value    || '',
-      km:      parseFloat(document.getElementById(`fr-km-${rid}-${i}`)?.value) || 0,
-      isRound: document.getElementById(`fr-rnd-${rid}-${i}`)?.classList.contains('on') ?? true,
-      remark:  document.getElementById(`fr-rem-${rid}-${i}`)?.value  || '',
+      date:    $(`fr-d-${rid}-${i}`)?.value    || '',
+      reason:  $(`fr-rsn-${rid}-${i}`)?.value  || '',
+      start:   $(`fr-s-${rid}-${i}`)?.value    || '',
+      end:     $(`fr-e-${rid}-${i}`)?.value    || '',
+      km:      parseFloat($(`fr-km-${rid}-${i}`)?.value) || 0,
+      isRound: $(`fr-rnd-${rid}-${i}`)?.classList.contains('on') ?? true,
+      remark:  $(`fr-rem-${rid}-${i}`)?.value  || '',
     });
   }
   r.fieldRows = rows;
@@ -3284,11 +3190,11 @@ function saveFRs(rid) {
 
 // Maps API 查詢距離（外勤紀錄版）
 async function queryMapsFR(rid, i) {
-  const start = document.getElementById(`fr-s-${rid}-${i}`)?.value || '';
-  const end   = document.getElementById(`fr-e-${rid}-${i}`)?.value || '';
+  const start = $(`fr-s-${rid}-${i}`)?.value || '';
+  const end   = $(`fr-e-${rid}-${i}`)?.value || '';
   if (!start || !end) return;
-  const txtEl = document.getElementById(`fr-km-txt-${rid}-${i}`);
-  const kmEl  = document.getElementById(`fr-km-${rid}-${i}`);
+  const txtEl = $(`fr-km-txt-${rid}-${i}`);
+  const kmEl  = $(`fr-km-${rid}-${i}`);
   if (txtEl) txtEl.textContent = '查詢中...';
   // 修正：原本呼叫不存在的 action 'getDirections'（GAS 路由僅有 'getDistance'），
   // 且參數名為 'dest' 而非 'destination'，導致永遠落入未知 action 分支、查詢必定
@@ -3313,8 +3219,8 @@ function setCat(id, cat) {
 }
 
 function toggleFuelInv(id) {
-  const body = document.getElementById('fuel-inv-body-' + id);
-  const chev = document.getElementById('fuel-inv-chev-' + id);
+  const body = $('fuel-inv-body-' + id);
+  const chev = $('fuel-inv-chev-' + id);
   if (!body) return;
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
@@ -3322,8 +3228,8 @@ function toggleFuelInv(id) {
 }
 
 function toggleRC(id) {
-  const body = document.getElementById('rcb-'+id);
-  const rc   = document.getElementById('rc-'+id);
+  const body = $('rcb-'+id);
+  const rc   = $('rc-'+id);
   if (!body || !rc) return;
   body.classList.toggle('open');
   const chev = rc.querySelector('.rc-hd .rc-chev');
@@ -3346,7 +3252,7 @@ async function delR(id) {
 
 async function delSelected() {
   const selected = S.receipts.filter(r => {
-    const chk = document.getElementById('rck-' + r.id);
+    const chk = $('rck-' + r.id);
     return chk && chk.classList.contains('on');
   });
   if (!selected.length) { toast('⚠️ 請先勾選要刪除的項目'); return; }
@@ -3356,7 +3262,7 @@ async function delSelected() {
   );
   if (!confirmed) return;
 
-  const btn = document.getElementById('btnDelSelected');
+  const btn = $('btnDelSelected');
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 刪除中...'; }
 
   let done = 0, failed = 0;
@@ -3380,13 +3286,13 @@ async function delSelected() {
 
 // 全選 / 全不選
 function toggleAllOcr() {
-  const master = document.getElementById('chkAllOcr');
+  const master = $('chkAllOcr');
   if (!master) return;
   const toOn = !master.classList.contains('on');
   master.classList.toggle('on', toOn);
   S.receipts.forEach(r => {
     r._checked = toOn;  // 同步到 state，不依賴 DOM
-    document.getElementById('rck-' + r.id)?.classList.toggle('on', toOn);
+    $('rck-' + r.id)?.classList.toggle('on', toOn);
   });
   updateStats();
 }
@@ -3395,10 +3301,10 @@ function toggleAllOcr() {
 // 同時把 DOM checkbox 狀態回寫到 r._checked（供跨 tab 匯出用）
 function syncAllOcrChk() {
   S.receipts.forEach(r => {
-    const chk = document.getElementById('rck-' + r.id);
+    const chk = $('rck-' + r.id);
     if (chk) r._checked = chk.classList.contains('on');
   });
-  const master = document.getElementById('chkAllOcr');
+  const master = $('chkAllOcr');
   if (!master) return;
   const allOn = S.receipts.length > 0 && S.receipts.every(r => r._checked !== false);
   master.classList.toggle('on', allOn);
@@ -3411,7 +3317,7 @@ function updateStats() {
 
   // 勾選狀態（DOM checkbox；未建立 DOM 時視為全選）
   const isChecked = r => {
-    const el = document.getElementById('rck-' + r.id);
+    const el = $('rck-' + r.id);
     return el ? el.classList.contains('on') : true;
   };
 
@@ -3455,7 +3361,7 @@ function nextDup() {
   if (!_dupQueue.length) {
     // 全部處理完
     closeModal('dupModal');
-    document.getElementById('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
+    $('ocrDoneBar').style.cssText = 'display:flex;margin-top:12px;gap:8px';
     toast(`✅ 本次辨識完成：新增 ${S.receipts.length - _ocrCountBefore} 張憑證`);
     return;
   }
@@ -3496,7 +3402,7 @@ function renderDupModal(r) {
   const isOtherPerson = r._duplicateOwnerIsSelf === false;
   const noOverwrite = isCrossMonth || isOtherPerson;
 
-  document.getElementById('dupModalBody').innerHTML = `
+  $('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
         <span style="color:var(--muted)">廠商</span>
@@ -3535,14 +3441,14 @@ function renderDupModal(r) {
     }`;
 
   // 跨月或非同一申請人時禁用覆蓋按鈕
-  const btnOverwrite = document.getElementById('btnDupOverwrite');
+  const btnOverwrite = $('btnDupOverwrite');
   if (btnOverwrite) {
     btnOverwrite.disabled = noOverwrite;
     btnOverwrite.style.opacity = noOverwrite ? '0.35' : '1';
     btnOverwrite.title = isOtherPerson ? '非同一申請人不可覆蓋' : isCrossMonth ? '跨月不可覆蓋' : '';
   }
 
-  document.getElementById('dupRemaining').textContent =
+  $('dupRemaining').textContent =
     remaining > 0 ? `還有 ${remaining} 筆待確認` : '這是最後一筆';
 }
 
@@ -3552,7 +3458,7 @@ async function resolveDup(action) {
 
   // 鎖定按鈕
   ['btnDupOverwrite','btnDupKeep'].forEach(id => {
-    const b = document.getElementById(id);
+    const b = $(id);
     if (b) b.disabled = true;
   });
 
@@ -3574,7 +3480,7 @@ async function resolveDup(action) {
         // 若覆蓋，前端顯示發票號碼也改回原始值
         if (action === 'overwrite') rec.invoiceNo = r._duplicateOfKey;
         // 重新渲染這張卡片
-        const el = document.getElementById('rc-' + rec.id);
+        const el = $('rc-' + rec.id);
         if (el) { el.outerHTML = rcHTML(rec); }
       }
     } else {
@@ -3585,7 +3491,7 @@ async function resolveDup(action) {
   }
 
   ['btnDupOverwrite','btnDupKeep'].forEach(id => {
-    const b = document.getElementById(id);
+    const b = $(id);
     if (b) b.disabled = false;
   });
 
@@ -3603,7 +3509,7 @@ async function resolveDup(action) {
 function renderPdfResultList(urls, labels) {
   if (!urls || !urls.length) return;
   // 移除舊的結果列表
-  document.getElementById('pdfResultList')?.remove();
+  $('pdfResultList')?.remove();
 
   const wrap = document.createElement('div');
   wrap.id = 'pdfResultList';
@@ -3633,11 +3539,11 @@ function renderPdfResultList(urls, labels) {
   });
 
   // 插入到 ocrDoneBar 後面
-  const doneBar = document.getElementById('ocrDoneBar');
+  const doneBar = $('ocrDoneBar');
   if (doneBar && doneBar.parentNode) {
     doneBar.parentNode.insertBefore(wrap, doneBar.nextSibling);
   } else {
-    document.getElementById('ocrResults')?.appendChild(wrap);
+    $('ocrResults')?.appendChild(wrap);
   }
 }
 
@@ -3650,7 +3556,7 @@ async function _doExport(skipStash = false) {
 
   // ── 先同步目前 tab 的 DOM checkbox 狀態到 r._checked ──
   S.receipts.forEach(r => {
-    const chk = document.getElementById('rck-' + r.id);
+    const chk = $('rck-' + r.id);
     if (chk) r._checked = chk.classList.contains('on');
   });
 
@@ -3755,28 +3661,28 @@ function switchSection(name) {
   const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
-  const backBtn = document.getElementById('navMenuProjBack');
+  const backBtn = $('navMenuProjBack');
   if (backBtn) backBtn.style.display = 'none';
 
   // 費用：完全靠 sec-expense-* sections，appShell 隱藏
-  document.getElementById('appShell').style.display = 'none';
+  $('appShell').style.display = 'none';
   ['project','todo','proj-settings','schedule','finance',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
-    const el = document.getElementById('sec-'+s);
+    const el = $('sec-'+s);
     if (el) el.classList.remove('active');
   });
 
   if (name === 'expense') {
-    document.getElementById('sec-expense-'+_currentExpensePage)?.classList.add('active');
+    $('sec-expense-'+_currentExpensePage)?.classList.add('active');
   } else {
-    document.getElementById('sec-'+name)?.classList.add('active');
+    $('sec-'+name)?.classList.add('active');
   }
 
   // 漢堡：費用→費用子頁選單，專案→專案設定，待辦→篩選，proj-settings/schedule/finance→返回
-  document.getElementById('navBurgerBtn').style.display = 'flex';
-  document.getElementById('navMenuProject').classList.toggle('menu-hidden', !isProjectRelated(name));
-  document.getElementById('navMenuExpense').classList.toggle('menu-hidden', name!=='expense');
-  document.getElementById('navMenuTodo').classList.toggle('menu-hidden', name!=='todo');
+  $('navBurgerBtn').style.display = 'flex';
+  $('navMenuProject').classList.toggle('menu-hidden', !isProjectRelated(name));
+  $('navMenuExpense').classList.toggle('menu-hidden', name!=='expense');
+  $('navMenuTodo').classList.toggle('menu-hidden', name!=='todo');
   closeNavMenu();
   updateUnifiedSyncUI();
 
@@ -3800,9 +3706,9 @@ function switchSection(name) {
 function renderSettingsUserBar() {
   const u = S.user;
   if (!u) return;
-  const av = document.getElementById('ps-uAvatar');
-  const nm = document.getElementById('ps-uName');
-  const dt = document.getElementById('ps-uDeptTitle');
+  const av = $('ps-uAvatar');
+  const nm = $('ps-uName');
+  const dt = $('ps-uDeptTitle');
   if (av) {
     if (u.pictureUrl) { av.innerHTML = `<img src="${u.pictureUrl}" style="width:100%;height:100%;object-fit:cover">`; }
     else { av.textContent = (u.name||'?')[0]; }
@@ -3818,7 +3724,7 @@ function isProjectRelated(name) {
   _currentExpensePage = page;
   closeNavMenu();
   ['upload','ocr','history'].forEach(p=> {
-    document.getElementById('sec-expense-'+p)?.classList.toggle('active', p===page);
+    $('sec-expense-'+p)?.classList.toggle('active', p===page);
   });
   if (page==='history') loadExportHistory(false);
   // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
@@ -3838,7 +3744,7 @@ function closeNavMenu() {
   document.querySelectorAll('#navBurgerBtn .navmenu').forEach(m=>m.classList.remove('open'));
 }
 document.addEventListener('click', (e) => {
-  const burger = document.getElementById('navBurgerBtn');
+  const burger = $('navBurgerBtn');
   if (burger && !burger.contains(e.target)) closeNavMenu();
 });
 
@@ -3866,7 +3772,7 @@ function nav(name) {
 
 // 填充部門下拉（從 S.config.departments）
 function populateNpDept() {
-  const sel = document.getElementById('np-dept');
+  const sel = $('np-dept');
   if (!sel) return;
   const depts = S.config.departments || [];
   sel.innerHTML = '<option value="">— 選擇部門 —</option>' +
@@ -3875,14 +3781,14 @@ function populateNpDept() {
 
 // 月定額 toggle
 function setNpQuota(isQuota) {
-  document.getElementById('np-quota').value = isQuota ? 'true' : 'false';
-  const tgl = document.getElementById('tgl-np-quota');
+  $('np-quota').value = isQuota ? 'true' : 'false';
+  const tgl = $('tgl-np-quota');
   if (tgl) {
     tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
       b.classList.toggle('on', i === (isQuota ? 0 : 1)));
   }
   // 里程實報時核定補助 disable
-  const sub = document.getElementById('np-subsidy');
+  const sub = $('np-subsidy');
   if (sub) {
     sub.disabled = !isQuota;
     if (!isQuota) sub.value = '';
@@ -3891,34 +3797,34 @@ function setNpQuota(isQuota) {
 
 // 預收款 toggle
 function setNpPrepay(enabled) {
-  document.getElementById('np-prepay-enabled').value = enabled ? 'true' : 'false';
-  const tgl = document.getElementById('tgl-np-prepay');
+  $('np-prepay-enabled').value = enabled ? 'true' : 'false';
+  const tgl = $('tgl-np-prepay');
   if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
     b.classList.toggle('on', i === (enabled ? 1 : 0)));
-  const fields = document.getElementById('np-prepay-fields');
+  const fields = $('np-prepay-fields');
   if (fields) fields.style.display = enabled ? 'block' : 'none';
 }
 
 // 新增專案
 async function doAddProject() {
-  const code     = document.getElementById('np-code')?.value.trim();
-  const name     = document.getElementById('np-name')?.value.trim();
-  const deptCode = document.getElementById('np-dept')?.value;
-  const quota    = document.getElementById('np-quota')?.value === 'true';
-  const subsidy  = parseFloat(document.getElementById('np-subsidy')?.value) || 0;
-  const effect   = document.getElementById('np-effect')?.value;
-  const close    = document.getElementById('np-close')?.value;
-  const prepayEnabled = document.getElementById('np-prepay-enabled')?.value === 'true';
-  const prepayAmount  = parseFloat(document.getElementById('np-prepay-amount')?.value) || 0;
-  const prepayPct     = parseFloat(document.getElementById('np-prepay-deductpct')?.value) || 0;
-  const msg      = document.getElementById('npMsg');
+  const code     = $('np-code')?.value.trim();
+  const name     = $('np-name')?.value.trim();
+  const deptCode = $('np-dept')?.value;
+  const quota    = $('np-quota')?.value === 'true';
+  const subsidy  = parseFloat($('np-subsidy')?.value) || 0;
+  const effect   = $('np-effect')?.value;
+  const close    = $('np-close')?.value;
+  const prepayEnabled = $('np-prepay-enabled')?.value === 'true';
+  const prepayAmount  = parseFloat($('np-prepay-amount')?.value) || 0;
+  const prepayPct     = parseFloat($('np-prepay-deductpct')?.value) || 0;
+  const msg      = $('npMsg');
 
   if (!code || !name || !effect) {
     if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
     return;
   }
 
-  const btn = document.getElementById('btnAddProj');
+  const btn = $('btnAddProj');
   if (btn) { btn.disabled = true; btn.textContent = '新增中...'; }
   if (msg) msg.textContent = '';
 
@@ -3938,11 +3844,11 @@ async function doAddProject() {
       if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
       // 清空表單
       ['np-code','np-name','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
-        const el = document.getElementById(id);
+        const el = $(id);
         if (el) el.value = '';
       });
-      document.getElementById('np-prepay-deductpct').value = '10';
-      document.getElementById('np-dept').value = '';
+      $('np-prepay-deductpct').value = '10';
+      $('np-dept').value = '';
       setNpQuota(true);
       setNpPrepay(false);
       setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
@@ -3963,8 +3869,8 @@ async function doAddProject() {
 
 // 載入專案列表
 async function loadProjectList(showToast, _isRetry) {
-  const tbody   = document.getElementById('projListTbl');
-  const cntEl   = document.getElementById('projListCnt');
+  const tbody   = $('projListTbl');
+  const cntEl   = $('projListCnt');
   if (tbody) tbody.innerHTML = loadingRow(8);
   // 規則見 callGAS 定義處的說明
   const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
@@ -3988,7 +3894,7 @@ async function loadProjectList(showToast, _isRetry) {
 
 // 渲染專案列表（newest first，已由 GAS 排序）
 function renderProjectList(rows) {
-  const tbody = document.getElementById('projListTbl');
+  const tbody = $('projListTbl');
   if (!tbody) return;
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
@@ -4027,59 +3933,38 @@ function renderProjectList(rows) {
 // 待辦事項 (Tasks)
 // ════════════════════════════════════════════════════════════
 async function loadTasks(_isRetry) {
-  const list = document.getElementById('taskList');
+  const list = $('taskList');
   if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
   setNavSyncStatus('todo', '同步中...', true);
-  // 規則見 callGAS 定義處的說明
-  const res = await callGAS({ action: 'getTasks' });
+  const res = await callGAS({ action:'getTasks' });
   if (!res.success) {
     if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
-    setNavSyncStatus('todo', '❌ 連線失敗，請重試');
-    return;
+    setNavSyncStatus('todo', '❌ 連線失敗，請重試'); return;
   }
-  // 首次載入若回傳空清單，靜默重試一次，避免登入瞬間多請求併發造成的偶發延遲
-  if (shouldRetryEmpty(res.rows, S._taskList, _isRetry)) {
-    return loadTasks(true);
-  }
-  S._taskList = res.rows || [];
+  if (shouldRetryEmpty(res.rows, S._taskList, _isRetry)) return loadTasks(true);
+  S._taskList = res.rows ?? [];
   renderTaskList();
   setNavSyncStatus('todo', '✅ 同步完成 ' + now());
   flashNavSyncDone('todo');
 }
 
 function renderTaskList() {
-  const list = document.getElementById('taskList');
-  if (!list) return;
-  const all = S._taskList || [];
-  const showDone    = document.getElementById('td-show-done')?.checked;
-  const showDeleted = document.getElementById('td-show-deleted')?.checked;
-
-  const rows = all.filter(t => {
-    if (t.status === '已刪除' && !showDeleted) return false;
-    if (t.status === '已完成' && !showDone)    return false;
-    return true;
-  });
-
-  const cnt = document.getElementById('taskListCnt');
+  const list = $('taskList'); if (!list) return;
+  const all = S._taskList ?? [];
+  const showDone = $('td-show-done')?.checked, showDeleted = $('td-show-deleted')?.checked;
+  const rows = all.filter(t => !(t.status==='已刪除'&&!showDeleted) && !(t.status==='已完成'&&!showDone));
+  const cnt = $('taskListCnt');
   if (cnt) cnt.textContent = all.filter(t=>t.status==='待處理').length + ' 待處理';
-
-  if (!rows.length) {
-    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無待辦事項</div>';
-    return;
-  }
+  if (!rows.length) { list.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">尚無待辦事項</div>'; return; }
   list.innerHTML = rows.map(t => {
-    const done    = t.status === '已完成';
-    const deleted = t.status === '已刪除';
-    const style   = deleted ? 'text-decoration:line-through;color:var(--muted)'
-                  : done    ? 'text-decoration:line-through;color:var(--muted)' : '';
+    const faded = t.status==='已完成'||t.status==='已刪除';
     return `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)">
-      <input type="checkbox" ${done?'checked':''} ${deleted?'disabled':''} style="width:18px;height:18px;cursor:pointer"
-        onchange="toggleTask('${t.id}', this.checked)">
-      <div style="flex:1;${style}">
+      <input type="checkbox" ${t.status==='已完成'?'checked':''} ${t.status==='已刪除'?'disabled':''} style="width:18px;height:18px;cursor:pointer" onchange="toggleTask('${t.id}',this.checked)">
+      <div style="flex:1;${faded?'text-decoration:line-through;color:var(--muted)':''}">
         ${esc(t.content)}
-        <div style="font-size:11px;color:#888;margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}${deleted?' · 🗑已刪除':''}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}${t.status==='已刪除'?' · 🗑已刪除':''}</div>
       </div>
-      ${deleted
+      ${t.status==='已刪除'
         ? `<button class="btn btn-ghost btn-sm" onclick="restoreTask('${t.id}')">↩ 還原</button>`
         : `<button class="btn btn-danger btn-sm" onclick="doDeleteTask('${t.id}')">🗑</button>`}
     </div>`;
@@ -4087,7 +3972,7 @@ function renderTaskList() {
 }
 
 async function doAddTask() {
-  const input = document.getElementById('td-input');
+  const input = $('td-input');
   const content = input?.value.trim();
   if (!content) return;
   input.disabled = true;
@@ -4130,37 +4015,21 @@ async function restoreTask(id) {
 // ════════════════════════════════════════════════════════════
 // 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款 / 專案費用
 // ════════════════════════════════════════════════════════════
-// 每期欄位結構: { label, amount, prepayDeduct,
-//                 accepted,                ← 業主端驗收完成（專案頁更新）
-//                 invoiced, invoiceDate,   ← 業主開票（財務更新）
-//                 paid, payDate,           ← 業主收款（專案頁更新）
-//                 invAccepted,             ← 廠商端驗收完成（專案頁更新）
-//                 invReceived, invReceivedDate, ← 廠商收票（專案頁更新）
-//                 vendorPaid, vendorPayDate }   ← 廠商付款（財務更新）
-function pjBlankPeriod() {
-  return { label:'', amount:0, prepayDeduct:0,
-           accepted:false,
-           invoiced:false, invoiceDate:'', paid:false, payDate:'',
-           invAccepted:false,
-           invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'' };
-}
+const pjBlankPeriod = () => ({
+  label:'', amount:0, prepayDeduct:0,
+  accepted:false, invoiced:false, invoiceDate:'', paid:false, payDate:'',
+  invAccepted:false, invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'',
+});
 
 async function loadProjectsForBoard(_isRetry) {
-  const board = document.getElementById('projBoard');
+  const board = $('projBoard');
   if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
   setNavSyncStatus('project', '同步中...', true);
   try {
-    const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId || '' });
-    // 規則見 callGAS 定義處的說明
+    const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId ?? '' });
     if (!res.success) throw new Error(res.error || '取得專案失敗');
-    // item3: 首次載入（尚無任何快取）若回傳空清單，靜默重試一次再顯示，
-    // 避免登入瞬間偶發的後端延遲被誤判為「真的沒有專案」，
-    // 使用者得手動重新整理才能看到資料
-    if (shouldRetryEmpty(res.rows, S._pjBoard, _isRetry)) {
-      return loadProjectsForBoard(true);
-    }
-    S._pjBoard = res.rows || [];
-    // 重新整理時順帶清除目前顯示專案的費用快取，確保專案費用一併刷新
+    if (shouldRetryEmpty(res.rows, S._pjBoard, _isRetry)) return loadProjectsForBoard(true);
+    S._pjBoard = res.rows ?? [];
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
     renderProjectBoard();
     setNavSyncStatus('project', '✅ 同步完成 ' + now());
@@ -4323,8 +4192,8 @@ function pjVendorCard(c, opts) {
 
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
 function renderProjectBoard() {
-  const board = document.getElementById('projBoard');
-  const wrap  = document.getElementById('proj-select-fd-wrap');
+  const board = $('projBoard');
+  const wrap  = $('proj-select-fd-wrap');
   if (!board || !wrap) return;
   const rows = S._pjBoard || [];
   if (!rows.length) {
@@ -4500,7 +4369,7 @@ function pjToggleClient(projectId) {
   S._clientExpand = S._clientExpand || {};
   const next = !S._clientExpand[projectId];
   S._clientExpand[projectId] = next;
-  const el = document.getElementById('pj-client-body-'+projectId);
+  const el = $('pj-client-body-'+projectId);
   if (el) el.style.display = next ? 'block' : 'none';
 }
 
@@ -4510,7 +4379,7 @@ function pjToggleVendor(projectId, vendorIndex) {
   const key  = projectId + ':' + vendorIndex;
   const next = !S._vendorExpand[key];
   S._vendorExpand[key] = next;
-  const el = document.getElementById('pj-vendor-'+projectId+'-'+vendorIndex);
+  const el = $('pj-vendor-'+projectId+'-'+vendorIndex);
   if (el) el.style.display = next ? 'block' : 'none';
 }
 
@@ -4535,7 +4404,7 @@ function renderProjExpenseList(items, proj) {
 async function loadProjectExpenses(projectId, _isRetry) {
   if (_projExpenseLoading[projectId]) return;
   _projExpenseLoading[projectId] = true;
-  const wrap = document.getElementById('pj-expense-'+projectId);
+  const wrap = $('pj-expense-'+projectId);
   if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">載入中...</div>';
   let rows = [];
   let ok   = false;
@@ -4706,7 +4575,7 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl)
 
 // ── inline 編輯小 modal（支援 extraActions 重置按鈕）─────────
 function showInlineEdit({ title, fields, onSave, extraActions }) {
-  const existing = document.getElementById('_inlineEditWrap');
+  const existing = $('_inlineEditWrap');
   if (existing) existing.remove();
 
   // item6: date 欄位比照「財務專區」收票/付款日期樣式——輸入框旁直接放 ✕ 按鈕
@@ -4742,7 +4611,7 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
     ${fHtml}
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" id="ie-save">儲存</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('_inlineEditWrap').remove()">取消</button>
+      <button class="btn btn-ghost btn-sm" onclick="$('_inlineEditWrap').remove()">取消</button>
       ${extraHtml}
     </div>
   </div>`;
@@ -4750,17 +4619,17 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
 
   // set extra button labels after insert（item6 後僅保留一般 action 用途，clearField 已不再使用）
   (extraActions||[]).forEach((a,i) => {
-    const btn = document.getElementById('ie-extra-'+i);
+    const btn = $('ie-extra-'+i);
     if (btn) {
       btn.textContent = a.label;
       btn.onclick = async () => { wrap.remove(); await a.action(); };
     }
   });
 
-  const saveBtn = document.getElementById('ie-save');
+  const saveBtn = $('ie-save');
   saveBtn.onclick = async () => {
     const vals = {};
-    fields.forEach(f => { vals[f.id] = document.getElementById('ie-'+f.id)?.value; });
+    fields.forEach(f => { vals[f.id] = $('ie-'+f.id)?.value; });
     // 顯示 loading：modal 暫不關閉，避免使用者誤以為沒反應，並防止重複點擊
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<div class="spin"></div>';
@@ -4775,7 +4644,7 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
         saveBtn.disabled = false;
         saveBtn.innerHTML = '儲存';
         if (cancelBtn) cancelBtn.disabled = false;
-      } else if (document.getElementById('_inlineEditWrap')) {
+      } else if ($('_inlineEditWrap')) {
         wrap.remove();
       }
     }
@@ -4787,30 +4656,29 @@ function showInlineEdit({ title, fields, onSave, extraActions }) {
 // 改為失焦清空並補發 input/change 事件（同舊版註解原因：LINE LIFF WebView 對
 // 「剛清空、立刻 focus」的 native date input 會重新彈出日曆並把值補回，需避免 focus）。
 function ieClearDateField(fieldId) {
-  const el = document.getElementById('ie-'+fieldId);
+  const el = $('ie-'+fieldId);
   if (!el) return;
   el.value = '';
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   el.blur();
-  const btn = document.getElementById('ie-clear-'+fieldId);
+  const btn = $('ie-clear-'+fieldId);
   if (btn) btn.style.display = 'none';
 }
 
 // item6: date 欄位手動改值後，依是否有值同步顯示/隱藏 ✕ 按鈕
 function ieRefreshClearBtn(fieldId) {
-  const el  = document.getElementById('ie-'+fieldId);
-  const btn = document.getElementById('ie-clear-'+fieldId);
+  const el  = $('ie-'+fieldId);
+  const btn = $('ie-clear-'+fieldId);
   if (!el || !btn) return;
   btn.style.display = el.value ? 'inline-flex' : 'none';
 }
-
 
 // ════════════════════════════════════════════════════════════
 // 財務專區 — 匯出專案 Excel 報表（所有專案/部門/其他彙整）
 // ════════════════════════════════════════════════════════════
 async function exportProjectFinanceReport() {
-  const btn = document.getElementById('fin-export-report-btn');
+  const btn = $('fin-export-report-btn');
   const orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 產生中...'; }
   toast('⏳ 正在彙整所有專案/部門資料並產生報表...');
@@ -4840,55 +4708,31 @@ async function exportProjectFinanceReport() {
 let _finRows = { invoice: [], payment: [] };
 
 async function loadFinance() {
-  _finRows = { invoice: [], payment: [] };
-  renderFinanceInvoice();
-  renderFinancePayment();
+  _finRows = { invoice:[], payment:[] };
+  renderFinanceInvoice(); renderFinancePayment();
   setNavSyncStatus('project', '同步中...', true);
-
   try {
-    // 若 pjBoard 已有資料直接用，否則先載入
-    const rows = S._pjBoard || [];
-    if (!rows.length) {
-      const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId || '' });
-      // 同步 loadProjectsForBoard 的修正：請求失敗時不可覆寫成空陣列，
-      // 否則會把可能已存在的資料意外清空
+    if (!S._pjBoard?.length) {
+      const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId ?? '' });
       if (!res.success) throw new Error(res.error || '取得專案失敗');
-      S._pjBoard = res.rows || [];
+      S._pjBoard = res.rows ?? [];
     }
-
-    // 建立待發票（業主端 invoiced=false）與待付款（廠商端 vendorPaid=false）列表
     const inv = [], pay = [];
     for (const p of S._pjBoard) {
-      for (const [j, c] of (p.client||[]).entries()) {
-        // 只要有「進度」（業主端已驗收 = invoiced 或 paid 任一有動作），就列出
-        if (!c.label && !c.amount) continue;
-        inv.push({ proj:p, periodIdx:j, c });
-      }
-      for (const [vi, v] of (p.vendors||[]).entries()) {
-        for (const [pj, c] of (v.periods||[]).entries()) {
-          if (!c.label && !c.amount) continue;
-          pay.push({ proj:p, vendorIdx:vi, vendor:v, periodIdx:pj, c });
-        }
-      }
+      (p.client??[]).forEach((c,j) => { if(c.label||c.amount) inv.push({proj:p,periodIdx:j,c}); });
+      (p.vendors??[]).forEach((v,vi) => (v.periods??[]).forEach((c,pj) => { if(c.label||c.amount) pay.push({proj:p,vendorIdx:vi,vendor:v,periodIdx:pj,c}); }));
     }
-    _finRows.invoice  = inv;
-    _finRows.payment  = pay;
-    renderFinanceInvoice();
-    renderFinancePayment();
+    _finRows.invoice = inv; _finRows.payment = pay;
+    renderFinanceInvoice(); renderFinancePayment();
     setNavSyncStatus('project', '✅ 同步完成 ' + now());
     flashNavSyncDone('project');
-  } catch(e) {
-    setNavSyncStatus('project', '❌ 連線失敗，請重試');
-  }
+  } catch(e) { setNavSyncStatus('project', '❌ 連線失敗，請重試'); }
 }
 
-// ── 待發票列表渲染 ──
 function renderFinanceInvoice() {
-  const tbody   = document.getElementById('fin-inv-body');
-  if (!tbody) return;
-  const showAll = document.getElementById('fin-show-inv-done')?.checked;
-  // 僅列出已進入流程的期款（已驗收/已開票/已收款），未驗收（未開始）不顯示，避免列表充斥無關項目
-  const rows    = (_finRows.invoice || []).filter(r => r.c.accepted || r.c.invoiced || r.c.paid);
+  const tbody = $('fin-inv-body'); if (!tbody) return;
+  const showAll = $('fin-show-inv-done')?.checked;
+  const rows    = (_finRows.invoice ?? []).filter(r => r.c.accepted || r.c.invoiced || r.c.paid);
   const visible = showAll ? rows : rows.filter(r => !(r.c.invoiceDate && r.c.invoiced && r.c.paid && r.c.payDate));
 
   if (!visible.length) {
@@ -4933,9 +4777,9 @@ function renderFinanceInvoice() {
 
 // ── 待付款列表渲染 ──
 function renderFinancePayment() {
-  const tbody   = document.getElementById('fin-pay-body');
+  const tbody   = $('fin-pay-body');
   if (!tbody) return;
-  const showAll = document.getElementById('fin-show-pay-done')?.checked;
+  const showAll = $('fin-show-pay-done')?.checked;
   const rows    = (_finRows.payment || []).filter(r => r.c.invReceived || r.c.invAccepted || r.c.vendorPaid);
   const visible = showAll ? rows : rows.filter(r => !(r.c.vendorPaid && r.c.invReceived && r.c.invReceivedDate && r.c.vendorPayDate));
 
@@ -5021,7 +4865,7 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
 
 // ── 設定 > 進度設定：可編輯 ──────────────────────────────────
 function pgPopulateProjectSelect() {
-  const wrap = document.getElementById('pg-project-fd-wrap');
+  const wrap = $('pg-project-fd-wrap');
   if (!wrap) return;
   const rows = S._pjBoard || [];
   if (!wrap.querySelector('.fd-wrap')) {
@@ -5041,7 +4885,7 @@ function pgPopulateProjectSelect() {
 // item2: 將「進度設定」頁的扣抵方式 UI（僅每期扣回 % 輸入框）同步成目前載入專案
 // 自己的 prepay.deductPct 設定值，確保跟「新增專案」表單顯示一致，不再各自為政
 function pgPopulateDeductMethods() {
-  const pctInput = document.getElementById('pg-deduct-pct');
+  const pctInput = $('pg-deduct-pct');
   if (!pctInput) return;
   const p = S._pgProject;
   const prepay = (p && p.prepay) || {enabled:false,amount:0,deductPct:10};
@@ -5049,7 +4893,7 @@ function pgPopulateDeductMethods() {
 }
 
 function pgPopulateTargetSelect() {
-  const sel = document.getElementById('pg-target-select');
+  const sel = $('pg-target-select');
   if (!sel) return;
   const p = S._pgProject;
   const cur = sel.value;
@@ -5060,7 +4904,7 @@ function pgPopulateTargetSelect() {
 }
 
 function pgLoadProject(id) {
-  const editor = document.getElementById('pg-editor');
+  const editor = $('pg-editor');
   if (!id) { S._pgProject = null; if (editor) editor.innerHTML=''; pgPopulateTargetSelect(); return; }
   const p = (S._pjBoard||[]).find(x=>x.id===id);
   if (!p) return;
@@ -5069,7 +4913,7 @@ function pgLoadProject(id) {
   S._pgProject.client  = S._pgProject.client  || [];
   S._pgProject.vendors = S._pgProject.vendors || [];
   pgPopulateTargetSelect();
-  document.getElementById('pg-target-select').value = 'client';
+  $('pg-target-select').value = 'client';
   pgPopulateDeductMethods();
   pgRenderEditor();
 }
@@ -5078,7 +4922,7 @@ function pgLoadProject(id) {
 function pgTargetArray() {
   const p = S._pgProject;
   if (!p) return null;
-  const target = document.getElementById('pg-target-select')?.value || 'client';
+  const target = $('pg-target-select')?.value || 'client';
   if (target === 'client') return p.client = p.client || [];
   const vi = Number(target.split(':')[1]);
   p.vendors[vi] = p.vendors[vi] || {name:'',periods:[]};
@@ -5088,23 +4932,23 @@ function pgTargetArray() {
 function pgAddVendorQuick() {
   const p = S._pgProject;
   if (!p) { toast('請先選擇專案'); return; }
-  const input = document.getElementById('pg-new-vendor');
+  const input = $('pg-new-vendor');
   const name = input?.value.trim();
   if (!name) return;
   p.vendors = p.vendors || [];
   p.vendors.push({ name, periods: [] });
   input.value = '';
   pgPopulateTargetSelect();
-  document.getElementById('pg-target-select').value = 'vendor:' + (p.vendors.length-1);
+  $('pg-target-select').value = 'vendor:' + (p.vendors.length-1);
   pgRenderEditor();
 }
 
 function pgRenderEditor() {
-  const editor = document.getElementById('pg-editor');
+  const editor = $('pg-editor');
   if (!editor) return;
   const p = S._pgProject;
   if (!p) { editor.innerHTML=''; return; }
-  const target = document.getElementById('pg-target-select')?.value || 'client';
+  const target = $('pg-target-select')?.value || 'client';
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
 
   let removeVendorBtn = '';
@@ -5129,11 +4973,11 @@ function pgRenderEditor() {
 }
 
 function pgRenderPeriods() {
-  const wrap  = document.getElementById('pg-periods');
+  const wrap  = $('pg-periods');
   if (!wrap) return;
   const items = pgTargetArray() || [];
   if (!items.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無分期</div>'; return; }
-  const target = document.getElementById('pg-target-select')?.value || 'client';
+  const target = $('pg-target-select')?.value || 'client';
   const isClient = (target === 'client');
   // 業主端：項目(*必填)、金額(*必填)、扣抵預收 → 開票/收款由財務/專案頁更新
   // 廠商端：項目(*必填)、金額(*必填) → 收票/付款由財務/專案頁更新
@@ -5177,7 +5021,7 @@ function pgSetPeriod(j,k,v) {
 // item3: 局部更新「已分配扣抵」總計文字，讓使用者手動修改某一期的扣抵金額時，
 // 摘要立即跟著異動，而不需要整頁重繪或切換目標才會看到正確數字
 function pgUpdatePrepaySummary() {
-  const el = document.getElementById('pg-prepay-summary');
+  const el = $('pg-prepay-summary');
   const p  = S._pgProject;
   if (!el || !p) return;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
@@ -5188,7 +5032,7 @@ function pgUpdatePrepaySummary() {
 function pgRemoveVendor(vi) {
   S._pgProject.vendors.splice(vi,1);
   pgPopulateTargetSelect();
-  document.getElementById('pg-target-select').value = 'client';
+  $('pg-target-select').value = 'client';
   pgRenderEditor();
 }
 
@@ -5198,7 +5042,7 @@ function pgRemoveVendor(vi) {
 function pgApplyDeductMethod() {
   const p = S._pgProject;
   if (!p) { toast('請先選擇專案'); return; }
-  const pct  = parseFloat(document.getElementById('pg-deduct-pct')?.value) || 0;
+  const pct  = parseFloat($('pg-deduct-pct')?.value) || 0;
   const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
   if (!prepay.enabled) { toast('此專案未啟用預收款'); return; }
 
@@ -5216,7 +5060,7 @@ function pgApplyDeductMethod() {
     c.prepayDeduct = Math.round(deduct);
     remaining -= c.prepayDeduct;
   });
-  if ((document.getElementById('pg-target-select')?.value)==='client') pgRenderPeriods();
+  if (($('pg-target-select')?.value)==='client') pgRenderPeriods();
   pgUpdatePrepaySummary();
   const modeLabel = `每期扣回 ${pct}%`;
   toast('已套用「' + modeLabel + '」，剩餘預收款 $' + remaining.toLocaleString());
@@ -5225,7 +5069,7 @@ function pgApplyDeductMethod() {
 async function pgSave() {
   const p = S._pgProject;
   if (!p) return;
-  const msg = document.getElementById('pg-msg');
+  const msg = $('pg-msg');
   if (msg) { msg.textContent='儲存中...'; msg.style.color='var(--muted)'; }
   try {
     const res = await callGAS({
@@ -5244,12 +5088,11 @@ async function pgSave() {
   }
 }
 
-
 // 編輯：inline 展開編輯列
 function doEditProject(i) {
   const p   = (S._projList || [])[i];
   if (!p) return;
-  const tr  = document.getElementById('prow-'+i);
+  const tr  = $('prow-'+i);
   if (!tr) return;
 
   // 若已是編輯模式，關閉
@@ -5313,7 +5156,7 @@ function doEditProject(i) {
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary btn-sm" onclick="doSaveProject('${p.id}',${i})">💾 儲存</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('prow-edit-${i}')?.remove()">取消</button>
+      <button class="btn btn-ghost btn-sm" onclick="$('prow-edit-${i}')?.remove()">取消</button>
       <span id="ep-msg-${i}" style="font-size:13px;margin-left:6px"></span>
     </div>
   </td>`;
@@ -5321,62 +5164,62 @@ function doEditProject(i) {
 }
 
 function setEpPrepay(i, enabled) {
-  document.getElementById(`ep-prepay-enabled-${i}`).value = enabled ? 'true' : 'false';
-  const tgl = document.getElementById(`tgl-ep-prepay-${i}`);
+  $(`ep-prepay-enabled-${i}`).value = enabled ? 'true' : 'false';
+  const tgl = $(`tgl-ep-prepay-${i}`);
   if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
     b.classList.toggle('on', j === (enabled ? 1 : 0)));
-  const fields = document.getElementById(`ep-prepay-fields-${i}`);
+  const fields = $(`ep-prepay-fields-${i}`);
   if (fields) fields.style.display = enabled ? 'block' : 'none';
 }
 
 function setEpQuota(i, isQuota) {
-  document.getElementById(`ep-quota-${i}`).value = isQuota ? 'true' : 'false';
-  const tgl = document.getElementById(`tgl-ep-quota-${i}`);
+  $(`ep-quota-${i}`).value = isQuota ? 'true' : 'false';
+  const tgl = $(`tgl-ep-quota-${i}`);
   if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
     b.classList.toggle('on', j === (isQuota ? 0 : 1)));
-  const sub = document.getElementById(`ep-subsidy-${i}`);
+  const sub = $(`ep-subsidy-${i}`);
   if (sub) { sub.disabled = !isQuota; if (!isQuota) sub.value = ''; }
 }
 
 // item6: 結案日 ✕ 清除按鈕——比照財務專區收票/付款日期樣式
 function epClearCloseDate(i) {
-  const el = document.getElementById(`ep-close-${i}`);
+  const el = $(`ep-close-${i}`);
   if (!el) return;
   el.value = '';
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   el.blur();
-  const btn = document.getElementById(`ep-close-clear-${i}`);
+  const btn = $(`ep-close-clear-${i}`);
   if (btn) btn.style.display = 'none';
 }
 
 function epRefreshCloseClearBtn(i) {
-  const el  = document.getElementById(`ep-close-${i}`);
-  const btn = document.getElementById(`ep-close-clear-${i}`);
+  const el  = $(`ep-close-${i}`);
+  const btn = $(`ep-close-clear-${i}`);
   if (!el || !btn) return;
   btn.style.display = el.value ? 'inline-flex' : 'none';
 }
 
 async function doSaveProject(id, i) {
-  const quota    = document.getElementById(`ep-quota-${i}`)?.value === 'true';
-  const prepayEnabled = document.getElementById(`ep-prepay-enabled-${i}`)?.value === 'true';
+  const quota    = $(`ep-quota-${i}`)?.value === 'true';
+  const prepayEnabled = $(`ep-prepay-enabled-${i}`)?.value === 'true';
   const payload  = {
     action:     'updateProject',
     id,
-    name:       document.getElementById(`ep-name-${i}`)?.value.trim()    || '',
-    code:       document.getElementById(`ep-code-${i}`)?.value.trim()     || '',
-    deptCode:   document.getElementById(`ep-dept-${i}`)?.value            || '',
+    name:       $(`ep-name-${i}`)?.value.trim()    || '',
+    code:       $(`ep-code-${i}`)?.value.trim()     || '',
+    deptCode:   $(`ep-dept-${i}`)?.value            || '',
     quota,
-    subsidy:    parseFloat(document.getElementById(`ep-subsidy-${i}`)?.value) || 0,
-    effectDate: document.getElementById(`ep-effect-${i}`)?.value          || '',
-    closeDate:  document.getElementById(`ep-close-${i}`)?.value           || '',
+    subsidy:    parseFloat($(`ep-subsidy-${i}`)?.value) || 0,
+    effectDate: $(`ep-effect-${i}`)?.value          || '',
+    closeDate:  $(`ep-close-${i}`)?.value           || '',
     prepay: {
       enabled:   prepayEnabled,
-      amount:    parseFloat(document.getElementById(`ep-prepay-amount-${i}`)?.value) || 0,
-      deductPct: parseFloat(document.getElementById(`ep-prepay-deductpct-${i}`)?.value) || 0,
+      amount:    parseFloat($(`ep-prepay-amount-${i}`)?.value) || 0,
+      deductPct: parseFloat($(`ep-prepay-deductpct-${i}`)?.value) || 0,
     },
   };
-  const msg = document.getElementById(`ep-msg-${i}`);
+  const msg = $(`ep-msg-${i}`);
   try {
     const res = await callGAS(payload);
     if (res.success) {
@@ -5438,7 +5281,7 @@ function showConfirm(msg) {
 // STASH
 // ════════════════════════════════════════════════════════════
 async function stashThenExport() {
-  const btn = document.getElementById('btnGoExport');
+  const btn = $('btnGoExport');
   const btnOriginalHtml = btn ? btn.innerHTML : '📄 匯出 Pdf →';
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 準備中...'; }
   try {
@@ -5507,8 +5350,8 @@ async function doStashAll(silent = false) {
 async function loadExportHistory(showToast) {
   const person = S.user?.name || '';
   const month  = curMonth();
-  const tbody  = document.getElementById('histTblBody');
-  const cntEl  = document.getElementById('histCnt');
+  const tbody  = $('histTblBody');
+  const cntEl  = $('histCnt');
   if (tbody) tbody.innerHTML = loadingRow(3);
   const res = await callGAS({ action: 'getExportHistory', person, month });
   if (!res.success) {
@@ -5545,159 +5388,103 @@ async function loadExportHistory(showToast) {
 // 繼續執行完成（OCR 寫入 OcrResults／PDF 寫入 Drive），但畫面已顯示失敗，
 // 造成「資料其實有，畫面卻說失敗」的不一致。因此這些動作延長逾時時間，
 // 讓 client 端的判定盡量貼近 GAS 端的實際執行時間。
-const GAS_ACTION_TIMEOUT_MS = {
-  ocrReceipt: 110000,
-  exportAll:  110000,
-};
+const GAS_ACTION_TIMEOUT_MS = { ocrReceipt:110000, exportAll:110000 };
 
 // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
-// 呼叫端務必明確檢查 res.success，不可只靠 try/catch（不會觸發）或
-// `res.rows || []`（失敗時 undefined 會被誤判成「成功但無資料」）
+// 呼叫端務必明確檢查 res.success，不可只靠 try/catch 或 res.rows||[]
 async function callGAS(payload, timeoutMs) {
+  const ms   = timeoutMs ?? GAS_ACTION_TIMEOUT_MS[payload?.action] ?? 60000;
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), ms);
   try {
-    const ctrl = new AbortController();
-    const ms = timeoutMs || GAS_ACTION_TIMEOUT_MS[payload?.action] || 60000;
-    const tid  = setTimeout(() => ctrl.abort(), ms);
-    const res  = await fetch(CFG.GAS_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body:    JSON.stringify(payload),
-      signal:  ctrl.signal,
-    });
+    const res = await fetch(CFG.GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload), signal:ctrl.signal });
     clearTimeout(tid);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return JSON.parse(await res.text());
   } catch (err) {
-    const ms = timeoutMs || GAS_ACTION_TIMEOUT_MS[payload?.action] || 60000;
+    clearTimeout(tid);
     const msg = err.name === 'AbortError' ? `請求逾時（${Math.round(ms/1000)}s）` : err.message;
     console.warn('[callGAS] 失敗:', payload.action, msg);
-    return { success: false, error: msg };
+    return { success:false, error:msg };
   }
 }
 
-function toBase64(file) {
-  return new Promise((res,rej) => {
-    const r=new FileReader();
-    r.onload=e=>res(e.target.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(file);
-  });
-}
+const toBase64 = file => new Promise((res,rej) => {
+  const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file);
+});
 
-// ── 上傳前統一轉 JPEG：支援 PDF（多頁）/ 大圖壓縮；HEIC 直接原檔送 GAS ──
-async function normalizeFileForUpload(file, fileIdx = 1, fileTotal = 1) {
-  const name = file.name.toLowerCase();
-  const mime = file.type || '';
-
-  // ── PDF：逐頁轉 JPEG，回傳 File 陣列 ──
-  if (mime === 'application/pdf' || name.endsWith('.pdf')) {
-    return await pdfToJpegFiles(file, fileIdx, fileTotal);
-  }
-
-  if (isHeicFile(file)) {
-    const fixedFile = file.type ? file : new File([file], file.name, { type: 'image/heic' });
-    return [fixedFile];
-  }
-
-  const isLarge = file.size > 2 * 1024 * 1024;
-  if (!isLarge) return [file];
-
+// 上傳前統一轉 JPEG：PDF（多頁）/ 大圖壓縮；HEIC 直接原檔送 GAS
+async function normalizeFileForUpload(file, fileIdx=1, fileTotal=1) {
+  const name = file.name.toLowerCase(), mime = file.type ?? '';
+  if (mime === 'application/pdf' || name.endsWith('.pdf')) return pdfToJpegFiles(file, fileIdx, fileTotal);
+  if (isHeicFile(file)) return [file.type ? file : new File([file], file.name, {type:'image/heic'})];
+  if (file.size <= 2*1024*1024) return [file];
   try {
     const blob = await toJpegViaCanvas(file, 0.82);
-    if (blob) {
-      return [new File([blob], file.name, { type: 'image/jpeg' })];
-    }
-  } catch (e) {
-    toast('⚠️ ' + file.name + ' 無法壓縮，以原格式上傳');
-  }
-
+    if (blob) return [new File([blob], file.name, {type:'image/jpeg'})];
+  } catch (e) { toast('⚠️ ' + file.name + ' 無法壓縮，以原格式上傳'); }
   return [file];
 }
 
-async function pdfToJpegFiles(file, fileIdx = 1, fileTotal = 1) {
-  if (typeof pdfjsLib === 'undefined') {
-    toast('⚠️ pdf.js 未載入，PDF 以原格式上傳');
-    return [file];
-  }
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
+async function pdfToJpegFiles(file, fileIdx=1, fileTotal=1) {
+  if (typeof pdfjsLib === 'undefined') { toast('⚠️ pdf.js 未載入，PDF 以原格式上傳'); return [file]; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const baseName = file.name.replace(/\.pdf$/i, '');
-  const results  = [];
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const total       = pdf.numPages;
+    const pdf   = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const total = pdf.numPages;
     toast(`⏳ 第 ${fileIdx}/${fileTotal} 個檔案 PDF ${total} 頁轉換中...`);
-
+    const results = [];
     for (let p = 1; p <= total; p++) {
-      const page     = await pdf.getPage(p);
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas   = document.createElement('canvas');
-      canvas.width   = viewport.width;
-      canvas.height  = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-
-      const blob    = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
-      const suffix  = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
-      const newName = baseName + suffix + '.jpg';
-      results.push(new File([blob], newName, { type: 'image/jpeg' }));
+      const page = await pdf.getPage(p);
+      const vp   = page.getViewport({ scale:2.0 });
+      const cv   = Object.assign(document.createElement('canvas'), { width:vp.width, height:vp.height });
+      await page.render({ canvasContext:cv.getContext('2d'), viewport:vp }).promise;
+      const blob   = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.88));
+      const suffix = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
+      results.push(new File([blob], baseName + suffix + '.jpg', {type:'image/jpeg'}));
     }
     toast(`✅ PDF 轉換完成：${total} 頁`);
-  } catch (e) {
-    toast('⚠️ PDF 轉換失敗，以原格式上傳');
-    return [file];
-  }
-  return results;
+    return results;
+  } catch { toast('⚠️ PDF 轉換失敗，以原格式上傳'); return [file]; }
 }
 
-function toJpegViaCanvas(file, quality = 0.88) {
+function toJpegViaCanvas(file, quality=0.88) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      const MAX = 2400;
-      let { naturalWidth: w, naturalHeight: h } = img;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else       { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width  = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob(blob => {
-        URL.revokeObjectURL(url);
-        resolve(blob);
-      }, 'image/jpeg', quality);
-    };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('圖片載入失敗')); };
+    img.onload  = () => {
+      const MAX=2400; let {naturalWidth:w,naturalHeight:h}=img;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      const cv = Object.assign(document.createElement('canvas'), {width:w,height:h});
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cv.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/jpeg', quality);
+    };
     img.src = url;
   });
 }
 
 function toast(msg, ms=3200) {
-  const t=document.getElementById('toast');
+  const t=$('toast');
   t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t);
   t._t=setTimeout(()=>t.classList.remove('show'), ms);
 }
 
-
 function badge(id, n) {
-  const el=document.getElementById(id);
+  const el=$(id);
   if(!el) return;
   if(n>0){el.style.display='inline';el.textContent=n;}else el.style.display='none';
 }
 
-function se(id, txt)    { const el=document.getElementById(id); if(el) el.textContent=txt; }
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+const $ = id => document.getElementById(id);
+function se(id, txt)    { const el=$(id); if(el) el.textContent=txt; }
+function openModal(id)  { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
 function setBtnLoading(id, loading, label) {
-  const b=document.getElementById(id);
-  if(!b) return;
-  b.disabled=loading;
-  b.innerHTML=loading?`<div class="spin"></div> ${label}`:label;
+  const b=$(id); if(!b) return;
+  b.disabled=loading; b.innerHTML=loading?`<div class="spin"></div> ${label}`:label;
 }
 
 // ── Table 狀態列 helper ──────────────────────────────────────
@@ -5747,7 +5534,7 @@ function retryOCR(rcId) {
   }
   badge('nb-ocr', S.ocrQueue.length);
   renderQueue();
-  document.getElementById('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
+  $('btnOCR').disabled = !S.ocrQueue.some(q => q.status === 'pending');
   // 移除失敗卡片，等重新辨識結果
   S.receipts = S.receipts.filter(x => x.id !== rcId);
   renderOCRResults();
@@ -5757,7 +5544,7 @@ function retryOCR(rcId) {
 
 // 展開手動填寫區塊
 function editErrorReceipt(rcId) {
-  const el = document.getElementById('rc-edit-' + rcId);
+  const el = $('rc-edit-' + rcId);
   if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
 }
 
@@ -5765,7 +5552,7 @@ function editErrorReceipt(rcId) {
 function setErrCat(rcId, cat) {
   const r = S.receipts.find(x => x.id === rcId);
   if (r) r.category = cat;
-  const tgl = document.getElementById('err-tgl-cat-' + rcId);
+  const tgl = $('err-tgl-cat-' + rcId);
   if (tgl) {
     tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
       b.classList.toggle('on', (cat === 'fuel') === (i === 0)));
@@ -5777,11 +5564,11 @@ function confirmEditError(rcId) {
   const r = S.receipts.find(x => x.id === rcId);
   if (!r) return;
   r.status   = 'manual';
-  r.vendor   = document.getElementById('err-vendor-' + rcId)?.value || r.vendor;
-  r.amount   = +(document.getElementById('err-amt-'    + rcId)?.value || 0);
-  r.date     = document.getElementById('err-date-'   + rcId)?.value || '';
-  r.invoiceNo = document.getElementById('err-invoiceno-' + rcId)?.value || '';
-  r.supplement = document.getElementById('err-notes-' + rcId)?.value || '';
+  r.vendor   = $('err-vendor-' + rcId)?.value || r.vendor;
+  r.amount   = +($('err-amt-'    + rcId)?.value || 0);
+  r.date     = $('err-date-'   + rcId)?.value || '';
+  r.invoiceNo = $('err-invoiceno-' + rcId)?.value || '';
+  r.supplement = $('err-notes-' + rcId)?.value || '';
   r.category = r.category === 'fuel' ? 'fuel' : 'other';
   r._checked = true;
   stashSingle(rcId);
