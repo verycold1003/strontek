@@ -281,715 +281,367 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);
 </div><!-- shell -->
 
 <script>
-// ════════════════════════════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════════════════════════════
-const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec',
-};
+// ── Config ────────────────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec';
 
-// callGAS：ocrEngineering 會在 GAS 端依序嘗試多個 Gemini 模型 fallback
-// （見 common.gs 的 callGemini），單次請求可能耗時超過一般網路逾時的合理值。
-// 先前完全沒有逾時保護，遇到網路不穩時 fetch 可能無限期掛起，使用者只能看著
-// 「辨識中」卡住、無從得知是真的在跑還是已經卡死。加上 AbortController 逾時，
-// 並讓逾時錯誤訊息明確區分於其他錯誤，方便使用者判斷是否該重試。
+// callGAS：單次請求含多模型 fallback，耗時可能超過一般逾時，加 AbortController 保護
 async function callGAS(payload, timeoutMs = 110000) {
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(CFG.GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      signal: ctrl.signal,
-    });
+    const res = await fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload), signal:ctrl.signal });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return JSON.parse(await res.text());
   } catch (err) {
     if (err.name === 'AbortError') throw new Error(`請求逾時（${Math.round(timeoutMs/1000)}s）`);
     throw err;
-  } finally {
-    clearTimeout(tid);
-  }
+  } finally { clearTimeout(tid); }
 }
 
-// ════════════════════════════════════════════════════════════
-// 廠商模板
-// ════════════════════════════════════════════════════════════
-// VENDORS：廠商模板資料（drawMingsong/drawYuhui 使用）
+// ── 廠商資料 ──────────────────────────────────────────────────
 const VENDORS = {
   none:     { label:'通用', icon:'📋' },
-  mingsong: {
-    label:'銘松水電工程有限公司', icon:'🔧',
-    taxId:'12457174',
-    remarks:['1. 報價有效期限為 7 天','2. 電線價格以施作時間再詢問漲降價'],
-  },
-  yuhui: {
-    label:'昱暉企業社', icon:'⚡',
-    taxId:'85331403',
-    contact:'吳先生 0920-902123',
-    addr:'新北市貢寮區孝清街10巷13號4樓',
-    validDays:14,
-    remarks:[
-      '1. 首次配合現金交易，現金票，簽章回傳',
-      '2. 商品保固依公司規定',
+  mingsong: { label:'銘松水電工程有限公司', icon:'🔧', taxId:'12457174',
+    remarks:['1. 報價有效期限為 7 天','2. 電線價格以施作時間再詢問漲降價'] },
+  yuhui:    { label:'昱暉企業社', icon:'⚡', taxId:'85331403',
+    contact:'吳先生 0920-902123', addr:'新北市貢寮區孝清街10巷13號4樓', validDays:14,
+    remarks:['1. 首次配合現金交易，現金票，簽章回傳','2. 商品保固依公司規定',
       '3. 本報價單經買方確認後即生效，報價單即生效為買賣契約',
       '4. 尚未付清所有款項前所有商品、產品、材料所有權屬本公司（昱暉企業社）',
-      '5. 工程確定收定3成、設備入場收定6成、驗收完工收尾款1成',
-    ],
-  },
+      '5. 工程確定收定3成、設備入場收定6成、驗收完工收尾款1成'] },
 };
-// VENDOR_LIST 定義在下方廠商搜尋框區段
-
-// ════════════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════════════
-let _vendor  = 'none';
-let _files   = [];
-let _items   = [];
-let _meta    = {};
-let _running = false;
-let _imgDataUrl = '';
-
-// ════════════════════════════════════════════════════════════
-// 廠商搜尋框
-// ════════════════════════════════════════════════════════════
-
-// 廠商清單：key → { label, icon, sub }
 const VENDOR_LIST = [
   { key:'mingsong', icon:'🔧', name:'銘松水電工程有限公司', sub:'水電工程' },
   { key:'yuhui',    icon:'⚡', name:'昱暉企業社',           sub:'工程估價' },
-  { key:'none',     icon:'📋', name:'其他廠商（通用）',     sub:''         },
+  { key:'none',     icon:'📋', name:'其他廠商（通用）',     sub:'' },
 ];
 
-// 最近使用：localStorage 存 key 陣列，最多 5 筆
-const VD_STORAGE_KEY = 'ocr_recent_vendors';
-function vdGetRecent() {
-  try { return JSON.parse(localStorage.getItem(VD_STORAGE_KEY) || '[]'); } catch { return []; }
-}
-function vdAddRecent(key) {
-  const list = [key, ...vdGetRecent().filter(k => k !== key)].slice(0, 5);
-  try { localStorage.setItem(VD_STORAGE_KEY, JSON.stringify(list)); } catch {}
-}
+// ── State ─────────────────────────────────────────────────────
+let _vendor = 'none', _files = [], _items = [], _meta = {}, _running = false, _imgDataUrl = '';
 
-// 依搜尋字串過濾，recent 優先排序
-function vdFilter(q) {
-  const recent = vdGetRecent();
-  const hit = q
-    ? VENDOR_LIST.filter(v => v.name.includes(q) || v.sub.includes(q))
-    : [...VENDOR_LIST].sort((a, b) => {
-        const ra = recent.indexOf(a.key), rb = recent.indexOf(b.key);
-        const ia = ra < 0 ? 999 : ra, ib = rb < 0 ? 999 : rb;
-        return ia - ib;
-      });
-  return hit;
-}
+// ── 廠商搜尋框 ────────────────────────────────────────────────
+const VD_KEY = 'ocr_recent_vendors';
+const vdGetRecent  = () => { try { return JSON.parse(localStorage.getItem(VD_KEY) || '[]'); } catch { return []; } };
+const vdAddRecent  = key => { try { localStorage.setItem(VD_KEY, JSON.stringify([key, ...vdGetRecent().filter(k=>k!==key)].slice(0,5))); } catch {} };
 
 function vdRenderDropdown(q) {
-  const list   = vdFilter(q);
   const recent = vdGetRecent();
-  const dd     = document.getElementById('vdDropdown');
-  if (!list.length) {
-    dd.innerHTML = '<div style="padding:14px 16px;font-size:14px;color:var(--muted)">找不到廠商</div>';
-    return;
-  }
-  dd.innerHTML = list.map(v => {
-    const isRecent = recent.includes(v.key);
-    return `<div class="vd-item" onmousedown="selectVendor('${v.key}')">
-      <span class="vd-item-icon">${v.icon}</span>
-      <div style="flex:1;min-width:0">
-        <div class="vd-item-name">${v.name}</div>
-        ${v.sub ? `<div class="vd-item-sub">${v.sub}</div>` : ''}
-      </div>
-      ${isRecent ? '<span class="vd-recent-tag">最近</span>' : ''}
-    </div>`;
-  }).join('');
+  const list = q ? VENDOR_LIST.filter(v => v.name.includes(q) || v.sub.includes(q))
+    : [...VENDOR_LIST].sort((a,b) => { const ri = k => { const i=recent.indexOf(k); return i<0?999:i; }; return ri(a.key)-ri(b.key); });
+  const dd = document.getElementById('vdDropdown');
+  dd.innerHTML = list.length
+    ? list.map(v => `<div class="vd-item" onmousedown="selectVendor('${v.key}')">
+        <span class="vd-item-icon">${v.icon}</span>
+        <div style="flex:1;min-width:0"><div class="vd-item-name">${v.name}</div>${v.sub?`<div class="vd-item-sub">${v.sub}</div>`:''}</div>
+        ${recent.includes(v.key)?'<span class="vd-recent-tag">最近</span>':''}
+      </div>`).join('')
+    : '<div style="padding:14px 16px;font-size:14px;color:var(--muted)">找不到廠商</div>';
 }
 
-function vdOpen() {
-  const inp = document.getElementById('vdInput');
-  vdRenderDropdown(inp.value.trim());
-  document.getElementById('vdDropdown').classList.add('open');
-}
-
-function vdClose() {
+const vdOpen  = () => { vdRenderDropdown(document.getElementById('vdInput').value.trim()); document.getElementById('vdDropdown').classList.add('open'); };
+const vdClose = () => {
   document.getElementById('vdDropdown').classList.remove('open');
-  // 若輸入框有文字但沒選，清空（避免殘字誤導）
   const inp = document.getElementById('vdInput');
-  if (_vendor === 'none' && inp.value && !VENDOR_LIST.find(v => v.name === inp.value)) {
-    inp.value = '';
-  }
-}
-
-function vdOnInput(q) {
-  vdRenderDropdown(q.trim());
-  document.getElementById('vdDropdown').classList.add('open');
-}
-
-function vdClear() {
+  if (_vendor === 'none' && inp.value && !VENDOR_LIST.find(v => v.name === inp.value)) inp.value = '';
+};
+const vdOnInput = q => { vdRenderDropdown(q.trim()); document.getElementById('vdDropdown').classList.add('open'); };
+const vdClear   = () => {
   _vendor = 'none';
   document.getElementById('vdInput').value = '';
   document.getElementById('vdChip').classList.remove('show');
   document.getElementById('vdInput').classList.remove('selected');
   refreshOcrBtn();
-}
+};
 
 function selectVendor(key) {
-  const v = VENDOR_LIST.find(x => x.key === key) || VENDOR_LIST[2];
+  const v = VENDOR_LIST.find(x => x.key === key) ?? VENDOR_LIST[2];
   _vendor = key;
   vdAddRecent(key);
-
-  // 關閉 dropdown
   document.getElementById('vdDropdown').classList.remove('open');
-
-  // 更新輸入框
   const inp = document.getElementById('vdInput');
-  inp.value = v.name;
-  inp.classList.add('selected');
-  inp.blur();
-
-  // 顯示 chip
+  inp.value = v.name; inp.classList.add('selected'); inp.blur();
   document.getElementById('vdChipIcon').textContent = v.icon;
   document.getElementById('vdChipName').textContent = v.name;
   document.getElementById('vdChip').classList.add('show');
-
   refreshOcrBtn();
 }
 
-// ════════════════════════════════════════════════════════════
-// 檔案處理
-// ════════════════════════════════════════════════════════════
+// ── 檔案處理 ──────────────────────────────────────────────────
+const mkId = () => 'f' + Date.now() + Math.random().toString(36).slice(2,5);
+
 async function onFilePick(fileList) {
   if (!fileList?.length) return;
-  const picked = Array.from(fileList).filter(f =>
-    f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-  if (!picked.length) return;
-
-  for (const f of picked) {
+  for (const f of Array.from(fileList).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
     const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
     if (isPdf) {
-      // PDF 需先轉成真正的 JPEG 圖片再加入佇列，否則送進 OCR 的會是原始 PDF
-      // bytes 卻標成 image/jpeg，Gemini 端必定辨識失敗或產生亂碼結果
-      const jpegFiles = await pdfFileToJpegFiles(f);
-      jpegFiles.forEach(jf => {
-        const id  = 'f' + Date.now() + Math.random().toString(36).slice(2,5);
-        _files.push({ id, file: jf, previewUrl: URL.createObjectURL(jf), name: jf.name });
-      });
+      // PDF 先轉 JPEG 再送 OCR，直接送原始 PDF bytes 標成 image/jpeg 會辨識失敗
+      (await pdfFileToJpegFiles(f)).forEach(jf => _files.push({ id:mkId(), file:jf, previewUrl:URL.createObjectURL(jf), name:jf.name }));
     } else {
-      const id  = 'f' + Date.now() + Math.random().toString(36).slice(2,5);
-      _files.push({ id, file: f, previewUrl: URL.createObjectURL(f), name: f.name });
+      _files.push({ id:mkId(), file:f, previewUrl:URL.createObjectURL(f), name:f.name });
     }
-    // 每處理完一個檔案就更新畫面，避免多個 PDF 轉換時畫面長時間無回應
-    renderThumbs();
-    refreshOcrBtn();
+    renderThumbs(); refreshOcrBtn(); // 每個檔案處理完立即更新畫面
   }
 }
 
-// 將 PDF 逐頁轉成 JPEG File 物件（與主費用系統的 pdfToJpegFiles 邏輯一致）
 async function pdfFileToJpegFiles(file) {
-  if (typeof pdfjsLib === 'undefined') {
-    toast('⚠️ pdf.js 未載入，無法轉換 PDF');
-    return [];
-  }
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
+  if (typeof pdfjsLib === 'undefined') { toast('⚠️ pdf.js 未載入，無法轉換 PDF'); return []; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const baseName = file.name.replace(/\.pdf$/i, '');
-  const results  = [];
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const total       = pdf.numPages;
+    const pdf   = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const total = pdf.numPages;
     toast(`⏳ ${file.name} 共 ${total} 頁轉換中...`);
-
+    const results = [];
     for (let p = 1; p <= total; p++) {
-      const page     = await pdf.getPage(p);
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas   = document.createElement('canvas');
-      canvas.width   = viewport.width;
-      canvas.height  = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-
-      const blob    = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
-      const suffix  = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
-      results.push(new File([blob], baseName + suffix + '.jpg', { type: 'image/jpeg' }));
+      const page = await pdf.getPage(p);
+      const vp   = page.getViewport({ scale:2.0 });
+      const cv   = Object.assign(document.createElement('canvas'), { width:vp.width, height:vp.height });
+      await page.render({ canvasContext:cv.getContext('2d'), viewport:vp }).promise;
+      const blob   = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.88));
+      const suffix = total > 1 ? `_p${String(p).padStart(2,'0')}` : '';
+      results.push(new File([blob], baseName + suffix + '.jpg', { type:'image/jpeg' }));
     }
-  } catch (e) {
-    toast('⚠️ ' + file.name + ' PDF 轉換失敗：' + e.message);
-    return [];
-  }
-  return results;
+    return results;
+  } catch (e) { toast(`⚠️ ${file.name} PDF 轉換失敗：${e.message}`); return []; }
 }
 
-function renderThumbs() {
-  const strip = document.getElementById('thumbStrip');
-  strip.innerHTML = _files.map(f => `
-    <div class="thumb">
-      ${f.previewUrl ? `<img src="${f.previewUrl}">` : `<div class="pdf-icon">📄</div>`}
-      <button class="x" onclick="removeFile('${f.id}')">×</button>
-    </div>`).join('');
-}
+const renderThumbs   = () => { document.getElementById('thumbStrip').innerHTML = _files.map(f => `<div class="thumb"><img src="${f.previewUrl}"><button class="x" onclick="removeFile('${f.id}')">×</button></div>`).join(''); };
+const removeFile     = id => { _files = _files.filter(f => f.id !== id); renderThumbs(); refreshOcrBtn(); };
+const refreshOcrBtn  = () => { document.getElementById('btnOcr').disabled = !_files.length || _running; };
 
-function removeFile(id) {
-  _files = _files.filter(f => f.id !== id);
-  renderThumbs();
-  refreshOcrBtn();
-}
-
-function refreshOcrBtn() {
-  document.getElementById('btnOcr').disabled = _files.length === 0 || _running;
-}
-
-// ════════════════════════════════════════════════════════════
-// OCR
-// ════════════════════════════════════════════════════════════
+// ── OCR ───────────────────────────────────────────────────────
 async function runOcr() {
   if (_running || !_files.length) return;
-  _running = true;
-  refreshOcrBtn();
-
-  const btn = document.getElementById('btnOcr');
-  btn.innerHTML = '<span class="spin"></span> 辨識中...';
-
-  hide('resultSection');
-  hide('errBox');
-  show('progWrap');
-
+  _running = true; refreshOcrBtn();
+  const btn      = document.getElementById('btnOcr');
   const progFill = document.getElementById('progFill');
   const progLbl  = document.getElementById('progLbl');
+  btn.innerHTML  = '<span class="spin"></span> 辨識中...';
+  hide('resultSection'); hide('errBox'); show('progWrap');
   progFill.style.width = '0%';
 
-  const allItems = [];
-  const errors   = [];
-  let   metaFilled = false;
-
+  const allItems = [], errors = [];
+  let metaFilled = false;
   try {
     for (let i = 0; i < _files.length; i++) {
       const f = _files[i];
-      progFill.style.width = Math.round((i / _files.length) * 85) + '%';
+      progFill.style.width = `${Math.round(i / _files.length * 85)}%`;
       progLbl.textContent  = `辨識中 ${i+1}/${_files.length}：${f.name}`;
-
       try {
         const compressed = await compressIfNeeded(f.file);
-        const b64  = await fileToBase64(compressed);
-        const mime = compressed.type || 'image/jpeg';
-
-        const res = await callGAS({
-          action: 'ocrEngineering',
-          fileName: f.name,
-          base64: b64,
-          mimeType: mime,
-        });
-
+        const res = await callGAS({ action:'ocrEngineering', fileName:f.name, base64:await fileToBase64(compressed), mimeType:compressed.type || 'image/jpeg' });
         if (res.success && res.items?.length) {
-          allItems.push(...res.items.map(it => ({
-            name:   String(it.name||'（未辨識）').trim(),
-            amount: parseFloat(String(it.amount).replace(/,/g,''))||0,
-          })));
+          allItems.push(...res.items.map(it => ({ name:String(it.name||'（未辨識）').trim(), amount:parseFloat(String(it.amount).replace(/,/g,''))||0 })));
           if (!metaFilled && res.meta) { _meta = res.meta; metaFilled = true; }
-        } else {
-          errors.push({ name: f.name, msg: res.error || '未知錯誤' });
-        }
-      } catch(e) {
-        errors.push({ name: f.name, msg: e.message });
-      }
+        } else { errors.push({ name:f.name, msg:res.error || '未知錯誤' }); }
+      } catch(e) { errors.push({ name:f.name, msg:e.message }); }
     }
-
-    progFill.style.width = '100%';
-    progLbl.textContent  = '完成！';
+    progFill.style.width = '100%'; progLbl.textContent = '完成！';
     setTimeout(() => hide('progWrap'), 1000);
-
     if (errors.length) {
-      document.getElementById('errList').innerHTML =
-        errors.map(e => `<div class="err-item">${esc(e.name)}：${esc(e.msg)}</div>`).join('');
+      document.getElementById('errList').innerHTML = errors.map(e => `<div class="err-item">${esc(e.name)}：${esc(e.msg)}</div>`).join('');
       show('errBox');
     }
-
-    if (allItems.length) {
-      _items = allItems;
-      showResult();
-      toast(`✅ 辨識完成，共 ${_items.length} 個品項`);
-    } else if (!errors.length) {
-      toast('⚠️ 沒有辨識到任何品項');
-    }
-
+    if (allItems.length) { _items = allItems; showResult(); toast(`✅ 辨識完成，共 ${_items.length} 個品項`); }
+    else if (!errors.length) toast('⚠️ 沒有辨識到任何品項');
   } catch(e) {
     hide('progWrap');
-    document.getElementById('errList').innerHTML =
-      `<div class="err-item">${esc(e.message)}</div>`;
-    show('errBox');
-    toast('❌ 辨識失敗：' + e.message);
-  } finally {
-    _running = false;
-    btn.innerHTML = '🤖 開始辨識';
-    refreshOcrBtn();
-  }
+    document.getElementById('errList').innerHTML = `<div class="err-item">${esc(e.message)}</div>`;
+    show('errBox'); toast('❌ 辨識失敗：' + e.message);
+  } finally { _running = false; btn.innerHTML = '🤖 開始辨識'; refreshOcrBtn(); }
 }
 
-// ════════════════════════════════════════════════════════════
-// 顯示結果 → Canvas 2D 手繪 A4 報價單 → JPEG dataURL
-// ════════════════════════════════════════════════════════════
+// ── 結果顯示 ──────────────────────────────────────────────────
 async function showResult() {
-  const total = _items.reduce((s, it) => s + (it.amount || 0), 0);
-  document.getElementById('resultTotal').textContent = '$' + total.toLocaleString();
-
+  document.getElementById('resultTotal').textContent = '$' + _items.reduce((s,it) => s+(it.amount||0), 0).toLocaleString();
   const wrap = document.getElementById('imgPreviewWrap');
-  wrap.innerHTML = `<div class="img-placeholder">⏳ 圖片生成中...</div>`;
+  wrap.innerHTML = '<div class="img-placeholder">⏳ 圖片生成中...</div>';
   show('resultSection');
-
   await sleep(80);
-
   try {
     _imgDataUrl = drawCard();
     wrap.innerHTML = `<img src="${_imgDataUrl}" alt="報價單" style="width:100%;display:block;border-radius:12px">`;
   } catch(err) {
-    wrap.innerHTML = `<div class="img-placeholder" style="color:var(--red);font-size:12px;padding:16px;text-align:left;">
-      ❌ 圖片生成失敗：${esc(err.message)}</div>`;
+    wrap.innerHTML = `<div class="img-placeholder" style="color:var(--red);font-size:12px;padding:16px;text-align:left">❌ 圖片生成失敗：${esc(err.message)}</div>`;
   }
 }
 
-// ════════════════════════════════════════════════════════════
-// Canvas 2D 繪圖引擎（A4 比例 794×1123px，scale=2 高解析）
-// ════════════════════════════════════════════════════════════
+// ── Canvas 繪圖引擎 ───────────────────────────────────────────
 function drawCard() {
-  // 直式 A4：595pt × 842pt，scale=2 → 1190×1684px 高解析列印
   const W = 595, SCALE = 2;
-  const cv = document.createElement('canvas');
-  cv.width  = W * SCALE;
-  cv.height = 2400 * SCALE;   // 足夠高，之後 crop
+  const cv = Object.assign(document.createElement('canvas'), { width:W*SCALE, height:2400*SCALE });
   const ctx = cv.getContext('2d');
   ctx.scale(SCALE, SCALE);
-
-  // 白底
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, 2400);
-
-  let y = 0;
-  if (_vendor === 'mingsong') y = drawMingsong(ctx, W);
-  else if (_vendor === 'yuhui') y = drawYuhui(ctx, W);
-  else y = drawGeneric(ctx, W);
-
-  // Crop 到實際內容高度，最少 842px（一頁）
-  const finalH = Math.max(842, y + 48);
-  const out = document.createElement('canvas');
-  out.width  = W * SCALE;
-  out.height = finalH * SCALE;
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, 2400);
+  const y = _vendor === 'mingsong' ? drawMingsong(ctx, W) : _vendor === 'yuhui' ? drawYuhui(ctx, W) : drawGeneric(ctx, W);
+  const out = Object.assign(document.createElement('canvas'), { width:W*SCALE, height:Math.max(842,y+48)*SCALE });
   out.getContext('2d').drawImage(cv, 0, 0);
   return out.toDataURL('image/jpeg', 0.93);
 }
 
-// ── 共用繪圖工具 ──────────────────────────────────────────
-function ctxFont(ctx, size, weight='normal') {
-  ctx.font = `${weight} ${size}px "PingFang TC","Microsoft JhengHei","Heiti TC",Arial,sans-serif`;
-}
+// ── 共用繪圖工具 ──────────────────────────────────────────────
+const CJK_FONT = '"PingFang TC","Microsoft JhengHei","Heiti TC",Arial,sans-serif';
+const ctxFont  = (ctx, size, weight='normal') => { ctx.font = `${weight} ${size}px ${CJK_FONT}`; };
 
 function drawLine(ctx, x1, y1, x2, y2, lw=0.8) {
-  ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw;
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
 }
-
 function drawRect(ctx, x, y, w, h, fill=null, stroke='#555', lw=0.8) {
   ctx.save();
   if (fill) { ctx.fillStyle=fill; ctx.fillRect(x,y,w,h); }
-  ctx.strokeStyle=stroke; ctx.lineWidth=lw;
-  ctx.strokeRect(x,y,w,h); ctx.restore();
+  ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.strokeRect(x,y,w,h); ctx.restore();
 }
-
 function fillCell(ctx, text, x, y, w, h, align='left', color='#111', size=12) {
-  ctx.save();
-  ctxFont(ctx, size);
-  ctx.fillStyle = color;
-  ctx.textBaseline = 'middle';
+  ctx.save(); ctxFont(ctx, size); ctx.fillStyle=color; ctx.textBaseline='middle';
   const ty = y + h/2;
-  if (align === 'center') {
-    ctx.textAlign = 'center'; ctx.fillText(text, x + w/2, ty);
-  } else if (align === 'right') {
-    ctx.textAlign = 'right'; ctx.fillText(text, x + w - 6, ty);
-  } else {
-    ctx.textAlign = 'left'; ctx.fillText(text, x + 6, ty);
-  }
+  ctx.textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
+  ctx.fillText(text, align==='center' ? x+w/2 : align==='right' ? x+w-6 : x+6, ty);
   ctx.restore();
 }
 
-// 小計／稅金(5%)／總計 — 三個廠商模板共用同一套計算，原本各自重複一份
-function calcTotals() {
-  const sub = _items.reduce((s,it)=>s+(it.amount||0),0);
-  const tax = Math.round(sub*0.05);
-  return { sub, tax, total: sub+tax };
-}
-
-// ── 銘松 ──────────────────────────────────────────────────
-function drawMingsong(ctx, W) {
-  const tpl = VENDORS.mingsong;
-  const m   = _meta;
-  const PAD = 28, ROW = 22, HDR = 26;
-  let y = PAD;
-
-  // 公司名
-  ctxFont(ctx, 20, 'bold');
-  ctx.fillStyle='#111'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  ctx.fillText('銘松水電工程有限公司', W/2, y+20); y+=28;
-
-  // 地址電話
-  ctxFont(ctx, 11);
-  const addr  = m.address || '';
-  const phone = m.phone   || '';
-  ctx.fillText(`地址：${addr}　　電話：${phone}`, W/2, y+12); y+=20;
-
-  // 報價單標題
-  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=4;
-  ctxFont(ctx, 16, 'bold');
-  ctx.fillText('報　價　單', W/2, y+16); y+=24;
-  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=10;
-
-  // 案件名稱 / 報價日期
-  ctxFont(ctx, 12);
-  ctx.textAlign='left';
-  ctx.fillStyle='#111';
-  ctx.fillText(`案件名稱：${m.notes||''}`, PAD, y+14);
-  ctx.textAlign='right';
-  ctx.fillText(`報價日期：${m.date||''}`, W-PAD, y+14);
-  y+=28;
-
-  // 表頭 — 直式 A4（595px），拿掉單位/數量/單價欄，加寬名稱欄
-  const cols = [
-    {label:'項次', w:34, align:'center'},
-    {label:'名　稱', w:0, align:'left'},   // flex
-    {label:'總　額', w:90, align:'right'},
-    {label:'備　註', w:72, align:'center'},
-  ];
-  const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
-  cols[1].w = W - PAD*2 - fixedW;
-
+// 品項列（三個模板共用）
+function drawItems(ctx, items, cols, W, PAD, ROW, HDR, y) {
+  const fixedW = cols.reduce((s,c) => s+(c.w||0), 0);
+  cols.find(c=>!c.w).w = W - PAD*2 - fixedW;   // flex 欄
   let x = PAD;
   drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
-  for (const col of cols) {
-    fillCell(ctx, col.label, x, y, col.w, HDR, col.align, '#111', 11);
-    x += col.w;
-  }
+  for (const col of cols) { fillCell(ctx,col.label,x,y,col.w,HDR,col.align,'#111',11); x+=col.w; }
   y += HDR;
-
-  // 品項行
-  for (const it of _items) {
+  for (let idx=0; idx<items.length; idx++) {
+    const it = items[idx];
     drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
     let cx = PAD;
-    const vals = [String(_items.indexOf(it)+1), it.name, it.amount?it.amount.toLocaleString():'', ''];
     for (let i=0; i<cols.length; i++) {
-      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, cols[i].align);
+      const v = cols[i].val ? cols[i].val(it, idx) : '';
+      if (v) fillCell(ctx, v, cx, y, cols[i].w, ROW, cols[i].align);
       cx += cols[i].w;
     }
     y += ROW;
   }
-
-  // 合計 / 稅金 / 總價
-  const { sub, tax, total } = calcTotals();
-
-  // 右側對齊金額欄寬 = 總額欄(90) + 備註欄(72)
-  const amtX = W - PAD - 90 - 72;
-  const amtW = 90;
-  for (const [lbl, val] of [['合　計', sub.toLocaleString()],['稅　金', tax.toLocaleString()]]) {
-    drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
-    fillCell(ctx, lbl, PAD, y, amtX - PAD, ROW, 'right', '#111', 12);
-    fillCell(ctx, val, amtX, y, amtW, ROW, 'right', '#111', 12);
-    y += ROW;
-  }
-  // 總價行（加粗）
-  drawRect(ctx, PAD, y, W-PAD*2, ROW+6, '#d8d8d8');
-  ctxFont(ctx, 13, 'bold');
-  ctx.fillStyle='#111'; ctx.textBaseline='middle';
-  const ty = y+(ROW+6)/2;
-  ctx.textAlign='left';  ctx.fillText('總　價', PAD+6, ty);
-  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+52, ty);
-  ctx.textAlign='right'; ctx.fillText(`NT$${total.toLocaleString()}`, W-PAD-72-6, ty);
-  ctx.textAlign='center';ctx.fillText('含稅', W-PAD-36, ty);
-  y += ROW+6;
-
-  // 備註
-  y+=8;
-  ctxFont(ctx, 11, 'bold'); ctx.fillStyle='#111'; ctx.textAlign='left';
-  ctx.fillText('備註：', PAD, y+11); y+=18;
-  ctx.fillStyle='#cc0000'; ctxFont(ctx, 11);
-  for (const r of tpl.remarks) { ctx.fillText(r, PAD+6, y+11); y+=18; }
-
-  return y+10;
-}
-
-// ── 昱暉 ──────────────────────────────────────────────────
-function drawYuhui(ctx, W) {
-  const tpl = VENDORS.yuhui;
-  const m   = _meta;
-  const PAD = 28, ROW = 22, HDR = 26;
-  let y = PAD;
-
-  // 藍色 header 背景
-  drawRect(ctx, PAD, y, W-PAD*2, 54, '#b8cfe8', '#111', 1.5);
-
-  ctxFont(ctx, 11); ctx.fillStyle='#111'; ctx.textBaseline='alphabetic';
-  ctx.textAlign='left';
-  ctx.fillText(`統一編號：${tpl.taxId}`, PAD+8, y+16);
-  ctx.fillText(tpl.addr, PAD+8, y+30);
-
-  ctxFont(ctx, 17, 'bold'); ctx.textAlign='center';
-  ctx.fillText('昱暉企業社', W/2, y+22);
-  ctxFont(ctx, 12); ctx.textAlign='center';
-  ctx.fillText(tpl.contact, W/2, y+40);
-
-  ctxFont(ctx, 11); ctx.textAlign='right';
-  ctx.fillText(`報價日期：${m.date||''}`, W-PAD-8, y+28);
-  y += 54;
-
-  // 工程名稱行
-  drawRect(ctx, PAD, y, W-PAD*2, 24, null, '#111', 1);
-  const halfW = (W-PAD*2)/2;
-  ctxFont(ctx, 12); ctx.fillStyle='#111';
-  ctx.textAlign='left'; ctx.textBaseline='middle';
-  ctx.fillText(`工程名稱：${m.notes||''}`, PAD+6, y+12);
-  drawLine(ctx, PAD+halfW, y, PAD+halfW, y+24);
-  ctx.fillText('地址：', PAD+halfW+6, y+12);
-  y += 24;
-
-  // 表頭 — 直式 A4（595px），精簡欄位
-  const cols = [
-    {label:'序號', w:34, align:'center'},
-    {label:'項目名稱', w:0, align:'left'},
-    {label:'數量', w:40, align:'center'},
-    {label:'總價', w:90, align:'right'},
-    {label:'備註', w:58, align:'center'},
-  ];
-  const fixedW = cols.reduce((s,c)=>s+(c.w||0),0);
-  cols[1].w = W - PAD*2 - fixedW;
-
-  let x = PAD;
-  drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
-  for (const col of cols) {
-    fillCell(ctx, col.label, x, y, col.w, HDR, col.align, '#111', 11);
-    x += col.w;
-  }
-  y += HDR;
-
-  for (const it of _items) {
-    drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
-    let cx = PAD;
-    const vals = [String(_items.indexOf(it)+1), it.name, '', it.amount?'$'+it.amount.toLocaleString():'$0', ''];
-    for (let i=0; i<cols.length; i++) {
-      if (vals[i]) fillCell(ctx, vals[i], cx, y, cols[i].w, ROW, cols[i].align);
-      cx += cols[i].w;
-    }
-    y += ROW;
-  }
-
-  const { sub, tax, total } = calcTotals();
-
-  const amtX = W - PAD - 90 - 58;
-  const amtW = 90;
-  for (const [lbl, val] of [['小　計','$'+sub.toLocaleString()],['稅　金','$'+tax.toLocaleString()]]) {
-    drawRect(ctx, PAD, y, W-PAD*2, ROW, '#f0f0f0');
-    fillCell(ctx, lbl, PAD, y, amtX - PAD, ROW, 'right');
-    fillCell(ctx, val, amtX, y, amtW, ROW, 'right');
-    y += ROW;
-  }
-  drawRect(ctx, PAD, y, W-PAD*2, ROW+6, '#d8d8d8');
-  ctxFont(ctx, 13, 'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
-  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD+6, y+(ROW+6)/2);
-  ctx.textAlign='right'; ctx.fillText('總合計（含稅）', amtX - 6, y+(ROW+6)/2);
-  ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(), amtX+amtW-6, y+(ROW+6)/2);
-  y += ROW+6;
-
-  y+=8;
-  ctxFont(ctx, 11); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  ctx.fillText(`本估價單有效天數為 ${tpl.validDays} 天`, PAD, y+12); y+=18;
-  for (const r of tpl.remarks) { ctx.fillText(r, PAD, y+12); y+=17; }
-
-  // 簽章
-  ctx.textAlign='right';
-  ctx.strokeStyle='#555'; ctx.lineWidth=0.8;
-  ctx.strokeRect(W-PAD-90, y+5, 90, 36);
-  ctx.fillText('簽章回傳', W-PAD-45, y+26);
-  y += 50;
-
   return y;
 }
 
-// ── 通用 ──────────────────────────────────────────────────
-function drawGeneric(ctx, W) {
-  const m   = _meta;
-  const PAD = 28, ROW = 22, HDR = 26;
+const calcTotals = () => { const sub=_items.reduce((s,it)=>s+(it.amount||0),0), tax=Math.round(sub*.05); return {sub,tax,total:sub+tax}; };
+
+// ── 銘松 ──────────────────────────────────────────────────────
+function drawMingsong(ctx, W) {
+  const {remarks} = VENDORS.mingsong, m=_meta, PAD=28, ROW=22, HDR=26;
   let y = PAD;
+  ctxFont(ctx,20,'bold'); ctx.fillStyle='#111'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('銘松水電工程有限公司',W/2,y+20); y+=28;
+  ctxFont(ctx,11); ctx.fillText(`地址：${m.address||''}　　電話：${m.phone||''}`,W/2,y+12); y+=20;
+  drawLine(ctx,PAD,y,W-PAD,y,2); y+=4; ctxFont(ctx,16,'bold'); ctx.fillText('報　價　單',W/2,y+16); y+=24; drawLine(ctx,PAD,y,W-PAD,y,2); y+=10;
+  ctxFont(ctx,12); ctx.textAlign='left'; ctx.fillStyle='#111';
+  ctx.fillText(`案件名稱：${m.notes||''}`,PAD,y+14); ctx.textAlign='right'; ctx.fillText(`報價日期：${m.date||''}`,W-PAD,y+14); y+=28;
 
-  ctxFont(ctx, 18, 'bold'); ctx.fillStyle='#111';
-  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  ctx.fillText(m.vendor||'工程請款單', W/2, y+18); y+=26;
+  y = drawItems(ctx, _items, [
+    {label:'項次',w:34,align:'center',val:(_,i)=>String(i+1)},
+    {label:'名　稱',w:0,align:'left',val:it=>it.name},
+    {label:'總　額',w:90,align:'right',val:it=>it.amount?it.amount.toLocaleString():''},
+    {label:'備　註',w:72,align:'center',val:()=>''},
+  ], W, PAD, ROW, HDR, y);
 
-  if (m.address||m.phone) {
-    ctxFont(ctx, 11); ctx.fillText(`${m.address||''}　${m.phone||''}`, W/2, y+12); y+=20;
+  const {sub,tax,total}=calcTotals(), amtX=W-PAD-90-72, amtW=90;
+  for (const [lbl,val] of [['合　計',sub.toLocaleString()],['稅　金',tax.toLocaleString()]]) {
+    drawRect(ctx,PAD,y,W-PAD*2,ROW,'#f0f0f0'); fillCell(ctx,lbl,PAD,y,amtX-PAD,ROW,'right'); fillCell(ctx,val,amtX,y,amtW,ROW,'right'); y+=ROW;
   }
+  drawRect(ctx,PAD,y,W-PAD*2,ROW+6,'#d8d8d8'); ctxFont(ctx,13,'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  const ty=y+(ROW+6)/2;
+  ctx.textAlign='left';   ctx.fillText('總　價',PAD+6,ty);
+  ctx.textAlign='left';   ctx.fillText(`新台幣 ${numTW(total)} 元整`,PAD+52,ty);
+  ctx.textAlign='right';  ctx.fillText(`NT$${total.toLocaleString()}`,W-PAD-72-6,ty);
+  ctx.textAlign='center'; ctx.fillText('含稅',W-PAD-36,ty); y+=ROW+6;
 
-  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=4;
-  ctxFont(ctx, 15, 'bold'); ctx.fillText('報　價　單', W/2, y+15); y+=22;
-  drawLine(ctx, PAD, y, W-PAD*2+PAD, y, 2); y+=10;
+  y+=8; ctxFont(ctx,11,'bold'); ctx.fillStyle='#111'; ctx.textAlign='left'; ctx.fillText('備註：',PAD,y+11); y+=18;
+  ctx.fillStyle='#cc0000'; ctxFont(ctx,11);
+  for (const r of remarks) { ctx.fillText(r,PAD+6,y+11); y+=18; }
+  return y+10;
+}
 
-  ctxFont(ctx, 12); ctx.textAlign='left';
-  ctx.fillText(`案件名稱：${m.notes||'—'}`, PAD, y+14);
-  ctx.textAlign='right'; ctx.fillText(`日期：${m.date||'—'}`, W-PAD, y+14);
-  y+=26;
+// ── 昱暉 ──────────────────────────────────────────────────────
+function drawYuhui(ctx, W) {
+  const {taxId,addr,contact,validDays,remarks}=VENDORS.yuhui, m=_meta, PAD=28, ROW=22, HDR=26;
+  let y=PAD;
+  drawRect(ctx,PAD,y,W-PAD*2,54,'#b8cfe8','#111',1.5);
+  ctxFont(ctx,11); ctx.fillStyle='#111'; ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  ctx.fillText(`統一編號：${taxId}`,PAD+8,y+16); ctx.fillText(addr,PAD+8,y+30);
+  ctxFont(ctx,17,'bold'); ctx.textAlign='center'; ctx.fillText('昱暉企業社',W/2,y+22);
+  ctxFont(ctx,12); ctx.fillText(contact,W/2,y+40);
+  ctxFont(ctx,11); ctx.textAlign='right'; ctx.fillText(`報價日期：${m.date||''}`,W-PAD-8,y+28); y+=54;
 
-  const cols = [{label:'項次',w:34,align:'center'},{label:'品項名稱',w:0,align:'left'},{label:'金額',w:100,align:'right'}];
-  cols[1].w = W-PAD*2-134;
-  let x=PAD;
-  drawRect(ctx, PAD, y, W-PAD*2, HDR, '#e8e8e8');
-  for (const col of cols) { fillCell(ctx,col.label,x,y,col.w,HDR,col.align,'#111',11); x+=col.w; }
-  y+=HDR;
+  drawRect(ctx,PAD,y,W-PAD*2,24,null,'#111',1);
+  const halfW=(W-PAD*2)/2; ctxFont(ctx,12); ctx.fillStyle='#111'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(`工程名稱：${m.notes||''}`,PAD+6,y+12); drawLine(ctx,PAD+halfW,y,PAD+halfW,y+24); ctx.fillText('地址：',PAD+halfW+6,y+12); y+=24;
 
-  for (const it of _items) {
-    drawRect(ctx, PAD, y, W-PAD*2, ROW, null);
-    let cx=PAD;
-    for (let i=0;i<cols.length;i++) {
-      const v = i===0?String(_items.indexOf(it)+1):i===1?it.name:'$'+(it.amount||0).toLocaleString();
-      fillCell(ctx,v,cx,y,cols[i].w,ROW,cols[i].align);
-      cx+=cols[i].w;
-    }
-    y+=ROW;
+  y = drawItems(ctx, _items, [
+    {label:'序號',w:34,align:'center',val:(_,i)=>String(i+1)},
+    {label:'項目名稱',w:0,align:'left',val:it=>it.name},
+    {label:'數量',w:40,align:'center',val:()=>''},
+    {label:'總價',w:90,align:'right',val:it=>'$'+(it.amount||0).toLocaleString()},
+    {label:'備註',w:58,align:'center',val:()=>''},
+  ], W, PAD, ROW, HDR, y);
+
+  const {sub,tax,total}=calcTotals(), amtX=W-PAD-90-58, amtW=90;
+  for (const [lbl,val] of [['小　計','$'+sub.toLocaleString()],['稅　金','$'+tax.toLocaleString()]]) {
+    drawRect(ctx,PAD,y,W-PAD*2,ROW,'#f0f0f0'); fillCell(ctx,lbl,PAD,y,amtX-PAD,ROW,'right'); fillCell(ctx,val,amtX,y,amtW,ROW,'right'); y+=ROW;
   }
+  drawRect(ctx,PAD,y,W-PAD*2,ROW+6,'#d8d8d8'); ctxFont(ctx,13,'bold'); ctx.fillStyle='#111'; ctx.textBaseline='middle';
+  ctx.textAlign='left';  ctx.fillText(`新台幣 ${numTW(total)} 元整`,PAD+6,y+(ROW+6)/2);
+  ctx.textAlign='right'; ctx.fillText('總合計（含稅）',amtX-6,y+(ROW+6)/2);
+  ctx.textAlign='right'; ctx.fillText('$'+total.toLocaleString(),amtX+amtW-6,y+(ROW+6)/2); y+=ROW+6;
 
-  const { sub, tax, total } = calcTotals();
-  for (const [lbl,val] of [['小計','$'+sub.toLocaleString()],['稅金 5%','$'+tax.toLocaleString()],['合計（含稅）','$'+total.toLocaleString()]]) {
-    drawRect(ctx, PAD, y, W-PAD*2, ROW, lbl.includes('合計')?'#d8d8d8':'#f0f0f0');
-    fillCell(ctx, lbl, PAD, y, W-PAD*2-100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
-    fillCell(ctx, val, W-PAD-100, y, 100, ROW, 'right', '#111', lbl.includes('合計')?13:12);
-    y+=ROW;
+  y+=8; ctxFont(ctx,11); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(`本估價單有效天數為 ${validDays} 天`,PAD,y+12); y+=18;
+  for (const r of remarks) { ctx.fillText(r,PAD,y+12); y+=17; }
+  ctx.textAlign='right'; ctx.strokeStyle='#555'; ctx.lineWidth=0.8;
+  ctx.strokeRect(W-PAD-90,y+5,90,36); ctx.fillText('簽章回傳',W-PAD-45,y+26); y+=50;
+  return y;
+}
+
+// ── 通用 ──────────────────────────────────────────────────────
+function drawGeneric(ctx, W) {
+  const m=_meta, PAD=28, ROW=22, HDR=26;
+  let y=PAD;
+  ctxFont(ctx,18,'bold'); ctx.fillStyle='#111'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(m.vendor||'工程請款單',W/2,y+18); y+=26;
+  if (m.address||m.phone) { ctxFont(ctx,11); ctx.fillText(`${m.address||''}　${m.phone||''}`,W/2,y+12); y+=20; }
+  drawLine(ctx,PAD,y,W-PAD,y,2); y+=4; ctxFont(ctx,15,'bold'); ctx.fillText('報　價　單',W/2,y+15); y+=22; drawLine(ctx,PAD,y,W-PAD,y,2); y+=10;
+  ctxFont(ctx,12); ctx.textAlign='left';
+  ctx.fillText(`案件名稱：${m.notes||'—'}`,PAD,y+14); ctx.textAlign='right'; ctx.fillText(`日期：${m.date||'—'}`,W-PAD,y+14); y+=26;
+
+  y = drawItems(ctx, _items, [
+    {label:'項次',w:34,align:'center',val:(_,i)=>String(i+1)},
+    {label:'品項名稱',w:0,align:'left',val:it=>it.name},
+    {label:'金額',w:100,align:'right',val:it=>'$'+(it.amount||0).toLocaleString()},
+  ], W, PAD, ROW, HDR, y);
+
+  const {sub,tax,total}=calcTotals();
+  for (const [lbl,val,bold] of [['小計','$'+sub.toLocaleString(),false],['稅金 5%','$'+tax.toLocaleString(),false],['合計（含稅）','$'+total.toLocaleString(),true]]) {
+    drawRect(ctx,PAD,y,W-PAD*2,ROW,bold?'#d8d8d8':'#f0f0f0');
+    fillCell(ctx,lbl,PAD,y,W-PAD*2-100,ROW,'right','#111',bold?13:12);
+    fillCell(ctx,val,W-PAD-100,y,100,ROW,'right','#111',bold?13:12); y+=ROW;
   }
-
-  ctxFont(ctx, 11); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  ctx.fillText(`新台幣 ${numTW(total)} 元整`, PAD, y+11); y+=18;
-
+  ctxFont(ctx,11); ctx.fillStyle='#555'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(`新台幣 ${numTW(total)} 元整`,PAD,y+11); y+=18;
   return y+20;
 }
 
-// ════════════════════════════════════════════════════════════
-// 儲存圖片
-// ════════════════════════════════════════════════════════════
-function getFilename() {
-  const vendor = _meta.vendor || VENDOR_LIST.find(v=>v.key===_vendor)?.name || '報價單';
-  return `${vendor}_${(_meta.date || todayStr()).replace(/-/g,'')}.jpg`;
-}
+// ── 儲存 / 分享 ───────────────────────────────────────────────
+const getFilename = () => `${_meta.vendor||VENDOR_LIST.find(v=>v.key===_vendor)?.name||'報價單'}_${(_meta.date||todayStr()).replace(/-/g,'')}.jpg`;
 
 function saveImage() {
   if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
-  const a = Object.assign(document.createElement('a'), { href:_imgDataUrl, download:getFilename() });
-  a.click();
+  Object.assign(document.createElement('a'), { href:_imgDataUrl, download:getFilename() }).click();
   toast('✅ 已儲存，請開啟 LINE 傳給客戶');
 }
 
 function shareToLine() {
   if (!_imgDataUrl) { toast('圖片尚未生成'); return; }
   if (navigator.share && navigator.canShare) {
-    const b64 = _imgDataUrl.split(',')[1];
-    const bytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
-    const file = new File([bytes], getFilename(), {type:'image/jpeg'});
+    const file = new File([Uint8Array.from(atob(_imgDataUrl.split(',')[1]), c=>c.charCodeAt(0))], getFilename(), {type:'image/jpeg'});
     if (navigator.canShare({files:[file]})) {
-      navigator.share({files:[file], title: getFilename().replace('.jpg','')})
-        .then(()=>toast('✅ 已開啟分享'))
-        .catch(e=>{ if(e.name!=='AbortError') fallbackLine(); });
+      navigator.share({files:[file], title:getFilename().replace('.jpg','')})
+        .then(()=>toast('✅ 已開啟分享')).catch(e=>{ if(e.name!=='AbortError') fallbackLine(); });
       return;
     }
   }
@@ -998,92 +650,49 @@ function shareToLine() {
 
 function fallbackLine() {
   saveImage();
-  setTimeout(()=>{
-    window.open('https://line.me/R/','_blank');
-    toast('💡 圖片已儲存，請在 LINE 中選擇聯絡人後貼上傳送', 5000);
-  }, 800);
+  setTimeout(() => { window.open('https://line.me/R/','_blank'); toast('💡 圖片已儲存，請在 LINE 中選擇聯絡人後貼上傳送',5000); }, 800);
 }
 
-// ════════════════════════════════════════════════════════════
-// 重置
-// ════════════════════════════════════════════════════════════
+// ── 重置 ──────────────────────────────────────────────────────
 function resetAll() {
-  _files = []; _items = []; _meta = {}; _imgDataUrl = '';
-  document.getElementById('thumbStrip').innerHTML = '';
-  hide('resultSection');
-  hide('errBox');
-  hide('progWrap');
-  refreshOcrBtn();
+  _files=[]; _items=[]; _meta={}; _imgDataUrl='';
+  document.getElementById('thumbStrip').innerHTML='';
+  hide('resultSection'); hide('errBox'); hide('progWrap'); refreshOcrBtn();
   toast('已清除');
 }
 
-// ════════════════════════════════════════════════════════════
-// 圖片壓縮
-// ════════════════════════════════════════════════════════════
-// readDataUrl：FileReader → dataURL（不用 createObjectURL，iOS Safari 相容）
-function readDataUrl(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload  = e => res(e.target.result);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
+// ── 圖片工具 ──────────────────────────────────────────────────
+const readDataUrl    = file => new Promise((res,rej) => { const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); });
+const fileToBase64   = async file => (await readDataUrl(file)).split(',')[1];
 
-// fileToBase64：取 base64 部分
-async function fileToBase64(file) {
-  return (await readDataUrl(file)).split(',')[1];
-}
-
-// compressIfNeeded：>2MB 圖片縮至 2400px 再壓 JPEG
 async function compressIfNeeded(file) {
   if (!file.type.startsWith('image/') || file.size <= 2*1024*1024) return file;
   try {
-    const dataUrl = await readDataUrl(file);
     const blob = await new Promise(res => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX=2400; let {naturalWidth:w,naturalHeight:h}=img;
-        if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
-        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        cv.toBlob(b=>res(b),'image/jpeg',0.82);
-      };
-      img.onerror=()=>res(null);
-      img.src=dataUrl;
+      const img=new Image(); img.onerror=()=>res(null);
+      img.onload=()=>{ const MAX=2400; let {naturalWidth:w,naturalHeight:h}=img; if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}} const cv=Object.assign(document.createElement('canvas'),{width:w,height:h}); cv.getContext('2d').drawImage(img,0,0,w,h); cv.toBlob(b=>res(b),'image/jpeg',0.82); };
+      img.src=URL.createObjectURL(file);
     });
-    return blob ? new File([blob], file.name.replace(/\.[^.]+$/, '')+'.jpg', {type:'image/jpeg'}) : file;
+    return blob ? new File([blob], file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}) : file;
   } catch { return file; }
 }
 
-// ════════════════════════════════════════════════════════════
-// UTILS
-// ════════════════════════════════════════════════════════════
-function show(id) { const el=document.getElementById(id); if(el){ el.style.display=''; el.classList.add('show'); } }
-function hide(id) { const el=document.getElementById(id); if(el){ el.style.display='none'; el.classList.remove('show'); } }
-function esc(s)       { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function todayStr()   { return new Date().toISOString().slice(0,10); }
-function sleep(ms)    { return new Promise(r => setTimeout(r, ms)); }
+// ── Utils ─────────────────────────────────────────────────────
+const show     = id => { const el=document.getElementById(id); if(el){el.style.display='';el.classList.add('show');} };
+const hide     = id => { const el=document.getElementById(id); if(el){el.style.display='none';el.classList.remove('show');} };
+const esc      = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const todayStr = ()  => new Date().toISOString().slice(0,10);
+const sleep    = ms  => new Promise(r => setTimeout(r,ms));
 
 function toast(msg, ms=3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), ms);
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms);
 }
-
 function numTW(n) {
-  const u = ['','十','百','千','萬','十萬','百萬'];
-  const d = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
-  const s = String(Math.floor(n || 0));
-  let r = '';
-  for (let i = 0; i < s.length; i++) {
-    const v = parseInt(s[i]), pu = u[s.length-1-i];
-    if (v) r += d[v] + pu;
-    else if (r && r.slice(-1) !== '零') r += '零';
-  }
-  return r.replace(/零$/, '') || '零';
+  const u=['','十','百','千','萬','十萬','百萬'], d=['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const s=String(Math.floor(n||0)); let r='';
+  for (let i=0;i<s.length;i++) { const v=parseInt(s[i]),pu=u[s.length-1-i]; if(v)r+=d[v]+pu; else if(r&&r.slice(-1)!=='零')r+='零'; }
+  return r.replace(/零$/,'')||'零';
 }
 </script>
 </body>
