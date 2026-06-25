@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v2</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -636,6 +636,30 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
             <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 部門表（需「員工表」權限） -->
+  <div class="card" id="sysadmin-depts-card" style="margin-bottom:16px;display:none">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleDeptsSection()">
+      🏢 部門表
+      <span id="sysadmin-depts-toggle" style="margin-left:auto;font-size:18px;color:var(--muted)">▶</span>
+    </div>
+    <div id="sysadmin-depts-body" style="display:none;padding-top:12px">
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>部門代碼</th><th>部門名稱</th><th>預設費用</th>
+          </tr></thead>
+          <tbody id="sysadmin-depts-tbody">
+            <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px;padding:0 4px">
+        預設費用 <strong>true</strong>：所有 Gemini 辨識費用歸類為「費用」。<br>
+        預設費用 <strong>false</strong>：私車補助相關費用歸「私車補助」，其餘歸「費用」。
       </div>
     </div>
   </div>
@@ -1092,12 +1116,79 @@ function renderSysAdminUserBar() {
   if (card) card.style.display = hasPerm ? 'block' : 'none';
 }
 
-function togglePersonsSection() {
-  const body = $('sysadmin-persons-body'), tog = $('sysadmin-persons-toggle');
+function renderSysAdminUserBar() {
+  const u = S.user; if (!u) return;
+  const av = $('sa-uAvatar'), nm = $('sa-uName'), dt = $('sa-uDeptTitle');
+  if (av) av.innerHTML = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : (u.name||'?')[0];
+  if (nm) nm.textContent = u.name || '—';
+  if (dt) dt.textContent = [S.config?.userDept, u.title].filter(Boolean).join('・') || '—';
+  const hasPerm = String(S.user?.permission || '').includes('員工表');
+  const persCard  = $('sysadmin-persons-card');
+  const deptsCard = $('sysadmin-depts-card');
+  if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
+  if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
+}
+
+function toggleDeptsSection() {
+  const body = $('sysadmin-depts-body'), tog = $('sysadmin-depts-toggle');
   if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (tog) tog.textContent = open ? '▶' : '▼';
+  if (!open) loadDeptsAdmin();
+}
+
+let _deptsCache = [];
+
+async function loadDeptsAdmin() {
+  if (!String(S.user?.permission || '').includes('員工表')) return;
+  const tbody = $('sysadmin-depts-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
+  const res = await callGAS({ action:'getDeptsAdmin', lineId: S.user?.lineId ?? '' });
+  if (!res.success) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
+    return;
+  }
+  _deptsCache = res.depts ?? [];
+  renderDeptsTable();
+}
+
+function renderDeptsTable() {
+  const tbody = $('sysadmin-depts-tbody'); if (!tbody) return;
+  if (!_deptsCache.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">尚無部門資料</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _deptsCache.map(d => `<tr>
+    <td style="font-weight:600;white-space:nowrap">${esc(d.code)}</td>
+    <td style="white-space:nowrap">${esc(d.name)}</td>
+    <td style="text-align:center">
+      <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
+        background:${d.defaultExpense ? 'rgba(16,185,129,.12)' : 'rgba(107,114,128,.1)'};
+        color:${d.defaultExpense ? '#065f46' : 'var(--muted)'}">
+        ${d.defaultExpense ? 'true' : 'false'}
+      </span>
+    </td>
+  </tr>`).join('');
+}
+
+// 8-2: 取得當前使用者部門的預設費用設定
+function getUserDeptDefaultExpense() {
+  const userDeptCode = S.config?.userDeptCode || S.user?.dept || '';
+  if (!userDeptCode) return false;
+  // 優先從 config（登入後即可用），其次從 sysadmin 頁的 _deptsCache
+  const depts = S.config?.departments?.length ? S.config.departments : _deptsCache;
+  const dept = depts.find(d => d.code === userDeptCode || d.name === userDeptCode);
+  return dept?.defaultExpense ?? false;
+}
+
+// 8-2: 根據部門設定決定 category
+function resolveCategory(vendor, notes, geminiCategory) {
+  if (getUserDeptDefaultExpense()) return 'other'; // 預設費用 true：全部歸費用
+  // 預設費用 false：私車補助相關維持 fuel，其餘歸 other
+  const FUEL_RE = /中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i;
+  if (FUEL_RE.test(`${vendor} ${notes} ${geminiCategory}`)) return 'fuel';
+  return 'other';
 }
 
 let _personsCache = [];
@@ -1863,16 +1954,18 @@ function mkReceipt(id, qf, item, idx, isNew) {
 }
 
 function detectCat(item) {
-  // 優先採信 OCR / GAS 回傳的 category 欄位
   const raw = (item.category || '').toLowerCase().trim();
-  if (raw === 'fuel'    || raw === '油資') return 'fuel';
-  // 停車費已併入其他，parking 統一轉 other
   if (raw === 'parking' || raw === '停車') return 'other';
-  if (raw === 'other'   || raw === '其他') return 'other';
 
-  // 依廠商名稱 + 備註關鍵字自動判斷
+  // 8-2: 部門「預設費用」= true → 全部歸 other，不再判斷 fuel
+  if (getUserDeptDefaultExpense()) return 'other';
+
+  // 優先採信 OCR / GAS 回傳的 category 欄位
+  if (raw === 'fuel' || raw === '油資') return 'fuel';
+  if (raw === 'other' || raw === '其他') return 'other';
+
+  // 依廠商名稱 + 備註關鍵字自動判斷（私車補助相關）
   const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
-  // 停車關鍵字 → 其他（不再獨立分類）
   if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i.test(s)) return 'fuel';
   return 'other';
 }
