@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v2</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform J</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -446,18 +446,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
   </div>
-  <div id="ps-user-bar" style="display:flex;align-items:center;gap:14px;margin-bottom:18px;
-    padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:8px">
-      <div id="ps-uAvatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);
-        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden"></div>
-      <div>
-        <div id="ps-uName" style="font-size:13px;font-weight:600">—</div>
-        <div id="ps-uDeptTitle" style="font-size:11px;color:var(--muted)">—</div>
-      </div>
-    </div>
-    <button class="btn btn-ghost btn-sm" onclick="switchSection('sysadmin')" style="margin-left:auto">🛠 系統管理</button>
-  </div>
   <div style="display:flex;flex-direction:column;gap:18px">
 <!-- 新增專案 card -->
     <div class="card">
@@ -628,38 +616,13 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div style="overflow-x:auto">
         <table class="tbl" id="sysadmin-persons-tbl">
           <thead><tr>
-            <th>姓名</th><th>LINE 名稱</th><th>部門</th><th>職稱</th>
-            <th style="min-width:80px">LINE ID</th><th>可顯示部門</th>
+            <th>姓名</th><th>部門</th><th>職稱</th><th>可顯示部門</th>
             <th>最後登入</th><th>權限</th><th>離職</th><th>操作</th>
           </tr></thead>
           <tbody id="sysadmin-persons-tbody">
-            <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 部門表（需「員工表」權限） -->
-  <div class="card" id="sysadmin-depts-card" style="margin-bottom:16px;display:none">
-    <div class="card-hd" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleDeptsSection()">
-      🏢 部門表
-      <span id="sysadmin-depts-toggle" style="margin-left:auto;font-size:18px;color:var(--muted)">▶</span>
-    </div>
-    <div id="sysadmin-depts-body" style="display:none;padding-top:12px">
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead><tr>
-            <th>部門代碼</th><th>部門名稱</th><th>預設費用</th>
-          </tr></thead>
-          <tbody id="sysadmin-depts-tbody">
-            <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:10px;padding:0 4px">
-        預設費用 <strong>true</strong>：所有 Gemini 辨識費用歸類為「費用」。<br>
-        預設費用 <strong>false</strong>：私車補助相關費用歸「私車補助」，其餘歸「費用」。
       </div>
     </div>
   </div>
@@ -683,17 +646,28 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="modal-box" style="max-width:480px">
     <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="personModal-title">員工資料</div>
     <input type="hidden" id="pm-rowIndex">
+    <input type="hidden" id="pm-linename">
+    <input type="hidden" id="pm-lineId">
+    <div style="margin-bottom:14px"><label class="lbl">姓名 <span style="color:var(--danger)">*</span></label><input class="inp" id="pm-name" placeholder="員工姓名"></div>
     <div class="fg2" style="margin-bottom:14px">
-      <div><label class="lbl">姓名 <span style="color:var(--danger)">*</span></label><input class="inp" id="pm-name" placeholder="員工姓名"></div>
-      <div><label class="lbl">LINE 名稱</label><input class="inp" id="pm-linename" placeholder="LINE 顯示名稱"></div>
-    </div>
-    <div class="fg2" style="margin-bottom:14px">
-      <div><label class="lbl">部門</label><input class="inp" id="pm-dept" placeholder="部門"></div>
+      <div><label class="lbl">部門</label><select class="inp" id="pm-dept"></select></div>
       <div><label class="lbl">職稱</label><input class="inp" id="pm-title" placeholder="職稱"></div>
     </div>
-    <div style="margin-bottom:14px"><label class="lbl">LINE ID</label><input class="inp" id="pm-lineId" placeholder="LINE ID"></div>
-    <div style="margin-bottom:14px"><label class="lbl">可顯示部門（逗號分隔）</label><input class="inp" id="pm-depts" placeholder="例：FI,PM"></div>
-    <div style="margin-bottom:14px"><label class="lbl">權限（逗號分隔）</label><input class="inp" id="pm-permission" placeholder="例：員工表,財務"></div>
+    <div style="margin-bottom:14px">
+      <label class="lbl">可顯示部門（可多選）</label>
+      <div id="pm-depts" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid var(--border);border-radius:8px"></div>
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="lbl">權限</label>
+      <div style="display:flex;gap:16px;padding:8px 2px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px">
+          <input type="checkbox" id="pm-perm-persons" style="width:16px;height:16px"> 員工表
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px">
+          <input type="checkbox" id="pm-perm-finance" style="width:16px;height:16px"> 財務專區
+        </label>
+      </div>
+    </div>
     <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px">
       <label class="lbl" style="margin:0">離職註記</label>
       <input type="checkbox" id="pm-resigned" style="width:18px;height:18px">
@@ -1090,11 +1064,11 @@ function renderUserBar() {
   if (dept)         { S.user.dept = dept; S.config.userDept = dept; }
   if (title)        S.user.title = title;
   if (depts.length) S.user.depts = depts;
-  const isFinance = dept.includes('FI') || dept.includes('財務');
-  const finBtn = $('navFinanceBtn');
-  if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
   const permission = String(p?.permission || u.permission || '');
   S.user.permission = permission;
+  const isFinance = permission.includes('財務專區');
+  const finBtn = $('navFinanceBtn');
+  if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
 }
 
 function logout() {
@@ -1116,79 +1090,12 @@ function renderSysAdminUserBar() {
   if (card) card.style.display = hasPerm ? 'block' : 'none';
 }
 
-function renderSysAdminUserBar() {
-  const u = S.user; if (!u) return;
-  const av = $('sa-uAvatar'), nm = $('sa-uName'), dt = $('sa-uDeptTitle');
-  if (av) av.innerHTML = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : (u.name||'?')[0];
-  if (nm) nm.textContent = u.name || '—';
-  if (dt) dt.textContent = [S.config?.userDept, u.title].filter(Boolean).join('・') || '—';
-  const hasPerm = String(S.user?.permission || '').includes('員工表');
-  const persCard  = $('sysadmin-persons-card');
-  const deptsCard = $('sysadmin-depts-card');
-  if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
-  if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
-}
-
-function toggleDeptsSection() {
-  const body = $('sysadmin-depts-body'), tog = $('sysadmin-depts-toggle');
+function togglePersonsSection() {
+  const body = $('sysadmin-persons-body'), tog = $('sysadmin-persons-toggle');
   if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (tog) tog.textContent = open ? '▶' : '▼';
-  if (!open) loadDeptsAdmin();
-}
-
-let _deptsCache = [];
-
-async function loadDeptsAdmin() {
-  if (!String(S.user?.permission || '').includes('員工表')) return;
-  const tbody = $('sysadmin-depts-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
-  const res = await callGAS({ action:'getDeptsAdmin', lineId: S.user?.lineId ?? '' });
-  if (!res.success) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
-    return;
-  }
-  _deptsCache = res.depts ?? [];
-  renderDeptsTable();
-}
-
-function renderDeptsTable() {
-  const tbody = $('sysadmin-depts-tbody'); if (!tbody) return;
-  if (!_deptsCache.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">尚無部門資料</td></tr>';
-    return;
-  }
-  tbody.innerHTML = _deptsCache.map(d => `<tr>
-    <td style="font-weight:600;white-space:nowrap">${esc(d.code)}</td>
-    <td style="white-space:nowrap">${esc(d.name)}</td>
-    <td style="text-align:center">
-      <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
-        background:${d.defaultExpense ? 'rgba(16,185,129,.12)' : 'rgba(107,114,128,.1)'};
-        color:${d.defaultExpense ? '#065f46' : 'var(--muted)'}">
-        ${d.defaultExpense ? 'true' : 'false'}
-      </span>
-    </td>
-  </tr>`).join('');
-}
-
-// 8-2: 取得當前使用者部門的預設費用設定
-function getUserDeptDefaultExpense() {
-  const userDeptCode = S.config?.userDeptCode || S.user?.dept || '';
-  if (!userDeptCode) return false;
-  // 優先從 config（登入後即可用），其次從 sysadmin 頁的 _deptsCache
-  const depts = S.config?.departments?.length ? S.config.departments : _deptsCache;
-  const dept = depts.find(d => d.code === userDeptCode || d.name === userDeptCode);
-  return dept?.defaultExpense ?? false;
-}
-
-// 8-2: 根據部門設定決定 category
-function resolveCategory(vendor, notes, geminiCategory) {
-  if (getUserDeptDefaultExpense()) return 'other'; // 預設費用 true：全部歸費用
-  // 預設費用 false：私車補助相關維持 fuel，其餘歸 other
-  const FUEL_RE = /中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i;
-  if (FUEL_RE.test(`${vendor} ${notes} ${geminiCategory}`)) return 'fuel';
-  return 'other';
 }
 
 let _personsCache = [];
@@ -1196,10 +1103,10 @@ let _personsCache = [];
 async function loadPersonsAdmin() {
   if (!String(S.user?.permission || '').includes('員工表')) return;
   const tbody = $('sysadmin-persons-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
   const res = await callGAS({ action:'getPersonsAdmin', lineId: S.user?.lineId ?? '' });
   if (!res.success) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
     return;
   }
   _personsCache = res.persons ?? [];
@@ -1209,17 +1116,15 @@ async function loadPersonsAdmin() {
 function renderPersonsTable() {
   const tbody = $('sysadmin-persons-tbody'); if (!tbody) return;
   if (!_personsCache.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
     return;
   }
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
     return `<tr style="${dim}">
       <td style="font-weight:600;white-space:nowrap">${esc(p.name)}</td>
-      <td style="white-space:nowrap">${esc(p.linename)}</td>
       <td style="white-space:nowrap">${esc(p.dept)}</td>
       <td style="white-space:nowrap">${esc(p.title)}</td>
-      <td style="white-space:nowrap;font-size:11px;color:var(--muted)">${esc(p.lineId)}</td>
       <td style="white-space:nowrap">${esc((p.depts||[]).join(', '))}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.lastLogin)}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>
@@ -1235,13 +1140,34 @@ function openPersonModal(idx) {
   const p = isNew ? {} : (_personsCache[idx] || {});
   $('pm-rowIndex').value   = isNew ? '' : String(idx);
   $('pm-name').value       = p.name       || '';
-  $('pm-linename').value   = p.linename   || '';
-  $('pm-dept').value       = p.dept       || '';
+  $('pm-linename').value   = p.linename   || ''; // 隱藏欄位，保留原值不顯示給使用者編輯
+  $('pm-lineId').value     = p.lineId     || ''; // 隱藏欄位，保留原值（由 LINE 登入流程自動綁定）
   $('pm-title').value      = p.title      || '';
-  $('pm-lineId').value     = p.lineId     || '';
-  $('pm-depts').value      = (p.depts||[]).join(', ');
-  $('pm-permission').value = p.permission || '';
   $('pm-resigned').checked = !!p.resigned;
+
+  // 部門下拉
+  const depts = S.config.departments || [];
+  const deptSel = $('pm-dept');
+  deptSel.innerHTML = '<option value="">（未設定）</option>' +
+    depts.map(d => `<option value="${esc(d.name)}"${d.name===p.dept?' selected':''}>${esc(d.name)}</option>`).join('');
+  // 若員工部門不在清單內（例如舊資料），仍保留顯示
+  if (p.dept && !depts.some(d => d.name === p.dept)) {
+    deptSel.insertAdjacentHTML('beforeend', `<option value="${esc(p.dept)}" selected>${esc(p.dept)}</option>`);
+  }
+
+  // 可顯示部門：多選 checkbox
+  const pDepts = p.depts || [];
+  const deptsBox = $('pm-depts');
+  deptsBox.innerHTML = depts.map(d => `
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg)">
+      <input type="checkbox" class="pm-depts-chk" value="${esc(d.name)}" ${pDepts.includes(d.name)?'checked':''} style="width:14px;height:14px">${esc(d.name)}
+    </label>`).join('') || '<span style="font-size:12px;color:var(--muted)">尚無部門資料</span>';
+
+  // 權限：勾選
+  const perms = String(p.permission || '').split(',').map(s=>s.trim());
+  $('pm-perm-persons').checked = perms.includes('員工表');
+  $('pm-perm-finance').checked = perms.includes('財務專區');
+
   openModal('personModal');
 }
 
@@ -1252,16 +1178,21 @@ async function savePersonAdmin() {
   const isNew = rowIndexRaw === '';
   const btn = document.querySelector('#personModal .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
+  const depts = [...document.querySelectorAll('.pm-depts-chk:checked')].map(c => c.value);
+  const permission = [
+    $('pm-perm-persons').checked ? '員工表'   : '',
+    $('pm-perm-finance').checked ? '財務專區' : '',
+  ].filter(Boolean).join(',');
   const res = await callGAS({
     action: 'savePersonAdmin', lineId: S.user?.lineId ?? '', isNew,
     rowIndex:     isNew ? null : parseInt(rowIndexRaw, 10),
     name,
-    linename:     $('pm-linename').value.trim(),
+    linename:     $('pm-linename').value.trim(), // 隱藏欄位，保留原值
     dept:         $('pm-dept').value.trim(),
     title:        $('pm-title').value.trim(),
-    personLineId: $('pm-lineId').value.trim(),
-    depts:        $('pm-depts').value.split(',').map(s=>s.trim()).filter(Boolean).join(','),
-    permission:   $('pm-permission').value.trim(),
+    personLineId: $('pm-lineId').value.trim(),    // 隱藏欄位，保留原值
+    depts:        depts.join(','),
+    permission,
     resigned:     $('pm-resigned').checked,
   });
   if (btn) { btn.disabled=false; btn.innerHTML='💾 儲存'; }
@@ -1954,18 +1885,16 @@ function mkReceipt(id, qf, item, idx, isNew) {
 }
 
 function detectCat(item) {
-  const raw = (item.category || '').toLowerCase().trim();
-  if (raw === 'parking' || raw === '停車') return 'other';
-
-  // 8-2: 部門「預設費用」= true → 全部歸 other，不再判斷 fuel
-  if (getUserDeptDefaultExpense()) return 'other';
-
   // 優先採信 OCR / GAS 回傳的 category 欄位
-  if (raw === 'fuel' || raw === '油資') return 'fuel';
-  if (raw === 'other' || raw === '其他') return 'other';
+  const raw = (item.category || '').toLowerCase().trim();
+  if (raw === 'fuel'    || raw === '油資') return 'fuel';
+  // 停車費已併入其他，parking 統一轉 other
+  if (raw === 'parking' || raw === '停車') return 'other';
+  if (raw === 'other'   || raw === '其他') return 'other';
 
-  // 依廠商名稱 + 備註關鍵字自動判斷（私車補助相關）
+  // 依廠商名稱 + 備註關鍵字自動判斷
   const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
+  // 停車關鍵字 → 其他（不再獨立分類）
   if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i.test(s)) return 'fuel';
   return 'other';
 }
@@ -2138,8 +2067,8 @@ function renderOtherTab(otherReceipts) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px">
-            <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn on" onclick="setCat('${r.id}','other')">📄 其他</button>
+            <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
       </div>
@@ -2148,14 +2077,14 @@ function renderOtherTab(otherReceipts) {
 
   return `<div class="card">
     <div class="card-hd" style="font-size:14px;font-weight:800">
-      📄 其他
+      📄 費用發票
       <span class="badge bd-orange" style="margin-left:6px">${otherReceipts.length} 張</span>
     </div>
     <!-- 頂部：歸屬搜尋框 + 費用類別 + 套用按鈕 -->
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <label class="lbl" style="margin-bottom:4px">套用歸屬到勾選項目</label>
-        ${fdHTML('fd-other-attr', 'fd-other-attr-inp', '搜尋專案 / 部門 / 其他').replace(
+        ${fdHTML('fd-other-attr', 'fd-other-attr-inp', '搜尋專案 / 部門').replace(
           "oninput=\"fdFilter('fd-other-attr')\"",
           "oninput=\"fdFilter('fd-other-attr');updateOtherApplyBtn()\""
         )}
@@ -2273,7 +2202,7 @@ function renderFuelTab(fuelReceipts) {
         <div style="flex:1;min-width:120px">
           <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}</div>
           <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
-          <div style="margin-top:3px"><span class="badge bd-blue">⛽ 油資</span></div>
+          <div style="margin-top:3px"><span class="badge bd-blue">🚗 私車補助</span></div>
         </div>
         <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
           $${r.amount.toLocaleString()}
@@ -2301,8 +2230,8 @@ function renderFuelTab(fuelReceipts) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px">
-            <button class="tgl-btn on" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn"    onclick="setCat('${r.id}','other')">📄 其他</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn"    onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
       </div>
@@ -2320,17 +2249,17 @@ function renderFuelTab(fuelReceipts) {
     : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}`;
 
   return `
-    <!-- 油資發票 card -->
+    <!-- 私車補助發票 card -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-hd" style="font-size:14px;font-weight:800">
-        🧾 油資發票
+        🧾 私車補助發票
         <span class="badge bd-blue" style="margin-left:6px">${fuelReceipts.length} 張</span>
         <span class="mono" style="margin-left:auto;color:var(--gold);font-size:15px;font-weight:800">
           總額 $${invoiceTotal.toLocaleString()}
         </span>
       </div>
       <div style="padding:0 16px">
-        ${invRows || '<div style="padding:20px;color:var(--muted);text-align:center">無油資發票</div>'}
+        ${invRows || '<div style="padding:20px;color:var(--muted);text-align:center">無私車補助發票</div>'}
       </div>
     </div>
 
@@ -2622,10 +2551,11 @@ function fuelFRRowHTML(idx, fi, fr) {
         ${fr.km ? (() => {
           const km = parseFloat(fr.km), isRound = fr.isRound !== false;
           const rate = getMileageRate(curMonth());
+          const singleAmt = Math.round(km * rate);
           const totalKm = parseFloat((km * (isRound ? 2 : 1)).toFixed(1));
           const amt = Math.round(totalKm * rate);
           return isRound
-            ? `${km} km × 2 = ${totalKm} km · $${amt.toLocaleString()}`
+            ? `${km} km · $${singleAmt.toLocaleString()} × 2 = ${totalKm} km · $${amt.toLocaleString()}`
             : `${km} km · $${amt.toLocaleString()}`;
         })() : ''}
       </span>
@@ -2775,9 +2705,15 @@ function setFuelFRRound(idx, fi, val) {
   // 立即更新單筆公里數文字
   const km   = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || 0;
   const rate = getMileageRate(curMonth());
-  const amt  = km ? Math.round(km * (val ? 2 : 1) * rate) : 0;
   const txtEl = $(`fpkm-txt-${idx}-${fi}`);
-  if (txtEl && km) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
+  if (txtEl && km) {
+    const singleAmt = Math.round(km * rate);
+    const totalKm   = parseFloat((km * (val ? 2 : 1)).toFixed(1));
+    const amt       = Math.round(totalKm * rate);
+    txtEl.textContent = val
+      ? `${km} km · $${singleAmt.toLocaleString()} × 2 = ${totalKm} km · $${amt.toLocaleString()}`
+      : `${km} km · $${amt.toLocaleString()}`;
+  }
   saveFuelFRs(idx);
   // 即時更新「核算 $xxx」badge
   _updateMileRowAmt(idx);
@@ -3006,8 +2942,8 @@ function rcHTML(r) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="err-tgl-cat-${r.id}">
-            <button class="tgl-btn ${r.category==='fuel'?'on':''}" onclick="setErrCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn ${r.category!=='fuel'?'on':''}" onclick="setErrCat('${r.id}','other')">📄 其他</button>
+            <button class="tgl-btn ${r.category==='fuel'?'on':''}" onclick="setErrCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn ${r.category!=='fuel'?'on':''}" onclick="setErrCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
         <div>
@@ -3030,8 +2966,8 @@ function rcHTML(r) {
     : '';
 
   const catBadge = r.category === 'fuel'
-    ? `<span class="badge bd-blue">⛽ 油資</span>`
-    : `<span class="badge bd-muted">📄 其他</span>`;
+    ? `<span class="badge bd-blue">🚗 私車補助</span>`
+    : `<span class="badge bd-muted">📄 費用</span>`;
   const dupBadge = r._isDuplicate
     ? `<span class="badge bd-red" title="發票號碼重複">⚠️ 重複</span>` : '';
 
@@ -3112,8 +3048,8 @@ function rcHTML(r) {
         <div style="margin-bottom:12px">
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="tgl-cat-${r.id}">
-            <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','fuel')">⛽ 油資</button>
-            <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','other')">📄 其他</button>
+            <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
 
