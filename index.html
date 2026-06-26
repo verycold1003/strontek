@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform k2</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform j</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -617,10 +617,33 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <table class="tbl" id="sysadmin-persons-tbl">
           <thead><tr>
             <th>姓名</th><th>部門</th><th>職稱</th><th>可顯示部門</th>
-            <th>最後登入</th><th>權限</th><th>離職</th><th>操作</th>
+            <th>最後登入</th><th>權限</th><th style="white-space:nowrap;min-width:48px">離職</th><th>操作</th>
           </tr></thead>
           <tbody id="sysadmin-persons-tbody">
             <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 部門表（需「員工表」權限） -->
+  <div class="card" id="sysadmin-depts-card" style="margin-bottom:16px;display:none">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleDeptsSection()">
+      🏢 部門表
+      <span id="sysadmin-depts-toggle" style="margin-left:auto;font-size:18px;color:var(--muted)">▶</span>
+    </div>
+    <div id="sysadmin-depts-body" style="display:none;padding-top:12px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn btn-primary btn-sm" onclick="openDeptModal(null)">➕ 新增部門</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="sysadmin-depts-tbl">
+          <thead><tr>
+            <th>部門代碼</th><th>部門名稱</th><th>費用類型</th><th>操作</th>
+          </tr></thead>
+          <tbody id="sysadmin-depts-tbody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -676,6 +699,38 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('personModal')">取消</button>
       <button class="btn btn-primary" onclick="savePersonAdmin()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 部門編輯 Modal -->
+<div class="modal-wrap" id="deptModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="deptModal-title">部門資料</div>
+    <input type="hidden" id="dm-rowIndex">
+    <div class="fg2" style="margin-bottom:14px">
+      <div><label class="lbl">部門代碼 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-code" placeholder="例：FI"></div>
+      <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="例：財務部"></div>
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="lbl">費用類型</label>
+      <div style="display:flex;gap:16px;padding:8px 2px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer">
+          <input type="radio" name="dm-et" id="dm-et-expense" style="width:16px;height:16px"> 費用
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer">
+          <input type="radio" name="dm-et" id="dm-et-fuel" style="width:16px;height:16px"> 私車補助
+        </label>
+      </div>
+    </div>
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px">
+      <label class="lbl" style="margin:0">註記刪除</label>
+      <input type="checkbox" id="dm-deleted" style="width:18px;height:18px">
+      <span style="font-size:13px;color:var(--muted)">勾選後標記為刪除（軟刪除，列表會顯示刪除線）</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('deptModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveDeptAdmin()">💾 儲存</button>
     </div>
   </div>
 </div>
@@ -757,8 +812,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
-      <div class="navmenu-sep"></div>
-      <button class="navmenu-item" id="navSysAdminBtnProject" onclick="switchSection('sysadmin');closeNavMenu()" style="display:none">🛠 系統管理</button>
     </div>
     <div class="navmenu" id="navMenuExpense">
       <button class="navmenu-item" onclick="doUnifiedReload()">🔄 重新整理</button>
@@ -766,6 +819,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <span id="navSyncStatus-expense">尚未同步</span>
         <span id="navSyncDone-expense" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
       </div>
+      <div class="navmenu-sep"></div>
+      <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
+      <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
+      <button class="navmenu-item" id="navFinanceBtnExpense" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
       <div class="navmenu-sep"></div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px 16px">
         <label class="lbl" style="margin:0;white-space:nowrap">申請月份</label>
@@ -796,8 +853,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="td-show-deleted" onchange="renderTaskList()"> 🗑 已刪除
       </label>
-      <div class="navmenu-sep"></div>
-      <button class="navmenu-item" onclick="switchSection('sysadmin');closeNavMenu()">🛠 系統管理</button>
     </div>
   </div>
   <div class="mainnav-tabs">
@@ -1066,14 +1121,11 @@ function renderUserBar() {
   if (depts.length) S.user.depts = depts;
   const permission = String(p?.permission || u.permission || '');
   S.user.permission = permission;
-  const isFinance  = permission.includes('財務專區');
-  const isSysAdmin = permission.includes('員工表');
-  // 專案漢堡：財務專區
-  const finBtn = $('navFinanceBtn');
-  if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
-  // 專案漢堡：系統管理（需「員工表」權限）
-  const sysBtn = $('navSysAdminBtnProject');
-  if (sysBtn) sysBtn.style.display = isSysAdmin ? 'block' : 'none';
+  const isFinance = permission.includes('財務專區');
+  ['navFinanceBtn', 'navFinanceBtnExpense'].forEach(id => {
+    const btn = $(id);
+    if (btn) btn.style.display = isFinance ? 'block' : 'none';
+  });
 }
 
 function logout() {
@@ -1093,6 +1145,9 @@ function renderSysAdminUserBar() {
   const hasPerm = String(S.user?.permission || '').includes('員工表');
   const card = $('sysadmin-persons-card');
   if (card) card.style.display = hasPerm ? 'block' : 'none';
+  // 部門表：同樣需「員工表」權限
+  const deptCard = $('sysadmin-depts-card');
+  if (deptCard) deptCard.style.display = hasPerm ? 'block' : 'none';
 }
 
 function togglePersonsSection() {
@@ -1139,6 +1194,103 @@ function renderPersonsTable() {
   }).join('');
 }
 
+function toggleDeptsSection() {
+  const body = $('sysadmin-depts-body'), tog = $('sysadmin-depts-toggle');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (tog) tog.textContent = open ? '▶' : '▼';
+}
+
+let _deptsCache = [];
+
+async function loadDeptsAdmin() {
+  if (!String(S.user?.permission || '').includes('員工表')) return;
+  const tbody = $('sysadmin-depts-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
+  const res = await callGAS({ action:'getDepartmentsAdmin', lineId: S.user?.lineId ?? '' });
+  if (!res.success) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
+    return;
+  }
+  _deptsCache = res.departments ?? [];
+  renderDeptsTable();
+}
+
+// item1: 費用類型欄位改用 radio，可直接在列表上切換並即時儲存
+function renderDeptsTable() {
+  const tbody = $('sysadmin-depts-tbody'); if (!tbody) return;
+  if (!_deptsCache.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">尚無部門資料</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _deptsCache.map((d, i) => {
+    const dim = d.deleted ? 'color:var(--muted);text-decoration:line-through' : '';
+    return `<tr style="${dim}">
+      <td style="white-space:nowrap;font-weight:600">${esc(d.code)}</td>
+      <td style="white-space:nowrap">${esc(d.name)}</td>
+      <td style="white-space:nowrap">
+        <label style="margin-right:10px;cursor:pointer"><input type="radio" name="dept-et-${i}"
+          ${d.expenseType==='費用'?'checked':''} onchange="setDeptExpenseType(${i},'費用')"> 費用</label>
+        <label style="cursor:pointer"><input type="radio" name="dept-et-${i}"
+          ${d.expenseType==='私車補助'?'checked':''} onchange="setDeptExpenseType(${i},'私車補助')"> 私車補助</label>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openDeptModal(${i})">✏️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function setDeptExpenseType(idx, expenseType) {
+  const d = _deptsCache[idx]; if (!d) return;
+  d.expenseType = expenseType; // 先樂觀更新畫面
+  const res = await callGAS({
+    action: 'saveDepartmentAdmin', lineId: S.user?.lineId ?? '', isNew: false,
+    rowIndex: d.rowIndex, code: d.code, name: d.name, expenseType, deleted: d.deleted,
+  });
+  if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); loadDeptsAdmin(); return; }
+  toast('✅ 已更新費用類型');
+}
+
+function openDeptModal(idx) {
+  const isNew = idx === null;
+  $('deptModal-title').textContent = isNew ? '➕ 新增部門' : '✏️ 編輯部門';
+  const d = isNew ? {} : (_deptsCache[idx] || {});
+  $('dm-rowIndex').value = isNew ? '' : String(idx);
+  $('dm-code').value = d.code || '';
+  $('dm-name').value = d.name || '';
+  $('dm-et-expense').checked = (d.expenseType || '費用') === '費用';
+  $('dm-et-fuel').checked    = d.expenseType === '私車補助';
+  $('dm-deleted').checked    = !!d.deleted;
+  openModal('deptModal');
+}
+
+async function saveDeptAdmin() {
+  const code = $('dm-code').value.trim();
+  const name = $('dm-name').value.trim();
+  if (!code || !name) { toast('❌ 部門代碼與名稱皆為必填'); return; }
+  const rowIndexRaw = $('dm-rowIndex').value;
+  const isNew = rowIndexRaw === '';
+  const btn = document.querySelector('#deptModal .btn-primary');
+  if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
+  const d = isNew ? null : _deptsCache[parseInt(rowIndexRaw,10)];
+  const res = await callGAS({
+    action: 'saveDepartmentAdmin', lineId: S.user?.lineId ?? '', isNew,
+    rowIndex: isNew ? null : d?.rowIndex,
+    code, name,
+    expenseType: $('dm-et-fuel').checked ? '私車補助' : '費用',
+    deleted: $('dm-deleted').checked,
+  });
+  if (btn) { btn.disabled=false; btn.innerHTML='💾 儲存'; }
+  if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); return; }
+  toast('✅ 已儲存');
+  closeModal('deptModal');
+  await loadDeptsAdmin();
+  // 部門可能影響下拉選單（專案設定/可顯示部門等），順手刷新設定快取
+  loadConfig();
+}
+
 function openPersonModal(idx) {
   const isNew = idx === null;
   $('personModal-title').textContent = isNew ? '➕ 新增員工' : '✏️ 編輯員工資料';
@@ -1150,11 +1302,13 @@ function openPersonModal(idx) {
   $('pm-title').value      = p.title      || '';
   $('pm-resigned').checked = !!p.resigned;
 
-  // 部門下拉
-  const depts = S.config.departments || [];
+  // item2B1: 部門下拉／可顯示部門改用「部門表」完整清單（含已刪除，加刪除線），
+  // 而非僅自己可見的部門子集，避免管理員看不到要指派的部門
+  const depts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
   const deptSel = $('pm-dept');
   deptSel.innerHTML = '<option value="">（未設定）</option>' +
-    depts.map(d => `<option value="${esc(d.name)}"${d.name===p.dept?' selected':''}>${esc(d.name)}</option>`).join('');
+    depts.map(d => `<option value="${esc(d.name)}"${d.name===p.dept?' selected':''}
+      ${d.deleted?'style="text-decoration:line-through;color:var(--muted)"':''}>${esc(d.name)}${d.deleted?'（已刪除）':''}</option>`).join('');
   // 若員工部門不在清單內（例如舊資料），仍保留顯示
   if (p.dept && !depts.some(d => d.name === p.dept)) {
     deptSel.insertAdjacentHTML('beforeend', `<option value="${esc(p.dept)}" selected>${esc(p.dept)}</option>`);
@@ -1164,8 +1318,9 @@ function openPersonModal(idx) {
   const pDepts = p.depts || [];
   const deptsBox = $('pm-depts');
   deptsBox.innerHTML = depts.map(d => `
-    <label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg)">
-      <input type="checkbox" class="pm-depts-chk" value="${esc(d.name)}" ${pDepts.includes(d.name)?'checked':''} style="width:14px;height:14px">${esc(d.name)}
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg);
+      ${d.deleted?'text-decoration:line-through;color:var(--muted)':''}">
+      <input type="checkbox" class="pm-depts-chk" value="${esc(d.name)}" ${pDepts.includes(d.name)?'checked':''} style="width:14px;height:14px">${esc(d.name)}${d.deleted?'（已刪除）':''}
     </label>`).join('') || '<span style="font-size:12px;color:var(--muted)">尚無部門資料</span>';
 
   // 權限：勾選
@@ -1207,6 +1362,12 @@ async function savePersonAdmin() {
   await loadPersonsAdmin();
   const body = $('sysadmin-persons-body');
   if (body && body.style.display === 'none') togglePersonsSection();
+  // item2B2: 若編輯的是目前登入者本人（含改名情況，用 lineId 或姓名比對），
+  // 立即重新拉取 getConfig 以更新權限／可顯示部門，漢堡選單即時生效，不必登出再登入
+  if (name === S.user?.name) {
+    await loadConfig();
+    renderUserBar();
+  }
 }
 
 // ── 統一同步狀態 ──────────────────────────────────────────────
@@ -2207,7 +2368,6 @@ function renderFuelTab(fuelReceipts) {
         <div style="flex:1;min-width:120px">
           <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}</div>
           <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
-          <div style="margin-top:3px"><span class="badge bd-blue">🚗 私車補助</span></div>
         </div>
         <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
           $${r.amount.toLocaleString()}
@@ -2667,9 +2827,9 @@ function initFuelMileDropdownAt(idx) {
       if (proj) inp.value = proj.id + ' ' + proj.name;
     } else if (fp.deptId) {
       const dept = findDept(fp.deptId);
-      if (dept) inp.value = dept.code + ' ' + dept.name;
+      if (dept) inp.value = dept.name;
     } else if (fp.attrType === 'other') {
-      inp.value = '其他 其他費用';
+      inp.value = '其他費用';
     }
   }
 }
@@ -3228,7 +3388,12 @@ function fdSelect(wrapperId, idx) {
   if (!item) return;
   // 填入 input
   const inp = document.querySelector(`#${wrapperId} .fd-input`);
-  if (inp) inp.value = (item.id || item.code || '') + (item.name ? ' ' + item.name : '');
+  if (inp) {
+    const key = item.id || item.code || '';
+    // item3A1: 部門與「其他」項目不顯示代碼前綴，只有專案才帶代碼
+    const isDeptOrOther = key === '其他' || (S.config.departments||[]).some(d => d.code === key);
+    inp.value = isDeptOrOther ? (item.name || '') : (key + (item.name ? ' ' + item.name : ''));
+  }
   fdClose(wrapperId);
   // 更新最近使用
   const key = item.id || item.code;
@@ -3963,6 +4128,7 @@ function switchSection(name) {
   if (name==='sysadmin') {
     renderSysAdminUserBar();
     loadPersonsAdmin();
+    loadDeptsAdmin();
   }
 }
 
