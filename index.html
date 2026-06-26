@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform J</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform k</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -463,7 +463,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </div>
         <div class="fg2" style="margin-bottom:14px">
           <div>
-            <label class="lbl">隸屬部門</label>
+            <label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
             <select class="inp" id="np-dept">
               <option value="">— 選擇部門 —</option>
             </select>
@@ -2173,12 +2173,6 @@ async function applyOtherAttr() {
   _otherSelectedItem = null;
   if (btn) { btn.style.opacity = ''; btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
 
-  // ── 套用後檢查：若仍有未設定歸屬的項目，全部取消勾選，方便使用者逐一勾選設定歸屬；
-  //    若已全部設定完畢，全部勾選方便匯出 ──
-  const otherList = S.receipts.filter(r => r.category !== 'fuel' && r.status !== 'error');
-  const hasUnassigned = otherList.some(r => !r.otherAttr);
-  otherList.forEach(r => { r._checked = !hasUnassigned; });
-
   renderOCRResults();
   updateStats();
 }
@@ -2512,11 +2506,17 @@ function fuelMileRowHTML(fp, idx) {
 // ── 里程實報每列外勤 HTML ───────────────────────────────────
 function fuelFRRowHTML(idx, fi, fr) {
   fr = fr || {};
+  const frChecked = fr._att2 !== false; // 預設勾選，匯出附件二用
   return `<div id="fp-fr-${idx}-${fi}" style="background:var(--surface2);border:1px solid var(--border);
     border-radius:8px;padding:10px 12px;margin-bottom:6px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:12px;font-weight:800;color:var(--muted)">外勤 ${fi+1}</span>
-      <button class="btn btn-danger btn-sm" onclick="removeFuelFR(${idx},${fi})">✕</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0" title="勾選後匯出附件二">
+        <input type="checkbox" id="fpatt2-${idx}-${fi}" ${frChecked?'checked':''}
+          onchange="saveFuelFRs(${idx})"
+          style="width:16px;height:16px;accent-color:var(--accent)">
+        <span style="font-size:12px;font-weight:800;color:var(--muted)">外勤 ${fi+1}</span>
+      </label>
+      <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="removeFuelFR(${idx},${fi})">✕</button>
     </div>
     <div class="fg4" style="margin-bottom:8px">
       <div><label class="lbl">外勤日期</label>
@@ -2756,6 +2756,9 @@ function saveFuelFRs(idx) {
     fr.end     = $(`fpe-${idx}-${fi}`)?.value    || fr.end;
     fr.km      = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || fr.km;
     fr.isRound = $(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    // 附件二勾選
+    const att2El = $(`fpatt2-${idx}-${fi}`);
+    if (att2El) fr._att2 = att2El.checked;
     // item5: 補上起點，避免附件二的「起點」欄位空白；若已有值（例如曾手動調整）不覆蓋
     if (!fr.start) fr.start = S.config.startAddress || '';
   });
@@ -4078,8 +4081,8 @@ async function doAddProject() {
   const prepayPct     = parseFloat($('np-prepay-deductpct')?.value) || 0;
   const msg      = $('npMsg');
 
-  if (!code || !name || !effect) {
-    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
+  if (!code || !name || !effect || !deptCode) {
+    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日，並選擇隸屬部門'; msg.style.color = 'var(--red)'; }
     return;
   }
 
@@ -5374,9 +5377,9 @@ function doEditProject(i) {
         <input class="inp" id="ep-code-${i}" value="${esc(p.code||'')}"></div>
     </div>
     <div class="fg4" style="margin-bottom:10px">
-      <div><label class="lbl">隸屬部門</label>
+      <div><label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
         <select class="inp" id="ep-dept-${i}">
-          <option value="">—</option>${deptOpts}
+          <option value="">— 選擇部門 —</option>${deptOpts}
         </select></div>
       <div><label class="lbl">類型</label>
         <div class="tgl" id="tgl-ep-quota-${i}">
@@ -5479,6 +5482,11 @@ async function doSaveProject(id, i) {
     },
   };
   const msg = $(`ep-msg-${i}`);
+  const deptCode = $(`ep-dept-${i}`)?.value || '';
+  if (!payload.name || !payload.effectDate || !deptCode) {
+    if (msg) { msg.textContent = '⚠️ 請填寫名稱、生效日，並選擇隸屬部門'; msg.style.color='var(--red)'; }
+    return;
+  }
   try {
     const res = await callGAS(payload);
     if (res.success) {
