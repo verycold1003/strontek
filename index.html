@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v2</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform k</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -1219,16 +1219,27 @@ async function saveDeptAdmin() {
   if (!code || !name) { toast('❌ 部門代碼與名稱為必填'); return; }
   const rowIndexRaw  = $('dm-rowIndex').value;
   const isNew        = rowIndexRaw === '';
+  const myIdx        = isNew ? -1 : parseInt(rowIndexRaw, 10);
+  // F1: 前端重複驗證，減少 GAS 往返
+  const isDeleted    = d => d.deleted;
+  const dupName = _deptsCache.some((d, i) => i !== myIdx && !isDeleted(d) && d.name === name);
+  if (dupName) { toast('❌ 部門名稱已存在：' + name); return; }
+  if (isNew) {
+    const dupCode = _deptsCache.some(d => !isDeleted(d) && d.code === code);
+    if (dupCode) { toast('❌ 部門代碼已存在：' + code); return; }
+  }
   const defaultExpense = $('dm-type-fuel').checked;
   const btn = document.querySelector('#deptModal .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
   const res = await callGAS({ action:'saveDeptAdmin', lineId: S.user?.lineId ?? '', isNew,
-    rowIndex: isNew ? null : parseInt(rowIndexRaw, 10), code, name, defaultExpense });
+    rowIndex: isNew ? null : myIdx, code, name, defaultExpense });
   if (btn) { btn.disabled=false; btn.innerHTML='💾 儲存'; }
   if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); return; }
   toast('✅ 已儲存'); closeModal('deptModal');
   await loadDeptsAdmin();
   if ($('sysadmin-depts-body')?.style.display === 'none') toggleDeptsSection();
+  // F2: 部門異動後刷新 config，讓新增專案的部門下拉即時更新
+  loadConfig();
 }
 
 async function softDeleteDept(idx) {
@@ -1286,7 +1297,7 @@ function renderPersonsTable() {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
     return;
   }
-  const allDepts = S._allDepts || _deptsCache || [];
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
   const codeToName = code => allDepts.find(d => d.code === code)?.name || code;
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
@@ -1304,7 +1315,7 @@ function renderPersonsTable() {
   }).join('');
 }
 
-function openPersonModal(idx) {
+async function openPersonModal(idx) {
   const isNew = idx === null;
   $('personModal-title').textContent = isNew ? '➕ 新增員工' : '✏️ 編輯員工資料';
   const p = isNew ? {} : (_personsCache[idx] || {});
@@ -1315,27 +1326,28 @@ function openPersonModal(idx) {
   $('pm-title').value      = p.title      || '';
   $('pm-resigned').checked = !!p.resigned;
 
-  // 部門下拉：全部（含已刪除加刪除線）
-  const allDepts = S._allDepts || _deptsCache || S.config.departments || [];
+  // 部門下拉：全部（含已刪除加刪除線）；若尚未載入先強制拉取
+  if (!_deptsCache.length) await loadDeptsAdmin();
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
   const deptSel = $('pm-dept');
   deptSel.innerHTML = '<option value="">（未設定）</option>' +
     allDepts.map(d => {
       const lineStyle = d.deleted ? ' style="text-decoration:line-through;color:var(--muted)"' : '';
-      const sel = (p.dept === d.code || p.dept === d.name) ? ' selected' : ''; // 兼容舊資料
-      return `<option value="${esc(d.code)}"${sel}${lineStyle}>${esc(d.code)} ${esc(d.name)}${d.deleted?' (已刪除)':''}</option>`;
+      const sel = (p.dept === d.code || p.dept === d.name) ? ' selected' : '';
+      return `<option value="${esc(d.code)}"${sel}${lineStyle}>${esc(d.name)}${d.deleted?' (已刪除)':''}</option>`;
     }).join('');
   if (p.dept && !allDepts.some(d => d.code === p.dept || d.name === p.dept)) {
     deptSel.insertAdjacentHTML('beforeend', `<option value="${esc(p.dept)}" selected>${esc(p.dept)}</option>`);
   }
 
-  // 可顯示部門：多選 checkbox，value 用部門代碼，顯示「代碼 名稱」，含已刪除加刪除線
+  // 可顯示部門：checkbox 只顯示名稱
   const pDepts = p.depts || [];
   const deptsBox = $('pm-depts');
   deptsBox.innerHTML = allDepts.map(d => {
     const lineStyle = d.deleted ? 'text-decoration:line-through;color:var(--muted);' : '';
-    const checked = pDepts.includes(d.code) || pDepts.includes(d.name); // 兼容舊資料存名稱
+    const checked = pDepts.includes(d.code) || pDepts.includes(d.name);
     return `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg);${lineStyle}">
-      <input type="checkbox" class="pm-depts-chk" value="${esc(d.code)}" ${checked?'checked':''} style="width:14px;height:14px">${esc(d.code)} ${esc(d.name)}
+      <input type="checkbox" class="pm-depts-chk" value="${esc(d.code)}" ${checked?'checked':''} style="width:14px;height:14px">${esc(d.name)}
     </label>`;
   }).join('') || '<span style="font-size:12px;color:var(--muted)">尚無部門資料</span>';
 
@@ -1374,9 +1386,11 @@ async function savePersonAdmin() {
   if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); return; }
   toast('✅ 已儲存');
   closeModal('personModal');
-  // 重新載入 config，讓財務專區/員工表漢堡按鈕立即生效
-  const cfgRes = await callGAS({ action:'getConfig', lineId: S.user?.lineId ?? '' });
-  if (cfgRes.success) { S.config = { ...S.config, ...cfgRes.data }; renderUserBar(); }
+  // 若編輯的是目前登入者本人，立即重拉 config 讓漢堡按鈕即時生效
+  if (name === S.user?.name) {
+    await loadConfig();
+    renderUserBar();
+  }
   await loadPersonsAdmin();
   if ($('sysadmin-persons-body')?.style.display === 'none') togglePersonsSection();
 }
@@ -2180,19 +2194,12 @@ if (!window._fuelProjList) window._fuelProjList = [];
 let _otherSelectedItem = null;
 
 function renderOtherTab(otherReceipts) {
-  // 預設邏輯（整批判斷，而非逐筆判斷）：
-  // - 只要有任何一筆「未設定歸屬」，全部預設不勾，方便使用者逐一勾選設定歸屬
-  // - 若全部都已設定歸屬，才全部預設勾選，方便直接匯出 PDF
-  const nonErrorReceipts = otherReceipts.filter(r => r.status !== 'error');
-  const hasUnset = nonErrorReceipts.some(r => !r.otherAttr);
-  const batchDefault = !hasUnset;
-
   const rows = otherReceipts.map(r => {
     // 辨識失敗：改用專用的「重新辨識/手動填寫」卡片，而非一般收據樣式
     if (r.status === 'error') return rcHTML(r);
 
-    // 若尚未有 _checked 狀態，依整批判斷結果決定（而非個別是否有歸屬）
-    if (r._checked === undefined) r._checked = batchDefault;
+    // 預設全不勾，讓使用者自行決定匯出哪幾筆
+    if (r._checked === undefined) r._checked = false;
     const defChk  = r._checked;
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
@@ -2355,11 +2362,9 @@ async function applyOtherAttr() {
   _otherSelectedItem = null;
   if (btn) { btn.style.opacity = ''; btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
 
-  // ── 套用後檢查：若仍有未設定歸屬的項目，全部取消勾選，方便使用者逐一勾選設定歸屬；
-  //    若已全部設定完畢，全部勾選方便匯出 ──
+  // ── 套用後全部取消勾選，讓使用者重新決定下一批操作範圍 ──
   const otherList = S.receipts.filter(r => r.category !== 'fuel' && r.status !== 'error');
-  const hasUnassigned = otherList.some(r => !r.otherAttr);
-  otherList.forEach(r => { r._checked = !hasUnassigned; });
+  otherList.forEach(r => { r._checked = false; });
 
   renderOCRResults();
   updateStats();
@@ -2651,7 +2656,7 @@ function fuelMileRowHTML(fp, idx) {
   // 顯示標籤
   let label = '（未選）';
   if (proj)    label = `${proj.id} ${proj.name}`;
-  else if (dept) label = `${dept.code} ${dept.name}`;
+  else if (dept) label = dept.name;
   else if (isOther) label = '其他';
 
   // 申請金額
@@ -2851,9 +2856,9 @@ function initFuelMileDropdownAt(idx) {
       if (proj) inp.value = proj.id + ' ' + proj.name;
     } else if (fp.deptId) {
       const dept = findDept(fp.deptId);
-      if (dept) inp.value = dept.code + ' ' + dept.name;
+      if (dept) inp.value = dept.name;
     } else if (fp.attrType === 'other') {
-      inp.value = '其他 其他費用';
+      inp.value = '管理部';
     }
   }
 }
@@ -3416,7 +3421,9 @@ function fdSelect(wrapperId, idx) {
   if (!item) return;
   // 填入 input
   const inp = document.querySelector(`#${wrapperId} .fd-input`);
-  if (inp) inp.value = (item.id || item.code || '') + (item.name ? ' ' + item.name : '');
+  if (inp) inp.value = item.noCode
+    ? (item.name || '')
+    : ((item.id || item.code || '') + (item.name ? ' ' + item.name : ''));
   fdClose(wrapperId);
   // 更新最近使用
   const key = item.id || item.code;
@@ -3704,8 +3711,17 @@ async function delSelected() {
   });
   if (!selected.length) { toast('⚠️ 請先勾選要刪除的項目'); return; }
 
+  // 計算實際刪除數量（包含私車補助 tab 的外勤紀錄）
+  let frCount = 0;
+  if (_ocrTab === 'fuel') {
+    window._fuelProjList.forEach(fp => {
+      frCount += (fp.fieldRows || []).filter(fr => fr._att2 !== false).length;
+    });
+  }
+  const totalCount = selected.length + frCount;
+
   const confirmed = await showConfirm(
-    `確定刪除勾選的 ${selected.length} 筆憑證？\n此操作將同步刪除後端的辨識紀錄，無法復原。`
+    `確定刪除勾選的 ${totalCount} 筆項目？\n此操作將同步刪除後端的辨識紀錄，無法復原。`
   );
   if (!confirmed) return;
 
@@ -3736,8 +3752,10 @@ async function delSelected() {
   renderOCRResults();
   updateStats();
   syncAllOcrChk();
-  if (failed === 0) toast(`🗑 已刪除 ${done} 筆`);
-  else toast(`🗑 已從畫面移除 ${done} 筆，其中 ${failed} 筆後端刪除失敗`);
+  const deletedFR = _ocrTab === 'fuel' ? frCount : 0;
+  const totalDeleted = done + deletedFR;
+  if (failed === 0) toast(`🗑 已刪除 ${totalDeleted} 筆`);
+  else toast(`🗑 已從畫面移除 ${done} 筆（其中 ${failed} 筆後端刪除失敗）`);
 }
 
 // 全選 / 全不選
@@ -4036,10 +4054,13 @@ async function _doExport(skipStash = false) {
       ? fuelReceipts.filter(r => r.projectId === fp.projId)
       : fuelReceipts; // 里程實報/部門/其他：所有油資發票共用
 
-    // 組 liveFieldRows（帶 rate），只含已勾選附件二的外勤（_att2 !== false）
+    // 組 liveFieldRows：
+    // fieldRows = 只含 _att2 勾選的外勤（給附件二用）
+    // allFieldRows = 全部外勤（給員工支出申請表用，不看勾選）
     const fieldRows = (fp.fieldRows || [])
       .filter(fr => fr._att2 !== false)
       .map(fr => ({ ...fr, rate: mRate }));
+    const allFieldRows = (fp.fieldRows || []).map(fr => ({ ...fr, rate: mRate }));
 
     // 決定 attribution
     let attribution = 'project', projectId = '', deptId = '', attrLabel = '';
@@ -4050,7 +4071,7 @@ async function _doExport(skipStash = false) {
     } else if (fp.attrType === 'dept') {
       attribution = 'dept'; deptId = fp.deptId;
       const dept = (S.config.departments||[]).find(d=>d.code===fp.deptId);
-      attrLabel = dept ? dept.code+' '+dept.name : fp.deptId;
+      attrLabel = dept ? dept.name : fp.deptId;
     } else if (fp.attrType === 'other') {
       attribution = 'other'; attrLabel = '其他';
     } else {
@@ -4060,7 +4081,7 @@ async function _doExport(skipStash = false) {
       attrLabel = proj ? proj.id+' '+proj.name : fp.projId;
     }
 
-    return { fp, attribution, projectId, deptId, attrLabel, fieldRows, receipts: fpReceipts };
+    return { fp, attribution, projectId, deptId, attrLabel, fieldRows, allFieldRows, receipts: fpReceipts };
   });
 
   // ── 其他：只帶 _checked=true 的（含原停車費，統一歸入其他）──
@@ -4249,7 +4270,7 @@ function populateNpDept() {
   if (!sel) return;
   const depts = S.config.departments || [];
   sel.innerHTML = '<option value="">— 選擇部門 —</option>' +
-    depts.map(d => `<option value="${d.code}">${d.code} ${d.name}</option>`).join('');
+    depts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
 
 // 月定額 toggle
@@ -4294,6 +4315,10 @@ async function doAddProject() {
 
   if (!code || !name || !effect) {
     if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (!deptCode) {
+    if (msg) { msg.textContent = '⚠️ 請選擇隸屬部門'; msg.style.color = 'var(--red)'; }
     return;
   }
 
@@ -5573,7 +5598,7 @@ function doEditProject(i) {
   if (next?.id === 'prow-edit-'+i) { next.remove(); return; }
 
   const deptOpts = (S.config.departments || []).map(d =>
-    `<option value="${d.code}" ${d.code===p.deptCode?'selected':''}>${d.code} ${d.name}</option>`
+    `<option value="${d.code}" ${d.code===p.deptCode?'selected':''}>${d.name}</option>`
   ).join('');
 
   const editTr = document.createElement('tr');
@@ -5675,13 +5700,19 @@ function epRefreshCloseClearBtn(i) {
 
 async function doSaveProject(id, i) {
   const quota    = $(`ep-quota-${i}`)?.value === 'true';
+  const deptCode = $(`ep-dept-${i}`)?.value || '';
+  const msg = $(`ep-msg-${i}`);
+  if (!deptCode) {
+    if (msg) { msg.textContent = '⚠️ 請選擇隸屬部門'; msg.style.color = 'var(--red)'; }
+    return;
+  }
   const prepayEnabled = $(`ep-prepay-enabled-${i}`)?.value === 'true';
   const payload  = {
     action:     'updateProject',
     id,
     name:       $(`ep-name-${i}`)?.value.trim()    || '',
     code:       $(`ep-code-${i}`)?.value.trim()     || '',
-    deptCode:   $(`ep-dept-${i}`)?.value            || '',
+    deptCode,
     quota,
     subsidy:    parseFloat($(`ep-subsidy-${i}`)?.value) || 0,
     effectDate: $(`ep-effect-${i}`)?.value          || '',
@@ -5692,7 +5723,6 @@ async function doSaveProject(id, i) {
       deductPct: parseFloat($(`ep-prepay-deductpct-${i}`)?.value) || 0,
     },
   };
-  const msg = $(`ep-msg-${i}`);
   try {
     const res = await callGAS(payload);
     if (res.success) {
