@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v3</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -648,10 +648,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           </tbody>
         </table>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:10px;padding:0 4px">
-        <strong>費用</strong>：所有 Gemini 辨識費用歸「費用」。
-        <strong>私車補助</strong>：加油/ETC/保養等歸「私車補助」，其餘歸「費用」。
-      </div>
     </div>
   </div>
 
@@ -717,7 +713,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div>
         <label class="lbl">部門代碼 <span style="color:var(--danger)" id="dm-code-required">*</span></label>
         <input class="inp" id="dm-code" placeholder="例：FI">
-        <div id="dm-code-note" style="display:none;font-size:11px;color:var(--muted);margin-top:4px">⚠️ 代碼建立後不可修改（異動會導致員工、專案、費用資料對應失效）</div>
       </div>
       <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="例：財務部"></div>
     </div>
@@ -1180,7 +1175,7 @@ function renderDeptsTable() {
   tbody.innerHTML = _deptsCache.map((d, i) => `<tr>
     <td style="font-weight:600;white-space:nowrap">${esc(d.code)}</td>
     <td style="white-space:nowrap${d.deleted?' ;text-decoration:line-through;color:var(--muted)':''}">${esc(d.name)}</td>
-    <td style="text-align:center">
+    <td style="text-align:center;white-space:nowrap;min-width:80px">
       <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
         background:${d.defaultExpense ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.12)'};
         color:${d.defaultExpense ? '#b91c1c' : '#065f46'}">
@@ -1206,18 +1201,15 @@ function openDeptModal(idx) {
   $('dm-type-other').checked = !d.defaultExpense;
 
   // 部門代碼：新增可輸入，編輯僅顯示（不可異動，避免下游資料斷連）
-  const codeInp  = $('dm-code');
-  const codeNote = $('dm-code-note');
+  const codeInp = $('dm-code');
   if (isNew) {
     codeInp.value    = '';
     codeInp.readOnly = false;
     codeInp.style.background = '';
-    if (codeNote) codeNote.style.display = 'none';
   } else {
     codeInp.value    = d.code || '';
     codeInp.readOnly = true;
     codeInp.style.background = 'var(--surface2)';
-    if (codeNote) codeNote.style.display = 'block';
   }
   openModal('deptModal');
 }
@@ -1294,13 +1286,16 @@ function renderPersonsTable() {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
     return;
   }
+  const allDepts = S._allDepts || _deptsCache || [];
+  const codeToName = code => allDepts.find(d => d.code === code)?.name || code;
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
+    const deptsDisplay = (p.depts||[]).map(codeToName).join(', ');
     return `<tr style="${dim}">
       <td style="font-weight:600;white-space:nowrap">${esc(p.name)}</td>
       <td style="white-space:nowrap">${esc(p.dept)}</td>
       <td style="white-space:nowrap">${esc(p.title)}</td>
-      <td style="white-space:nowrap">${esc((p.depts||[]).join(', '))}</td>
+      <td style="white-space:nowrap">${esc(deptsDisplay)}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.lastLogin)}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>
       <td style="text-align:center;min-width:48px;white-space:nowrap">${p.resigned ? '✅' : ''}</td>
@@ -2207,7 +2202,7 @@ function renderOtherTab(otherReceipts) {
       if (!r.otherAttr) return `<span class="badge bd-muted">未設定歸屬</span>`;
       const proj = (S.config.projects||[]).find(p => p.id === r.otherAttr);
       const dept = findDept(r.otherAttr);
-      const name = proj ? `${proj.id} ${proj.name}` : dept ? `${dept.code} ${dept.name}` : r.otherAttr;
+      const name = proj ? `${proj.id} ${proj.name}` : dept ? dept.name : r.otherAttr;
       return `<span class="badge bd-blue">${name}</span>`;
     })();
 
@@ -3072,8 +3067,11 @@ async function queryFuelMaps(idx, fi) {
     const fp = window._fuelProjList[idx];
     if (fp?.fieldRows?.[fi]) { fp.fieldRows[fi].km = km; fp.fieldRows[fi].end = end; fp.fieldRows[fi].start = start; }
     const isRound = fp?.fieldRows?.[fi]?.isRound !== false;
-    const amt = Math.round(km * (isRound ? 2 : 1) * rate);
-    if (txtEl) txtEl.textContent = `${km} km · $${amt.toLocaleString()}`;
+    const totalKm = parseFloat((km * (isRound ? 2 : 1)).toFixed(1));
+    const amt     = Math.round(totalKm * rate);
+    if (txtEl) txtEl.textContent = isRound
+      ? `${km} km · $${Math.round(km*rate).toLocaleString()} × 2 = ${totalKm} km · $${amt.toLocaleString()}`
+      : `${km} km · $${amt.toLocaleString()}`;
     saveFuelFRs(idx);
     _updateMileRowAmt(idx); // 即時更新「核算 $xxx」badge
     updateFuelDiff();
@@ -3725,6 +3723,15 @@ async function delSelected() {
     done++;
   }
 
+  // 私車補助 tab：同時移除已勾選的外勤紀錄（_att2 被勾選的 fieldRow）
+  if (_ocrTab === 'fuel') {
+    window._fuelProjList.forEach(fp => {
+      if (Array.isArray(fp.fieldRows)) {
+        fp.fieldRows = fp.fieldRows.filter(fr => fr._att2 === false);
+      }
+    });
+  }
+
   if (btn) { btn.disabled = false; btn.innerHTML = '🗑 刪除勾選'; }
   renderOCRResults();
   updateStats();
@@ -3740,9 +3747,19 @@ function toggleAllOcr() {
   const toOn = !master.classList.contains('on');
   master.classList.toggle('on', toOn);
   S.receipts.forEach(r => {
-    r._checked = toOn;  // 同步到 state，不依賴 DOM
+    r._checked = toOn;
     $('rck-' + r.id)?.classList.toggle('on', toOn);
   });
+  // 私車補助 tab：同步外勤 att2 勾選
+  if (_ocrTab === 'fuel') {
+    window._fuelProjList.forEach((fp, idx) => {
+      (fp.fieldRows || []).forEach((fr, fi) => {
+        fr._att2 = toOn;
+        const cb = $(`fpatt2-${idx}-${fi}`);
+        if (cb) cb.checked = toOn;
+      });
+    });
+  }
   updateStats();
 }
 
@@ -4019,8 +4036,10 @@ async function _doExport(skipStash = false) {
       ? fuelReceipts.filter(r => r.projectId === fp.projId)
       : fuelReceipts; // 里程實報/部門/其他：所有油資發票共用
 
-    // 組 liveFieldRows（帶 rate）
-    const fieldRows = (fp.fieldRows || []).map(fr => ({ ...fr, rate: mRate }));
+    // 組 liveFieldRows（帶 rate），只含已勾選附件二的外勤（_att2 !== false）
+    const fieldRows = (fp.fieldRows || [])
+      .filter(fr => fr._att2 !== false)
+      .map(fr => ({ ...fr, rate: mRate }));
 
     // 決定 attribution
     let attribution = 'project', projectId = '', deptId = '', attrLabel = '';
@@ -4047,7 +4066,7 @@ async function _doExport(skipStash = false) {
   // ── 其他：只帶 _checked=true 的（含原停車費，統一歸入其他）──
   const _userDeptCode = S.config?.userDeptCode || S.user?.dept || '其他';
   const otherReceipts = S.receipts
-    .filter(r => r.category !== 'fuel' && r._checked !== false)
+    .filter(r => r.category !== 'fuel')
     .map(r => ({
       ...r,
       supplement: r.supplement || r.notes || '',
