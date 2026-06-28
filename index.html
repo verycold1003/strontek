@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform k</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform j</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -927,9 +927,19 @@ function curMonth() {
 function colorBySign(n) {
   return n >= 0 ? 'var(--green)' : 'var(--red)';
 }
-// 依部門代碼查部門物件
+// 依部門代碼查部門物件（先查可選清單，找不到再查含已刪除的完整清單供顯示用）
 function findDept(code) {
-  return (S.config.departments || []).find(d => d.code === code);
+  if (!code) return null;
+  return (S.config.departments || []).find(d => d.code === code || d.name === code)
+      || (S.config.allDepartments || []).find(d => d.code === code || d.name === code)
+      || null;
+}
+// 部門顯示文字：已刪除部門加上刪除線樣式
+function deptDisplayHTML(d) {
+  if (!d) return '';
+  return d.deleted
+    ? `<span style="text-decoration:line-through;color:var(--muted)">${esc(d.name)}</span>`
+    : esc(d.name);
 }
 // 統一「首次載入回傳空清單時，是否該靜默重試一次」的規則：
 // 僅在「從未成功載入過（無快取）」且「這不是已經重試過的請求」時才重試，
@@ -1168,13 +1178,17 @@ async function loadDeptsAdmin() {
 
 function renderDeptsTable() {
   const tbody = $('sysadmin-depts-tbody'); if (!tbody) return;
-  if (!_deptsCache.length) {
+  // 部門表僅顯示未刪除部門；已刪除部門完全隱藏（不提供從此處復原）
+  const visible = _deptsCache.filter(d => !d.deleted);
+  if (!visible.length) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">尚無部門資料</td></tr>';
     return;
   }
-  tbody.innerHTML = _deptsCache.map((d, i) => `<tr>
+  tbody.innerHTML = visible.map(d => {
+    const i = _deptsCache.indexOf(d);
+    return `<tr>
     <td style="font-weight:600;white-space:nowrap">${esc(d.code)}</td>
-    <td style="white-space:nowrap${d.deleted?' ;text-decoration:line-through;color:var(--muted)':''}">${esc(d.name)}</td>
+    <td style="white-space:nowrap">${esc(d.name)}</td>
     <td style="text-align:center;white-space:nowrap;min-width:80px">
       <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
         background:${d.defaultExpense ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.12)'};
@@ -1184,11 +1198,10 @@ function renderDeptsTable() {
     </td>
     <td style="white-space:nowrap">
       <button class="btn btn-ghost btn-sm" onclick="openDeptModal(${i})" style="margin-right:4px">✏️</button>
-      ${d.deleted
-        ? `<button class="btn btn-ghost btn-sm" onclick="restoreDept(${i})" title="恢復">↩</button>`
-        : `<button class="btn btn-danger btn-sm" onclick="softDeleteDept(${i})" title="刪除">🗑</button>`}
+      <button class="btn btn-danger btn-sm" onclick="softDeleteDept(${i})" title="刪除">🗑</button>
     </td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 function openDeptModal(idx) {
@@ -1298,15 +1311,22 @@ function renderPersonsTable() {
     return;
   }
   const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
-  const codeToName = code => allDepts.find(d => d.code === code)?.name || code;
+  const findDept = code => allDepts.find(d => d.code === code || d.name === code);
+  const deptLabel = code => {
+    const d = findDept(code);
+    if (!d) return esc(code || '');
+    return d.deleted
+      ? `<span style="text-decoration:line-through;color:var(--muted)">${esc(d.name)}</span>`
+      : esc(d.name);
+  };
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
-    const deptsDisplay = (p.depts||[]).map(codeToName).join(', ');
+    const deptsDisplay = (p.depts||[]).map(deptLabel).join(', ');
     return `<tr style="${dim}">
       <td style="font-weight:600;white-space:nowrap">${esc(p.name)}</td>
-      <td style="white-space:nowrap">${esc(p.dept)}</td>
+      <td style="white-space:nowrap">${deptLabel(p.dept)}</td>
       <td style="white-space:nowrap">${esc(p.title)}</td>
-      <td style="white-space:nowrap">${esc(deptsDisplay)}</td>
+      <td style="white-space:nowrap">${deptsDisplay}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.lastLogin)}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>
       <td style="text-align:center;min-width:48px;white-space:nowrap">${p.resigned ? '✅' : ''}</td>
@@ -1326,30 +1346,45 @@ async function openPersonModal(idx) {
   $('pm-title').value      = p.title      || '';
   $('pm-resigned').checked = !!p.resigned;
 
-  // 部門下拉：全部（含已刪除加刪除線）；若尚未載入先強制拉取
+  // 部門下拉：僅列出未刪除部門；若員工目前部門對應到已刪除部門，額外注入該筆 fallback 選項
   if (!_deptsCache.length) await loadDeptsAdmin();
   const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
+  const activeDepts = allDepts.filter(d => !d.deleted);
   const deptSel = $('pm-dept');
-  deptSel.innerHTML = '<option value="">（未設定）</option>' +
-    allDepts.map(d => {
-      const lineStyle = d.deleted ? ' style="text-decoration:line-through;color:var(--muted)"' : '';
+  let deptOptions = '<option value="">（未設定）</option>' +
+    activeDepts.map(d => {
       const sel = (p.dept === d.code || p.dept === d.name) ? ' selected' : '';
-      return `<option value="${esc(d.code)}"${sel}${lineStyle}>${esc(d.name)}${d.deleted?' (已刪除)':''}</option>`;
+      return `<option value="${esc(d.code)}"${sel}>${esc(d.name)}</option>`;
     }).join('');
-  if (p.dept && !allDepts.some(d => d.code === p.dept || d.name === p.dept)) {
-    deptSel.insertAdjacentHTML('beforeend', `<option value="${esc(p.dept)}" selected>${esc(p.dept)}</option>`);
+  // fallback：員工目前部門若對應到已刪除部門（或完全找不到對應），注入一個選項供顯示，不可另選為新值
+  if (p.dept) {
+    const matchedActive = activeDepts.find(d => d.code === p.dept || d.name === p.dept);
+    if (!matchedActive) {
+      const deletedMatch = allDepts.find(d => d.code === p.dept || d.name === p.dept);
+      const label = deletedMatch ? `${esc(deletedMatch.name)} (已刪除)` : esc(p.dept);
+      deptOptions += `<option value="${esc(p.dept)}" selected style="text-decoration:line-through;color:var(--muted)">${label}</option>`;
+    }
   }
+  deptSel.innerHTML = deptOptions;
 
-  // 可顯示部門：checkbox 只顯示名稱
+  // 可顯示部門：僅列出未刪除部門；員工目前已勾選的已刪除部門額外加入（刪除線），供取消勾選
   const pDepts = p.depts || [];
   const deptsBox = $('pm-depts');
-  deptsBox.innerHTML = allDepts.map(d => {
-    const lineStyle = d.deleted ? 'text-decoration:line-through;color:var(--muted);' : '';
+  let deptsHtml = activeDepts.map(d => {
     const checked = pDepts.includes(d.code) || pDepts.includes(d.name);
-    return `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg);${lineStyle}">
+    return `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg)">
       <input type="checkbox" class="pm-depts-chk" value="${esc(d.code)}" ${checked?'checked':''} style="width:14px;height:14px">${esc(d.name)}
     </label>`;
-  }).join('') || '<span style="font-size:12px;color:var(--muted)">尚無部門資料</span>';
+  }).join('');
+  pDepts.forEach(code => {
+    if (activeDepts.some(d => d.code === code || d.name === code)) return; // 已在上面列出
+    const deletedMatch = allDepts.find(d => d.code === code || d.name === code);
+    const label = deletedMatch ? deletedMatch.name : code;
+    deptsHtml += `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg);text-decoration:line-through;color:var(--muted)">
+      <input type="checkbox" class="pm-depts-chk" value="${esc(code)}" checked style="width:14px;height:14px">${esc(label)}
+    </label>`;
+  });
+  deptsBox.innerHTML = deptsHtml || '<span style="font-size:12px;color:var(--muted)">尚無部門資料</span>';
 
   const perms = String(p.permission || '').split(',').map(s=>s.trim());
   $('pm-perm-persons').checked = perms.includes('員工表');
@@ -1363,9 +1398,25 @@ async function savePersonAdmin() {
   if (!name) { toast('❌ 姓名為必填'); return; }
   const rowIndexRaw = $('pm-rowIndex').value;
   const isNew = rowIndexRaw === '';
+
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
+  const isDeletedDept = code => !!code && allDepts.some(d => (d.code === code || d.name === code) && d.deleted);
+
+  // 部門：不允許儲存已刪除部門，必須改選有效部門或（未設定）
+  const deptVal = $('pm-dept').value.trim();
+  if (isDeletedDept(deptVal)) {
+    toast('❌ 此部門已刪除，請重新選擇有效部門');
+    return;
+  }
+
+  // 可顯示部門：自動濾除已刪除部門，不阻擋整體儲存
+  let depts = [...document.querySelectorAll('.pm-depts-chk:checked')].map(c => c.value);
+  const removedCount = depts.filter(isDeletedDept).length;
+  depts = depts.filter(c => !isDeletedDept(c));
+  if (removedCount) toast(`⚠️ 已自動移除 ${removedCount} 個已刪除的可顯示部門`);
+
   const btn = document.querySelector('#personModal .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
-  const depts = [...document.querySelectorAll('.pm-depts-chk:checked')].map(c => c.value);
   const permission = [
     $('pm-perm-persons').checked ? '員工表'   : '',
     $('pm-perm-finance').checked ? '財務專區' : '',
@@ -1375,7 +1426,7 @@ async function savePersonAdmin() {
     rowIndex:     isNew ? null : parseInt(rowIndexRaw, 10),
     name,
     linename:     $('pm-linename').value.trim(), // 隱藏欄位，保留原值
-    dept:         $('pm-dept').value.trim(),
+    dept:         deptVal,
     title:        $('pm-title').value.trim(),
     personLineId: $('pm-lineId').value.trim(),    // 隱藏欄位，保留原值
     depts:        depts.join(','),
@@ -2209,8 +2260,8 @@ function renderOtherTab(otherReceipts) {
       if (!r.otherAttr) return `<span class="badge bd-muted">未設定歸屬</span>`;
       const proj = (S.config.projects||[]).find(p => p.id === r.otherAttr);
       const dept = findDept(r.otherAttr);
-      const name = proj ? `${proj.id} ${proj.name}` : dept ? dept.name : r.otherAttr;
-      return `<span class="badge bd-blue">${name}</span>`;
+      const nameHtml = proj ? esc(`${proj.id} ${proj.name}`) : dept ? deptDisplayHTML(dept) : esc(r.otherAttr);
+      return `<span class="badge bd-blue">${nameHtml}</span>`;
     })();
 
     return `<div id="other-row-${r.id}" style="border-bottom:1px solid var(--border)">
@@ -2653,11 +2704,11 @@ function fuelMileRowHTML(fp, idx) {
   const dept = fp.deptId ? findDept(fp.deptId) : null;
   const isOther = fp.attrType === 'other';
 
-  // 顯示標籤
-  let label = '（未選）';
-  if (proj)    label = `${proj.id} ${proj.name}`;
-  else if (dept) label = dept.name;
-  else if (isOther) label = '其他';
+  // 顯示標籤（labelHtml 用於畫面，isSelected 判斷是否已綁定歸屬，與 dept 是否已刪除無關）
+  let isSelected = false, labelHtml = '（未選）';
+  if (proj)      { isSelected = true; labelHtml = esc(`${proj.id} ${proj.name}`); }
+  else if (dept) { isSelected = true; labelHtml = deptDisplayHTML(dept); }
+  else if (isOther) { isSelected = true; labelHtml = '其他'; }
 
   // 申請金額
   const frList  = fp.fieldRows || [];
@@ -2676,9 +2727,9 @@ function fuelMileRowHTML(fp, idx) {
     style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
       background:var(--surface2);flex-wrap:wrap">
-      ${label !== '（未選）'
+      ${isSelected
         ? `<!-- 已選：顯示 badge，隱藏輸入框 -->
-           <span class="badge bd-blue" style="font-size:13px;padding:5px 10px">${label}</span>
+           <span class="badge bd-blue" style="font-size:13px;padding:5px 10px">${labelHtml}</span>
            <span id="fuel-mile-amt-${idx}" style="font-size:13px">${amtDisplay}</span>`
         : `<!-- 未選：顯示輸入框 -->
            <div style="flex:1;min-width:160px">
