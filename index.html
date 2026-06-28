@@ -1908,7 +1908,7 @@ async function doUpload() {
 function renderUploadedList(files) {
   // card 已預設顯示，直接更新計數與提示
   if (files.length) {
-    $('uploadedCnt').textContent = files.length + ' 個（本次）';
+    $('uploadedCnt').textContent = files.length + ' 筆（本次）';
   }
   // 本次上傳的完整檔名（含月份前綴，與 Drive 一致）
   S._newUploadedNames = new Set(files.map(f => f.name));
@@ -1988,10 +1988,10 @@ function renderDriveFiles() {
   const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
   $('uploadedCnt').textContent =
     sorted.length
-      ? sorted.length + ' 個'
+      ? sorted.length + ' 筆'
       : S._newUploadedNames?.size
-        ? S._newUploadedNames.size + ' 個（本次）'
-        : '0 個';
+        ? S._newUploadedNames.size + ' 筆（本次）'
+        : '0 筆';
 }
 
 function toggleDriveChk(i) {
