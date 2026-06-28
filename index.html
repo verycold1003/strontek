@@ -11,8 +11,11 @@
   --bg:#f4f6fb; --surface:#ffffff; --surface2:#edf0f7;
   --border:#d0d7e8; --border2:#b8c2d8;
   --text:#1a2236; --muted:#5a6a8a;
-  --accent:#2563eb; --accent2:#7c3aed;
-  --gold:#b45309; --green:#15803d; --red:#dc2626; --amber:#d97706;
+  /* ── STRONTEK 品牌色 ── */
+  --brand-orange:#E87722; --brand-blue:#3B5EDB;
+  --accent:var(--brand-orange); --accent2:var(--brand-blue);
+  --gold:#E87722;   /* 統一橘系，移除舊褐色 */
+  --green:#15803d; --red:#dc2626; --amber:#d97706;
   --parking:#c2410c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -28,7 +31,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
-  border-bottom:1px solid var(--border);display:flex;align-items:stretch;z-index:200;
+  border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
   font-size:20px;background:none;border:none;border-right:1px solid var(--border);
@@ -64,14 +67,14 @@ body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 .main-area{overflow-y:auto;padding:24px;background:var(--bg)}
 
 /* Logo */
-.logo{font-family:'Playfair Display',serif;font-size:18px;color:var(--accent);letter-spacing:1px;flex-shrink:0}
-.logo span{color:var(--gold)}
+.logo{font-family:'Noto Sans TC',sans-serif;font-size:17px;font-weight:900;color:var(--brand-orange);letter-spacing:.5px;flex-shrink:0}
+.logo span{color:var(--brand-blue)}
 
 /* Nav */
 .nav-sec{padding:8px 16px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px;font-weight:700}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:15px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
-.nav-item:hover{color:var(--text);background:rgba(37,99,235,.06)}
-.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(37,99,235,.08);font-weight:700}
+.nav-item:hover{color:var(--text);background:rgba(232,119,34,.06)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(232,119,34,.08);font-weight:700}
 .nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
 
 /* Cards */
@@ -82,7 +85,7 @@ body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 /* Forms */
 .lbl{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
 .inp{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:7px;padding:9px 13px;color:var(--text);font-size:15px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,119,34,.15)}
 .inp:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)}
 select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%235a6a8a' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;-webkit-appearance:none;padding-right:28px;background-color:var(--surface)}
 .frow{margin-bottom:12px}
@@ -94,11 +97,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-primary{background:var(--accent);color:white;box-shadow:0 2px 6px rgba(37,99,235,.25)}.btn-primary:hover:not(:disabled){background:#1d4ed8}
+.btn-primary{background:var(--accent);color:white;box-shadow:0 2px 6px rgba(232,119,34,.30)}.btn-primary:hover:not(:disabled){background:#c96415}
 .btn-ghost{background:rgba(0,0,0,.06);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:rgba(0,0,0,.1)}
 .btn-danger{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.2)}
 .btn-green{background:rgba(21,128,61,.1);color:var(--green);border:1px solid rgba(21,128,61,.2)}
-.btn-gold{background:rgba(180,83,9,.1);color:var(--gold);border:1px solid rgba(180,83,9,.2)}
+.btn-gold{background:rgba(232,119,34,.12);color:var(--gold);border:1px solid rgba(232,119,34,.30)}
 .btn-sm{padding:6px 12px;font-size:13px;border-radius:6px}
 .btn-icon{padding:8px;border-radius:7px}
 .btn-full{width:100%}
@@ -110,21 +113,21 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 /* 自訂 filter dropdown */
 .fd-wrap{position:relative}
 .fd-input{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:7px;padding:9px 13px;color:var(--text);font-size:15px;font-family:'Noto Sans TC',sans-serif;outline:none;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.fd-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.fd-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,119,34,.15)}
 .fd-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:500;max-height:240px;overflow-y:auto;display:none}
 .fd-list.open{display:block}
 .fd-item{padding:10px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s}
 .fd-item:last-child{border-bottom:none}
-.fd-item:hover,.fd-item.focused{background:rgba(37,99,235,.08)}
+.fd-item:hover,.fd-item.focused{background:rgba(232,119,34,.08)}
 .fd-item .fd-code{font-weight:800;color:var(--accent);margin-right:6px;font-family:monospace}
 .fd-item .fd-name{color:var(--text)}
-.fd-item .fd-badge{font-size:11px;background:rgba(37,99,235,.1);color:var(--accent);border-radius:3px;padding:1px 5px;margin-left:6px}
+.fd-item .fd-badge{font-size:11px;background:rgba(232,119,34,.12);color:var(--accent);border-radius:3px;padding:1px 5px;margin-left:6px}
 .fd-item .fd-recent{font-size:11px;background:rgba(21,128,61,.1);color:var(--green);border-radius:3px;padding:1px 5px;margin-left:4px}
 .fd-empty{padding:14px;font-size:13px;color:var(--muted);text-align:center}
 
 /* Badges */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
-.bd-blue{background:rgba(37,99,235,.12);color:#1e40af}
+.bd-blue{background:rgba(59,94,219,.12);color:#2340a0}
 .bd-green{background:rgba(21,128,61,.12);color:#14532d}
 .bd-red{background:rgba(220,38,38,.12);color:#991b1b}
 .bd-orange{background:rgba(194,65,12,.12);color:#9a3412}
@@ -136,7 +139,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .tbl th{padding:11px 14px;text-align:left;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border);background:var(--surface2)}
 .tbl td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:rgba(37,99,235,.04)}
+.tbl tr:hover td{background:rgba(232,119,34,.04)}
 
 /* Pages */
 .page{display:none}
@@ -145,8 +148,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .pg-sub{font-size:14px;color:var(--muted);margin-bottom:22px}
 
 /* Drop zone */
-.dz{border:2px dashed var(--border2);border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(79,142,247,.02)}
-.dz:hover,.dz.over{border-color:var(--accent);background:rgba(79,142,247,.06)}
+.dz{border:2px dashed var(--border2);border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(232,119,34,.02)}
+.dz:hover,.dz.over{border-color:var(--accent);background:rgba(232,119,34,.06)}
 
 /* Progress */
 .prog{background:var(--border);border-radius:99px;height:6px;overflow:hidden}
@@ -188,8 +191,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .chkbox.on::after{content:'✓';color:white;font-size:11px;font-weight:700}
 
 /* Maps chip */
-.maps-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:11px;text-decoration:none;padding:3px 8px;border-radius:5px;background:rgba(79,142,247,.1)}
-.maps-link:hover{background:rgba(79,142,247,.2)}
+.maps-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:11px;text-decoration:none;padding:3px 8px;border-radius:5px;background:rgba(232,119,34,.10)}
+.maps-link:hover{background:rgba(232,119,34,.15)}
 .km-result{display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.1);color:var(--green);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-top:6px}
 .map-preview{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);display:none}
 .map-preview.show{display:block}
@@ -241,16 +244,16 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div class="login-wrap" id="loginWrap">
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform</div>
+    <div style="font-family:'Noto Sans TC',sans-serif;font-size:26px;font-weight:900;color:var(--brand-orange);margin-bottom:6px">專案管理</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
     </button>
     <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
     <div id="bindNameSection" style="display:none;margin-top:20px;text-align:left">
-      <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
+      <div style="background:rgba(232,119,34,.07);border:1px solid rgba(232,119,34,.20);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--brand-orange);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.6">
           此 LINE 帳號尚未綁定系統員工資料。<br>請輸入您的<strong style="color:var(--text)">中文姓名</strong>，系統將自動比對並完成綁定。
         </div>
@@ -585,7 +588,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <!-- 登出 -->
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;padding:4px 0">
-      <div id="sa-uAvatar" style="width:40px;height:40px;border-radius:50%;background:var(--accent);
+      <div id="sa-uAvatar" style="width:40px;height:40px;border-radius:50%;background:var(--brand-orange);
         display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;overflow:hidden;flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
         <div id="sa-uName" style="font-size:15px;font-weight:600">—</div>
@@ -2226,7 +2229,7 @@ function renderOCRResults() {
     const isFuel = key === 'fuel';
     return `<button onclick="switchOcrTab('${key}')" style="
       flex:1;padding:10px 8px;border:2px solid ${active?'var(--accent)':'var(--border)'};
-      border-radius:10px;background:${active?'rgba(37,99,235,.08)':'var(--surface)'};
+      border-radius:10px;background:${active?'rgba(232,119,34,.08)':'var(--surface)'};
       cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
       <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
       <div style="font-size:12px;color:#888;margin-top:2px">
@@ -2581,7 +2584,7 @@ function renderFuelTab(fuelReceipts) {
               padding:4px 12px;font-size:13px;font-weight:700">
               ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
               <span onclick="removeFuelProj(${idx})"
-                style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
+                style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
             </span>`;
           }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
@@ -2668,7 +2671,7 @@ function updateFuelDiff() {
         <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
           核定 $${(proj.subsidy||0).toLocaleString()}/月</span>
         <span onclick="removeFuelProj(${idx})"
-          style="cursor:pointer;font-size:14px;color:#7c3aed;margin-left:2px">✕</span>
+          style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
       </span>`;
     }).join('');
   }
@@ -4117,7 +4120,7 @@ function renderPdfResultList(urls, labels) {
       transition:background .15s;
     `;
     row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
-    row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
+    row.onmouseover = () => row.style.background = 'rgba(232,119,34,.06)';
     row.onmouseout  = () => row.style.background = 'var(--surface)';
     wrap.appendChild(row);
   });
