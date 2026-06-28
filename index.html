@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform j</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -447,84 +447,15 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="pg-title" style="margin:0">⚙️ 專案設定</div>
   </div>
   <div style="display:flex;flex-direction:column;gap:18px">
-<!-- 新增專案 card -->
-    <div class="card">
-      <div class="card-hd">➕ 新增專案</div>
-      <div class="card-bd">
-        <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">專案代號</label>
-            <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
-          </div>
-          <div>
-            <label class="lbl">專案名稱</label>
-            <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
-          </div>
-        </div>
-        <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">隸屬部門</label>
-            <select class="inp" id="np-dept">
-              <option value="">— 選擇部門 —</option>
-            </select>
-          </div>
-        </div>
-        <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">採月定額</label>
-            <div class="tgl" style="width:180px" id="tgl-np-quota">
-              <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
-              <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
-            </div>
-            <input type="hidden" id="np-quota" value="true">
-          </div>
-          <div>
-            <label class="lbl">核定補助（月定額時填寫）</label>
-            <input type="number" class="inp" id="np-subsidy" placeholder="0"
-              min="0" step="100">
-          </div>
-        </div>
-        <div class="fg2" style="margin-bottom:14px">
-          <div>
-            <label class="lbl">生效日</label>
-            <input type="date" class="inp" id="np-effect">
-          </div>
-          <div>
-            <label class="lbl">結案日（可空白）</label>
-            <input type="date" class="inp" id="np-close">
-          </div>
-        </div>
-        <!-- 預收款 -->
-        <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px">
-          <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-np-prepay">
-            <button class="tgl-btn on" onclick="setNpPrepay(false)">不啟用</button>
-            <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
-          </div>
-          <input type="hidden" id="np-prepay-enabled" value="false">
-          <div id="np-prepay-fields" style="display:none">
-            <div>
-              <label class="lbl">預收金額</label>
-              <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
-            </div>
-          </div>
-          <!-- item1: 每期扣回比例已移至「進度設定」頁，新增專案時不再重複設定 -->
-          <input type="hidden" id="np-prepay-deductpct" value="10">
-        </div>
-        <!-- 按鈕：left bottom -->
-        <div style="margin-top:4px">
-          <button class="btn btn-primary" id="btnAddProj" onclick="doAddProject()">
-            ＋ 新增
-          </button>
-          <span id="npMsg" style="font-size:14px;margin-left:12px"></span>
-        </div>
-      </div>
-    </div>
-
     <!-- 專案列表 card -->
     <div class="card">
-      <div class="card-hd">
+      <div class="card-hd" style="display:flex;align-items:center;gap:10px">
         📋 專案列表
         <span class="badge bd-muted" id="projListCnt" style="margin-left:6px"></span>
+        <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="projShowClosed" onchange="renderProjectList(S._projListRaw||[])"> 顯示已結案
+        </label>
+        <button class="btn btn-primary btn-sm" onclick="openProjectModal(null)">➕ 新增專案</button>
       </div>
       <div style="overflow-x:auto">
         <table class="tbl">
@@ -734,6 +665,83 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
+<!-- 專案新增/編輯共用 Modal -->
+<div class="modal-wrap" id="projectModal">
+  <div class="modal-box" style="max-width:520px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="projectModal-title">新增專案</div>
+    <input type="hidden" id="np-rowIndex">
+    <input type="hidden" id="np-id">
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">專案代號</label>
+        <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
+      </div>
+      <div>
+        <label class="lbl">專案名稱</label>
+        <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">隸屬部門</label>
+        <select class="inp" id="np-dept">
+          <option value="">— 選擇部門 —</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">採月定額</label>
+        <div class="tgl" style="width:180px" id="tgl-np-quota">
+          <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
+          <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
+        </div>
+        <input type="hidden" id="np-quota" value="true">
+      </div>
+      <div>
+        <label class="lbl">核定補助（月定額時填寫）</label>
+        <input type="number" class="inp" id="np-subsidy" placeholder="0"
+          min="0" step="100">
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">生效日</label>
+        <input type="date" class="inp" id="np-effect">
+      </div>
+      <div>
+        <label class="lbl">結案日（可空白）</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="np-close" style="flex:1" onchange="npRefreshCloseClearBtn()">
+          <button class="btn btn-ghost btn-sm" id="np-close-clear" style="padding:4px 8px;flex-shrink:0;display:none"
+            title="清除結案日" onclick="npClearCloseDate()">✕</button>
+        </div>
+      </div>
+    </div>
+    <!-- 預收款 -->
+    <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px">
+      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-np-prepay">
+        <button class="tgl-btn on" onclick="setNpPrepay(false)">不啟用</button>
+        <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
+      </div>
+      <input type="hidden" id="np-prepay-enabled" value="false">
+      <div id="np-prepay-fields" style="display:none">
+        <div>
+          <label class="lbl">預收金額</label>
+          <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
+        </div>
+      </div>
+      <!-- 每期扣回比例已移至「進度設定」頁，此處不重複設定 -->
+      <input type="hidden" id="np-prepay-deductpct" value="10">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
+      <button class="btn btn-primary" id="btnAddProj" onclick="saveProjectModal()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ SECTION: 財務專區 ═══════════ -->
 <div class="app-section" id="sec-finance" style="overflow-x:auto">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -906,16 +914,47 @@ const S = {
 // ════════════════════════════════════════════════════════════
 // MILEAGE RATE
 // ════════════════════════════════════════════════════════════
-// ── 取得使用者可申請的專案清單 ───────────────────────────────
-// 規則：無 deptCode（跨部門/通用專案）一律可見；有 deptCode 者，
-// 須落在 S.config.departments（後端已聯集「自身部門＋可顯示部門」）之內，
-// 而非僅比對使用者自身 userDeptCode，否則「可顯示部門」設定形同無效。
-function getVisibleProjects() {
+// ── 統一專案清單存取 ─────────────────────────────────────────
+// filter 參數：
+//   'active'         — 可顯示部門、未刪除、未結案（預設；源自 S.config.projects）
+//   'all'            — 可顯示部門、含已結案（源自 S._pjBoard；適用於「既有申請可能歸屬已結案」場景）
+//   'fuel-active'    — active + 排除「本月私車補助已選（月定額）」的專案
+//
+// S.config.projects  由 getConfig 回傳，後端已過濾「生效中且未結案」
+// S._pjBoard         由 getProjects 回傳，含已結案、不做日期截斷，後端已做可見部門過濾
+//
+// 注意：兩個來源都已在後端依 lineId 做可見部門過濾；
+//       前端這裡再對 S.config.projects 做一次部門 guard，
+//       是為了防範 config.departments 更新後 projects 快取未同步的邊緣情況。
+function getProjList(filter) {
+  filter = filter || 'active';
+
+  if (filter === 'all') {
+    // _pjBoard 由 getProjects 取得，後端已做部門過濾，直接用
+    return (S._pjBoard || []);
+  }
+
+  // 'active' / 'fuel-active' 都用 S.config.projects（後端已排除未生效、已結案）
   const visibleDeptCodes = (S.config.departments || []).map(d => String(d.code||'').trim());
-  return (S.config.projects || []).filter(p => {
+  const active = (S.config.projects || []).filter(p => {
     const dc = String(p.deptCode||'').trim();
     return !dc || visibleDeptCodes.indexOf(dc) !== -1;
   });
+
+  if (filter === 'active') return active;
+
+  if (filter === 'fuel-active') {
+    // 排除本月月定額已選的專案
+    const selectedQuotaIds = new Set(
+      (window._fuelProjList || [])
+        .filter(fp => fp.type === 'quota')
+        .map(fp => fp.projId)
+        .filter(Boolean)
+    );
+    return active.filter(p => !selectedQuotaIds.has(p.id));
+  }
+
+  return active;
 }
 
 // ── 共用 helper：統一原本散落各處的重複判斷/查詢 ───────────────
@@ -1293,6 +1332,7 @@ let _personsCache = [];
 
 async function loadPersonsAdmin() {
   if (!String(S.user?.permission || '').includes('員工表')) return;
+  if (!_deptsCache.length) await loadDeptsAdmin(); // 確保已刪除部門快取先就位，避免員工列表顯示原始代碼
   const tbody = $('sysadmin-persons-tbody');
   if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
   const res = await callGAS({ action:'getPersonsAdmin', lineId: S.user?.lineId ?? '' });
@@ -2349,7 +2389,8 @@ function toggleOtherRow(id) {
 
 function initOtherAttrDropdown() {
   _otherSelectedItem = null;
-  const items = getVisibleProjects()
+  // 場景4A：批次歸屬選「未結案」專案（新申請不應指向已結案）
+  const items = getProjList('active')
     .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
     .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name, noCode: true })))
     .concat([{ id: '其他', name: '管理部', noCode: true }]);
@@ -2639,8 +2680,8 @@ function initFuelProjDropdowns() {
     .map(fp => fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : ''))
     .filter(Boolean);
 
-  // 所有生效中專案（依可顯示部門過濾）+ 部門 + 其他（排除已選，item2：避免重複顯示已列在月定額/里程實報的專案）
-  const projItems = getVisibleProjects()
+  // 場景5A：新增私車補助選「未結案」專案（排除已選，item2：避免重複）
+  const projItems = getProjList('active')
     .filter(p => !selectedIds.includes(p.id))
     .map(p => ({ id: p.id, name: p.name, quota: p.quota, type: p.quota ? 'quota' : 'mile' }));
   const deptItems = (S.config.departments || [])
@@ -2849,8 +2890,8 @@ function initFuelMileDropdownAt(idx) {
   const el = $(wrapperId);
   if (!el) return;
 
-  // 所有生效中專案（依可顯示部門過濾，含月定額和里程實報）+ 部門 + 管理部
-  const projItems = getVisibleProjects()
+  // 場景5A：里程實報選「未結案」專案（新申請不應指向已結案）+ 部門 + 管理部
+  const projItems = getProjList('active')
     .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
   const deptItems = (S.config.departments || []).map(d => ({ id: d.code, name: d.name, badge: '部門', noCode: true }));
   const otherItem = [{ id: '其他', name: '管理部', badge: '部門', noCode: true }];
@@ -3220,7 +3261,10 @@ function rcHTML(r) {
   const dupBadge = r._isDuplicate
     ? `<span class="badge bd-red" title="發票號碼重複">⚠️ 重複</span>` : '';
 
-  const sameDeptProjects = getVisibleProjects();
+  // 場景4A/5A：下拉選項只顯示「未結案」專案（新申請不選已結案）
+  const activeProjects  = getProjList('active');
+  // 場景4B/5B：還原已存歸屬時，需包含「已結案」（既有申請可能指向已結案專案）
+  const allProjects     = getProjList('all');
   const recentIds = (S._recentProjIds || []).slice(0, 3);
 
   const isFuel  = r.category === 'fuel';
@@ -3326,7 +3370,10 @@ function rcHTML(r) {
 
   // 初始化 dropdown（setTimeout 等 DOM 插入後）
   const rid = r.id;
-  const _projItems = sameDeptProjects;
+  // 下拉選項：未結案（場景4A/5A，新申請不應指向已結案）
+  const _projItems = activeProjects;
+  // 還原已存值用：含已結案（場景4B/5B，既有申請可能指向已結案專案）
+  const _allProjItems = allProjects;
   const _deptItems = [
     ...(S.config.departments||[]).map(d=>({id:d.code, name:d.name})),
     {id:'其他', name:'其他'},
@@ -3338,7 +3385,8 @@ function rcHTML(r) {
         onFuelProjSelect(rid, proj);
       }, _recentIds);
       if (r.projectId) {
-        const selProj = S.config.projects.find(p=>p.id===r.projectId);
+        // 場景5B：還原時在「含已結案」清單中查找
+        const selProj = _allProjItems.find(p=>p.id===r.projectId);
         const inp = document.querySelector(`#fd-fuelproj-${rid} .fd-input`);
         if (inp && selProj) inp.value = selProj.id + ' ' + selProj.name;
       }
@@ -3361,7 +3409,8 @@ function rcHTML(r) {
       if (r.otherAttr) {
         const inp = document.querySelector(`#fd-otattr-${rid} .fd-input`);
         if (inp) {
-          const found = [..._projItems, ..._deptItems].find(p=>p.id===r.otherAttr);
+          // 場景4B：還原時在「含已結案」清單中查找
+          const found = [..._allProjItems, ..._deptItems].find(p=>p.id===r.otherAttr);
           inp.value = found ? r.otherAttr + ' ' + found.name : r.otherAttr;
         }
       }
@@ -4350,8 +4399,56 @@ function setNpPrepay(enabled) {
   if (fields) fields.style.display = enabled ? 'block' : 'none';
 }
 
-// 新增專案
-async function doAddProject() {
+// 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
+function openProjectModal(i) {
+  populateNpDept();
+  const isNew = (i === null || i === undefined);
+  const p = isNew ? null : (S._projList || [])[i];
+  if (!isNew && !p) return;
+
+  $('projectModal-title').textContent = isNew ? '➕ 新增專案' : '✏️ 編輯專案';
+  $('np-rowIndex').value = isNew ? '' : i;
+  $('np-id').value       = isNew ? '' : p.id;
+  $('np-code').value     = isNew ? '' : (p.code || '');
+  $('np-code').disabled  = false;
+  $('np-name').value     = isNew ? '' : (p.name || '');
+  $('np-dept').value     = isNew ? '' : (p.deptCode || '');
+  $('np-effect').value   = isNew ? '' : (p.effectDate || '');
+  $('np-close').value    = isNew ? '' : (p.closeDate || '');
+  npRefreshCloseClearBtn();
+
+  const quota = isNew ? true : !!p.quota;
+  setNpQuota(quota);
+  $('np-subsidy').value = (!isNew && quota && p.subsidy) ? p.subsidy : '';
+
+  const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
+  setNpPrepay(!!prepay.enabled);
+  $('np-prepay-amount').value     = prepay.amount || '';
+  $('np-prepay-deductpct').value  = prepay.deductPct || 10;
+
+  $('npMsg').textContent = '';
+  const btn = $('btnAddProj');
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
+  openModal('projectModal');
+}
+
+// 結案日清除按鈕（比照員工/財務專區樣式）
+function npClearCloseDate() {
+  const el = $('np-close'); if (!el) return;
+  el.value = '';
+  npRefreshCloseClearBtn();
+}
+function npRefreshCloseClearBtn() {
+  const el = $('np-close'), btn = $('np-close-clear');
+  if (!el || !btn) return;
+  btn.style.display = el.value ? 'inline-flex' : 'none';
+}
+
+// 儲存（新增或編輯，依 np-rowIndex 是否為空判斷）
+async function saveProjectModal() {
+  const rowIndexRaw = $('np-rowIndex').value;
+  const isNew    = rowIndexRaw === '';
+  const id       = $('np-id').value;
   const code     = $('np-code')?.value.trim();
   const name     = $('np-name')?.value.trim();
   const deptCode = $('np-dept')?.value;
@@ -4374,52 +4471,46 @@ async function doAddProject() {
   }
 
   const btn = $('btnAddProj');
-  if (btn) { btn.disabled = true; btn.textContent = '新增中...'; }
+  if (btn) { btn.disabled = true; btn.textContent = isNew ? '新增中...' : '儲存中...'; }
   if (msg) msg.textContent = '';
 
+  const payload = isNew
+    ? {
+        action: 'addProject',
+        id: code, code, name, quota, subsidy,
+        effectDate: effect, closeDate: close || '',
+        deptCode: deptCode || '',
+        client: [], vendors: [],
+        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
+        addedBy: S.user?.name || '',
+      }
+    : {
+        action: 'updateProject',
+        id, code, name, deptCode, quota, subsidy,
+        effectDate: effect, closeDate: close || '',
+        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
+      };
+
   try {
-    const res = await callGAS({
-      action: 'addProject',
-      id: code, code, name, quota, subsidy,
-      effectDate: effect,
-      closeDate:  close || '',
-      deptCode:   deptCode || '',
-      client:  [],
-      vendors: [],
-      prepay:  { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
-      addedBy:    S.user?.name || '',
-    });
+    const res = await callGAS(payload);
     if (res.success) {
-      if (msg) { msg.textContent = '✅ 已新增！'; msg.style.color = 'var(--green)'; }
-      // 清空表單
-      ['np-code','np-name','np-subsidy','np-effect','np-close','np-prepay-amount'].forEach(id => {
-        const el = $(id);
-        if (el) el.value = '';
-      });
-      $('np-prepay-deductpct').value = '10';
-      $('np-dept').value = '';
-      setNpQuota(true);
-      setNpPrepay(false);
-      setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
-      // 重新載入列表
+      toast(isNew ? '✅ 已新增！' : '✅ 已儲存');
+      closeModal('projectModal');
       loadProjectList(true);
-      // 更新 config 中的 projects
       loadConfig();
-      // 同步刷新專案看板快取（供「專案」頁與「進度設定」頁選擇用）
       loadProjectsForBoard();
     } else {
-      if (msg) { msg.textContent = '❌ ' + (res.error || '新增失敗'); msg.style.color = 'var(--red)'; }
+      if (msg) { msg.textContent = '❌ ' + (res.error || (isNew ? '新增失敗' : '儲存失敗')); msg.style.color = 'var(--red)'; }
     }
   } catch(e) {
     if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = '＋ 新增'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
 }
 
 // 載入專案列表
 async function loadProjectList(showToast, _isRetry) {
   const tbody   = $('projListTbl');
-  const cntEl   = $('projListCnt');
   if (tbody) tbody.innerHTML = loadingRow(8);
   // 規則見 callGAS 定義處的說明
   const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
@@ -4435,16 +4526,24 @@ async function loadProjectList(showToast, _isRetry) {
     return loadProjectList(showToast, true);
   }
   const rows = res.rows || [];
-  if (cntEl) cntEl.textContent = rows.length + ' 筆';
+  S._projListRaw = rows; // 全量資料（含已結案），供「顯示已結案」勾選框切換用
   renderProjectList(rows);
   flashNavSyncDone('project');
   if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
 // 渲染專案列表（newest first，已由 GAS 排序）
-function renderProjectList(rows) {
+// 預設僅顯示「未結案」（!closeDate || closeDate >= today），勾選「顯示已結案」才顯示全部
+function renderProjectList(rawRows) {
   const tbody = $('projListTbl');
+  const cntEl = $('projListCnt');
   if (!tbody) return;
+  const showClosed = $('projShowClosed')?.checked;
+  const today = todayStr();
+  const rows = showClosed
+    ? rawRows
+    : rawRows.filter(p => !p.closeDate || p.closeDate >= today);
+  if (cntEl) cntEl.textContent = rows.length + ' 筆' + (showClosed ? '' : `（共 ${rawRows.length} 筆，已隱藏已結案）`);
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
@@ -4468,7 +4567,7 @@ function renderProjectList(rows) {
       <td style="font-size:13px;color:var(--muted)">${p.closeDate||'—'}</td>
       <td>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" onclick="doEditProject(${i})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="openProjectModal(${i})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="doDeleteProject('${p.id}','${esc(p.name)}')">🗑</button>
         </div>
       </td>
@@ -5416,7 +5515,8 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
 function pgPopulateProjectSelect() {
   const wrap = $('pg-project-fd-wrap');
   if (!wrap) return;
-  const rows = S._pjBoard || [];
+  // 進度設定：顯示未刪除、未結案的可見部門專案（需求3）
+  const rows = getProjList('active');
   if (!wrap.querySelector('.fd-wrap')) {
     wrap.innerHTML = fdHTML('pg-project-fd', 'pg-project-fd-inp', '輸入專案代號或名稱搜尋');
   }
@@ -5634,158 +5734,6 @@ async function pgSave() {
     }
   } catch(e) {
     if (msg) { msg.textContent='❌ '+e.message; msg.style.color='var(--red)'; }
-  }
-}
-
-// 編輯：inline 展開編輯列
-function doEditProject(i) {
-  const p   = (S._projList || [])[i];
-  if (!p) return;
-  const tr  = $('prow-'+i);
-  if (!tr) return;
-
-  // 若已是編輯模式，關閉
-  const next = tr.nextElementSibling;
-  if (next?.id === 'prow-edit-'+i) { next.remove(); return; }
-
-  const deptOpts = (S.config.departments || []).map(d =>
-    `<option value="${d.code}" ${d.code===p.deptCode?'selected':''}>${d.name}</option>`
-  ).join('');
-
-  const editTr = document.createElement('tr');
-  editTr.id = 'prow-edit-'+i;
-  editTr.style.background = 'rgba(37,99,235,.04)';
-  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-  editTr.innerHTML = `<td colspan="8" style="padding:14px 16px">
-    <div class="fg2" style="margin-bottom:10px">
-      <div><label class="lbl">名稱</label>
-        <input class="inp" id="ep-name-${i}" value="${esc(p.name)}"></div>
-      <div><label class="lbl">專案代號</label>
-        <input class="inp" id="ep-code-${i}" value="${esc(p.code||'')}"></div>
-    </div>
-    <div class="fg4" style="margin-bottom:10px">
-      <div><label class="lbl">隸屬部門</label>
-        <select class="inp" id="ep-dept-${i}">
-          <option value="">—</option>${deptOpts}
-        </select></div>
-      <div><label class="lbl">類型</label>
-        <div class="tgl" id="tgl-ep-quota-${i}">
-          <button class="tgl-btn ${p.quota?'on':''}"  onclick="setEpQuota(${i},true)">月定額</button>
-          <button class="tgl-btn ${p.quota?'':'on'}" onclick="setEpQuota(${i},false)">里程實報</button>
-        </div>
-        <input type="hidden" id="ep-quota-${i}" value="${p.quota?'true':'false'}"></div>
-      <div><label class="lbl">核定補助</label>
-        <input type="number" class="inp" id="ep-subsidy-${i}" value="${p.subsidy||''}"
-          ${p.quota?'':'disabled'}></div>
-    </div>
-    <div class="fg2" style="margin-bottom:10px">
-      <div><label class="lbl">生效日</label>
-        <input type="date" class="inp" id="ep-effect-${i}" value="${p.effectDate||''}"></div>
-      <div><label class="lbl">結案日</label>
-        <div style="display:flex;align-items:center;gap:4px">
-          <input type="date" class="inp" id="ep-close-${i}" value="${p.closeDate||''}" style="flex:1"
-            onchange="epRefreshCloseClearBtn(${i})">
-          <button class="btn btn-ghost btn-sm" id="ep-close-clear-${i}" style="padding:4px 8px;flex-shrink:0;
-            display:${p.closeDate?'inline-flex':'none'}" title="清除結案日" onclick="epClearCloseDate(${i})">✕</button>
-        </div></div>
-    </div>
-    <div style="margin-bottom:10px;padding:12px;border:1px solid var(--border);border-radius:10px">
-      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-ep-prepay-${i}">
-        <button class="tgl-btn ${prepay.enabled?'':'on'}" onclick="setEpPrepay(${i},false)">不啟用</button>
-        <button class="tgl-btn ${prepay.enabled?'on':''}" onclick="setEpPrepay(${i},true)">預收款</button>
-      </div>
-      <input type="hidden" id="ep-prepay-enabled-${i}" value="${prepay.enabled?'true':'false'}">
-      <div id="ep-prepay-fields-${i}" style="${prepay.enabled?'':'display:none'}">
-        <div><label class="lbl">預收金額</label>
-          <input type="number" class="inp" id="ep-prepay-amount-${i}" value="${prepay.amount||0}" min="0" step="1000"></div>
-      </div>
-      <!-- item6: 每期扣回比例已移至「進度設定」頁（pg-deduct-pct），此處不再重複設定，
-           避免與進度設定頁的扣抵方式互相脫鉤；deductPct 仍隨專案物件一併儲存讀取 -->
-      <input type="hidden" id="ep-prepay-deductpct-${i}" value="${prepay.deductPct||10}">
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-primary btn-sm" onclick="doSaveProject('${p.id}',${i})">💾 儲存</button>
-      <button class="btn btn-ghost btn-sm" onclick="$('prow-edit-${i}')?.remove()">取消</button>
-      <span id="ep-msg-${i}" style="font-size:13px;margin-left:6px"></span>
-    </div>
-  </td>`;
-  tr.after(editTr);
-}
-
-function setEpPrepay(i, enabled) {
-  $(`ep-prepay-enabled-${i}`).value = enabled ? 'true' : 'false';
-  const tgl = $(`tgl-ep-prepay-${i}`);
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
-    b.classList.toggle('on', j === (enabled ? 1 : 0)));
-  const fields = $(`ep-prepay-fields-${i}`);
-  if (fields) fields.style.display = enabled ? 'block' : 'none';
-}
-
-function setEpQuota(i, isQuota) {
-  $(`ep-quota-${i}`).value = isQuota ? 'true' : 'false';
-  const tgl = $(`tgl-ep-quota-${i}`);
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, j) =>
-    b.classList.toggle('on', j === (isQuota ? 0 : 1)));
-  const sub = $(`ep-subsidy-${i}`);
-  if (sub) { sub.disabled = !isQuota; if (!isQuota) sub.value = ''; }
-}
-
-// item6: 結案日 ✕ 清除按鈕——比照財務專區收票/付款日期樣式
-function epClearCloseDate(i) {
-  const el = $(`ep-close-${i}`);
-  if (!el) return;
-  el.value = '';
-  el.dispatchEvent(new Event('input', { bubbles: true }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
-  el.blur();
-  const btn = $(`ep-close-clear-${i}`);
-  if (btn) btn.style.display = 'none';
-}
-
-function epRefreshCloseClearBtn(i) {
-  const el  = $(`ep-close-${i}`);
-  const btn = $(`ep-close-clear-${i}`);
-  if (!el || !btn) return;
-  btn.style.display = el.value ? 'inline-flex' : 'none';
-}
-
-async function doSaveProject(id, i) {
-  const quota    = $(`ep-quota-${i}`)?.value === 'true';
-  const deptCode = $(`ep-dept-${i}`)?.value || '';
-  const msg = $(`ep-msg-${i}`);
-  if (!deptCode) {
-    if (msg) { msg.textContent = '⚠️ 請選擇隸屬部門'; msg.style.color = 'var(--red)'; }
-    return;
-  }
-  const prepayEnabled = $(`ep-prepay-enabled-${i}`)?.value === 'true';
-  const payload  = {
-    action:     'updateProject',
-    id,
-    name:       $(`ep-name-${i}`)?.value.trim()    || '',
-    code:       $(`ep-code-${i}`)?.value.trim()     || '',
-    deptCode,
-    quota,
-    subsidy:    parseFloat($(`ep-subsidy-${i}`)?.value) || 0,
-    effectDate: $(`ep-effect-${i}`)?.value          || '',
-    closeDate:  $(`ep-close-${i}`)?.value           || '',
-    prepay: {
-      enabled:   prepayEnabled,
-      amount:    parseFloat($(`ep-prepay-amount-${i}`)?.value) || 0,
-      deductPct: parseFloat($(`ep-prepay-deductpct-${i}`)?.value) || 0,
-    },
-  };
-  try {
-    const res = await callGAS(payload);
-    if (res.success) {
-      if (msg) { msg.textContent = '✅ 已儲存'; msg.style.color='var(--green)'; }
-      setTimeout(() => loadProjectList(false), 800);
-      loadConfig();
-      loadProjectsForBoard();
-    } else {
-      if (msg) { msg.textContent = '❌ ' + res.error; msg.style.color='var(--red)'; }
-    }
-  } catch(e) {
-    if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color='var(--red)'; }
   }
 }
 
