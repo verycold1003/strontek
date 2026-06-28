@@ -245,7 +245,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <div class="login-box">
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Noto Sans TC',sans-serif;font-size:26px;font-weight:900;color:var(--brand-orange);margin-bottom:6px">專案管理</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform v</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform k</div>
     <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
       使用 LINE 帳號登入
@@ -912,6 +912,18 @@ const S = {
   driveFiles: [],
   ocrQueue: [],
   receipts: [],
+  // 懶載入 flag：各 section 是否已完成首次載入
+  // 重置時機：手動 🔄、月份切換（expense 相關）、登出
+  _loaded: {
+    driveFiles:    false,  // 費用 > 上傳憑證
+    exportHistory: false,  // 費用 > 匯出紀錄
+    todo:          false,  // 待辦
+    project:       false,  // 專案頁
+    projSettings:  false,  // 專案設定
+    schedule:      false,  // 進度管理
+    finance:       false,  // 財務專區
+    sysadmin:      false,  // 系統管理
+  },
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1124,8 +1136,11 @@ function finishLogin(person) {
   // 並讓 loadProjectsForBoard 的請求略微錯開 loadConfig，
   // 避免兩個請求同時打到同一個 GAS Web App 部署造成互相延遲，
   // 偶發導致其中一個請求逾時/被截斷而誤判為「成功但無資料」
+  // 先設 flag 再切頁，避免 switchSection 內部懶載入 guard 重複觸發
+  S._loaded.project = true;
   switchSection('project'); // 登入後預設顯示「專案」分頁
-  loadConfig(); // loadConfig 結尾會呼叫 loadDriveFiles
+  loadConfig();             // 僅在費用頁才順帶載入 Drive 檔案
+  loadProjectsForBoard();   // 登入後立即取得專案資料（錯開 loadConfig）
 }
 
 function showBindNameUI() {
@@ -1175,6 +1190,10 @@ function renderUserBar() {
 
 function logout() {
   S.user = null;
+  // 重置所有懶載入 flag，確保下次登入重新拉取資料
+  Object.keys(S._loaded).forEach(k => { S._loaded[k] = false; });
+  S._ocrPageLoadedOnce = false;
+  S._pjBoard = null;
   $('appShell').style.display  = 'none';
   $('loginWrap').style.display = 'flex';
 }
@@ -1306,13 +1325,6 @@ async function softDeleteDept(idx) {
   renderDeptsTable(); toast('✅ 已刪除');
 }
 
-async function restoreDept(idx) {
-  const d = _deptsCache[idx]; if (!d) return;
-  const res = await callGAS({ action:'deleteDeptAdmin', lineId: S.user?.lineId ?? '', code: d.code, deleted: false });
-  if (!res.success) { toast('❌ ' + (res.error||'恢復失敗')); return; }
-  _deptsCache[idx].deleted = false;
-  renderDeptsTable(); toast('✅ 已恢復');
-}
 
 async function saveDeptExpenseType(idx, type) {
   const d = _deptsCache[idx]; if (!d) return;
@@ -1329,6 +1341,8 @@ function togglePersonsSection() {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (tog) tog.textContent = open ? '▶' : '▼';
+  // 懶載入：展開時才發請求（收合不重複載）
+  if (!open) loadPersonsAdmin();
 }
 
 let _personsCache = [];
@@ -1511,13 +1525,16 @@ const currentSyncScope = () =>
 function updateUnifiedSyncUI() {}
 
 function doUnifiedReload() {
+  // 手動 🔄：強制重載，清除對應 section 的懶載入 flag
+  const resetAndRun = (flags, fn) => { flags.forEach(f => { S._loaded[f] = false; }); fn(); };
   const actions = {
-    expense:        doReloadAll,
-    todo:           loadTasks,
-    project:        loadProjectsForBoard,
-    'proj-settings':() => { loadConfig(); loadProjectList(true); },
-    schedule:       () => loadProjectsForBoard().then(pgPopulateProjectSelect),
-    finance:        loadFinance,
+    expense:         () => doReloadAll(),
+    todo:            () => resetAndRun(['todo'],         loadTasks),
+    project:         () => resetAndRun(['project'],      loadProjectsForBoard),
+    'proj-settings': () => resetAndRun(['projSettings'], () => { loadConfig(); loadProjectList(true); }),
+    schedule:        () => { S._loaded.schedule = false; loadProjectsForBoard().then(pgPopulateProjectSelect); },
+    finance:         () => resetAndRun(['finance'],      loadFinance),
+    sysadmin:        () => { S._loaded.sysadmin = false; renderSysAdminUserBar(); loadPersonsAdmin(); },
   };
   (actions[_currentSection] || loadConfig)();
 }
@@ -1542,8 +1559,11 @@ async function loadConfig() {
   }
   if (S.user) renderUserBar();
   populateSelects();
-  loadDriveFiles();
-  loadExportHistory(false);
+  // 懶載入：只在費用相關頁面才觸發 Drive 檔案與匯出紀錄的載入
+  if (_currentSection === 'expense') {
+    if (_currentExpensePage === 'upload') loadDriveFiles();
+    else if (_currentExpensePage === 'history') loadExportHistory(false);
+  }
   if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
@@ -1552,21 +1572,44 @@ function populateSelects() {
 }
 
 function onGlobalMonthChange(val) {
-  loadDriveFiles();
-  loadExportHistory(false);
+  // 月份切換：重置費用相關懶載入 flag，確保切回時重新拉取新月份資料
+  S._loaded.driveFiles    = false;
+  S._loaded.exportHistory = false;
   S.receipts = [];
   window._fuelProjList = [];
   S._ocrPageLoadedOnce = false;
-  if (_currentExpensePage === 'ocr') { S._ocrPageLoadedOnce = true; reloadOcrWithFuel(); }
-  else renderOCRResults();
+  // 立即觸發目前所在費用子頁的重載
+  if (_currentSection === 'expense') {
+    if (_currentExpensePage === 'upload') {
+      S._loaded.driveFiles = true;
+      loadDriveFiles();
+    } else if (_currentExpensePage === 'ocr') {
+      S._ocrPageLoadedOnce = true;
+      reloadOcrWithFuel();
+    } else if (_currentExpensePage === 'history') {
+      S._loaded.exportHistory = true;
+      loadExportHistory(false);
+    } else {
+      renderOCRResults();
+    }
+  }
 }
 
 function doReloadAll() {
   const page = _currentExpensePage || 'upload';
-  if (page === 'upload') { loadConfig(); }
-  else if (page === 'ocr') { reloadOcrWithFuel(); }
-  else if (page === 'history') { loadExportHistory(true); }
-  else { loadConfig(); }
+  if (page === 'upload') {
+    S._loaded.driveFiles = true; // 標記已載入，loadConfig 不會重複觸發
+    loadConfig();
+    loadDriveFiles();
+  } else if (page === 'ocr') {
+    S._ocrPageLoadedOnce = true;
+    reloadOcrWithFuel();
+  } else if (page === 'history') {
+    S._loaded.exportHistory = true;
+    loadExportHistory(true);
+  } else {
+    loadConfig();
+  }
 }
 
 async function reloadOcrWithFuel() {
@@ -4279,23 +4322,64 @@ function switchSection(name) {
   closeNavMenu();
   updateUnifiedSyncUI();
 
-  if (name==='todo')    loadTasks();
-  if (name==='project') loadProjectsForBoard();
-  if (name==='proj-settings') {
-    populateNpDept();
-    loadProjectList(false);
+  // 懶載入：各 section 首次進入才發請求，已載入則直接顯示快取
+  if (name === 'expense') {
+    // 費用頁：依目前子頁觸發懶載入（第一次進入或月份切換後 flag 已重置）
+    if (_currentExpensePage === 'upload' && !S._loaded.driveFiles) {
+      S._loaded.driveFiles = true;
+      loadDriveFiles();
+    } else if (_currentExpensePage === 'ocr' && !S._ocrPageLoadedOnce) {
+      S._ocrPageLoadedOnce = true;
+      reloadOcrWithFuel();
+    } else if (_currentExpensePage === 'history' && !S._loaded.exportHistory) {
+      S._loaded.exportHistory = true;
+      loadExportHistory(false);
+    }
+  }
+  if (name === 'todo') {
+    if (!S._loaded.todo) {
+      S._loaded.todo = true;
+      loadTasks();
+    }
+  }
+  if (name === 'project') {
+    if (!S._loaded.project) {
+      S._loaded.project = true;
+      loadProjectsForBoard();
+    }
+  }
+  if (name === 'proj-settings') {
     renderSettingsUserBar();
+    populateNpDept();
+    if (!S._loaded.projSettings) {
+      S._loaded.projSettings = true;
+      loadProjectList(false);
+    }
   }
-  if (name==='schedule') {
+  if (name === 'schedule') {
     pgPopulateDeductMethods();
-    loadProjectsForBoard().then(pgPopulateProjectSelect);
+    // _pjBoard 已有資料時直接填充 select，不重新 fetch
+    if (S._pjBoard?.length) {
+      pgPopulateProjectSelect();
+    } else if (!S._loaded.schedule) {
+      S._loaded.schedule = true;
+      loadProjectsForBoard().then(pgPopulateProjectSelect);
+    }
   }
-  if (name==='finance') {
-    loadFinance();
+  if (name === 'finance') {
+    if (!S._loaded.finance) {
+      S._loaded.finance = true;
+      loadFinance();
+    }
   }
-  if (name==='sysadmin') {
+  if (name === 'sysadmin') {
+    // sysadmin 進入只渲染 userbar；員工表與部門表各自在 accordion 展開時懶載入
     renderSysAdminUserBar();
-    loadPersonsAdmin();
+    if (!S._loaded.sysadmin) {
+      S._loaded.sysadmin = true;
+      // 若員工表 accordion 已展開，立即載入
+      if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
+    }
   }
 }
 
@@ -4323,10 +4407,17 @@ function isProjectRelated(name) {
   ['upload','ocr','history'].forEach(p=> {
     $('sec-expense-'+p)?.classList.toggle('active', p===page);
   });
-  if (page==='history') loadExportHistory(false);
-  // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
-  // 避免使用者誤以為底下空白（之前需手動按 🔄 才會出現「申請專案」卡片）
-  if (page==='ocr' && !S._ocrPageLoadedOnce) {
+  // 懶載入：各費用子頁首次進入才發請求
+  if (page === 'upload' && !S._loaded.driveFiles) {
+    S._loaded.driveFiles = true;
+    loadDriveFiles();
+  }
+  if (page === 'history' && !S._loaded.exportHistory) {
+    S._loaded.exportHistory = true;
+    loadExportHistory(false);
+  }
+  // OCR 辨識：沿用既有的 _ocrPageLoadedOnce flag（語意一致，保留）
+  if (page === 'ocr' && !S._ocrPageLoadedOnce) {
     S._ocrPageLoadedOnce = true;
     reloadOcrWithFuel();
   }
