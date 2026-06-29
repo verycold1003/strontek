@@ -631,7 +631,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <!-- ═══════════ SECTION: 系統管理 ═══════════ -->
 <div class="app-section" id="sec-sysadmin" style="overflow-x:auto">
-  <div class="pg-title">🛠 系統管理</div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
     <div class="pg-title" style="margin:0">🛠 系統管理</div>
   </div>
@@ -4498,150 +4497,17 @@ async function saveProjectModal() {
   if(btn){btn.disabled=false;btn.innerHTML='💾 儲存';}
 }
 
-// 填充部門下拉（從 S.config.departments）
-function populateNpDept() {
-  const sel = $('np-dept');
-  if (!sel) return;
+// 填充部門下拉（sel：目標 select 元素，預設找 np-dept；供 projectModal 傳入 pm-proj-dept）
+function populateNpDept(sel) {
+  const el = sel || $('np-dept');
+  if (!el) return;
   const ad = activeDepts();
-  sel.innerHTML = '<option value="">— 選擇部門 —</option>' +
+  el.innerHTML = '<option value="">— 選擇部門 —</option>' +
     ad.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
 
-// 月定額 toggle
-function setNpQuota(isQuota) {
-  $('np-quota').value = isQuota ? 'true' : 'false';
-  const tgl = $('tgl-np-quota');
-  if (tgl) {
-    tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
-      b.classList.toggle('on', i === (isQuota ? 0 : 1)));
-  }
-  // 里程實報時核定補助 disable
-  const sub = $('np-subsidy');
-  if (sub) {
-    sub.disabled = !isQuota;
-    if (!isQuota) sub.value = '';
-  }
-}
-
-// 預收款 toggle
-function setNpPrepay(enabled) {
-  $('np-prepay-enabled').value = enabled ? 'true' : 'false';
-  const tgl = $('tgl-np-prepay');
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
-    b.classList.toggle('on', i === (enabled ? 1 : 0)));
-  const fields = $('np-prepay-fields');
-  if (fields) fields.style.display = enabled ? 'block' : 'none';
-}
 
 // 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
-function openProjectModal(i) {
-  populateNpDept();
-  const isNew = (i === null || i === undefined);
-  const p = isNew ? null : (S._projList || [])[i];
-  if (!isNew && !p) return;
-
-  $('projectModal-title').textContent = isNew ? '➕ 新增專案' : '✏️ 編輯專案';
-  $('np-rowIndex').value = isNew ? '' : i;
-  $('np-id').value       = isNew ? '' : p.id;
-  $('np-code').value     = isNew ? '' : (p.code || '');
-  $('np-code').disabled  = false;
-  $('np-name').value     = isNew ? '' : (p.name || '');
-  $('np-dept').value     = isNew ? '' : (p.deptCode || '');
-  $('np-effect').value   = isNew ? '' : (p.effectDate || '');
-  $('np-close').value    = isNew ? '' : (p.closeDate || '');
-  npRefreshCloseClearBtn();
-
-  const quota = isNew ? true : !!p.quota;
-  setNpQuota(quota);
-  $('np-subsidy').value = (!isNew && quota && p.subsidy) ? p.subsidy : '';
-
-  const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
-  setNpPrepay(!!prepay.enabled);
-  $('np-prepay-amount').value     = prepay.amount || '';
-  $('np-prepay-deductpct').value  = prepay.deductPct || 10;
-
-  $('npMsg').textContent = '';
-  const btn = $('btnAddProj');
-  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
-  openModal('projectModal');
-}
-
-// 結案日清除按鈕（比照員工/財務專區樣式）
-function npClearCloseDate() {
-  const el = $('np-close'); if (!el) return;
-  el.value = '';
-  npRefreshCloseClearBtn();
-}
-function npRefreshCloseClearBtn() {
-  const el = $('np-close'), btn = $('np-close-clear');
-  if (!el || !btn) return;
-  btn.style.display = el.value ? 'inline-flex' : 'none';
-}
-
-// 儲存（新增或編輯，依 np-rowIndex 是否為空判斷）
-async function saveProjectModal() {
-  const rowIndexRaw = $('np-rowIndex').value;
-  const isNew    = rowIndexRaw === '';
-  const id       = $('np-id').value;
-  const code     = $('np-code')?.value.trim();
-  const name     = $('np-name')?.value.trim();
-  const deptCode = $('np-dept')?.value;
-  const quota    = $('np-quota')?.value === 'true';
-  const subsidy  = parseFloat($('np-subsidy')?.value) || 0;
-  const effect   = $('np-effect')?.value;
-  const close    = $('np-close')?.value;
-  const prepayEnabled = $('np-prepay-enabled')?.value === 'true';
-  const prepayAmount  = parseFloat($('np-prepay-amount')?.value) || 0;
-  const prepayPct     = parseFloat($('np-prepay-deductpct')?.value) || 0;
-  const msg      = $('npMsg');
-
-  if (!code || !name || !effect) {
-    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
-    return;
-  }
-  if (!deptCode) {
-    if (msg) { msg.textContent = '⚠️ 請選擇隸屬部門'; msg.style.color = 'var(--red)'; }
-    return;
-  }
-
-  const btn = $('btnAddProj');
-  if (btn) { btn.disabled = true; btn.textContent = isNew ? '新增中...' : '儲存中...'; }
-  if (msg) msg.textContent = '';
-
-  const payload = isNew
-    ? {
-        action: 'addProject',
-        id: code, code, name, quota, subsidy,
-        effectDate: effect, closeDate: close || '',
-        deptCode: deptCode || '',
-        client: [], vendors: [],
-        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
-        addedBy: S.user?.name || '',
-      }
-    : {
-        action: 'updateProject',
-        id, code, name, deptCode, quota, subsidy,
-        effectDate: effect, closeDate: close || '',
-        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
-      };
-
-  try {
-    const res = await callGAS(payload);
-    if (res.success) {
-      toast(isNew ? '✅ 已新增！' : '✅ 已儲存');
-      closeModal('projectModal');
-      loadProjectList(true);
-      loadConfig();
-      loadProjectsForBoard();
-    } else {
-      if (msg) { msg.textContent = '❌ ' + (res.error || (isNew ? '新增失敗' : '儲存失敗')); msg.style.color = 'var(--red)'; }
-    }
-  } catch(e) {
-    if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
-  }
-  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
-}
-
 // 載入專案列表
 async function loadProjectList(showToast, _isRetry) {
   const tbody   = $('projListTbl');
