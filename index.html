@@ -15,7 +15,7 @@
   --brand-orange:#E87722; --brand-blue:#3B5EDB;
   --accent:var(--brand-orange); --accent2:var(--brand-blue);
   --gold:#E87722;   /* 統一橘系，移除舊褐色 */
-  --green:#15803d; --red:#dc2626; --danger:#dc2626; --amber:#d97706;
+  --green:#15803d; --red:#dc2626; --amber:#d97706;
   --parking:#c2410c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -42,7 +42,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   font-size:14px;font-weight:600;transition:color .15s}
 .mainnav-btn .nv-ico{font-size:17px;line-height:1}
 .mainnav-btn.active{color:var(--accent)}
-.navmenu{display:none;position:absolute;top:52px;left:0;min-width:210px;background:var(--surface);border-top:2px solid var(--brand-orange);
+.navmenu{display:none;position:absolute;top:52px;left:0;min-width:180px;background:var(--surface);
   border:1px solid var(--border2);border-radius:0 10px 10px 10px;box-shadow:0 8px 20px rgba(0,0,0,.12);
   z-index:201;overflow:hidden}
 .navmenu.open{display:block}
@@ -55,8 +55,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .vendor-row{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;background:var(--surface)}
 .vendor-row:hover{border-color:var(--border2)}
 .navmenu-item{display:block;width:100%;text-align:left;padding:12px 16px;font-size:14px;
-  background:none;border:none;border-left:3px solid transparent;cursor:pointer;color:var(--text);font-family:'Noto Sans TC',sans-serif;transition:background .15s,border-color .15s}
-.navmenu-item:hover{background:rgba(232,119,34,.06);border-left-color:var(--brand-orange)}
+  background:none;border:none;cursor:pointer;color:var(--text);font-family:'Noto Sans TC',sans-serif}
+.navmenu-item:hover{background:var(--surface2)}
 .navmenu-syncrow{display:flex;align-items:center;gap:6px;padding:0 16px 10px;font-size:12px;color:var(--muted)}
 .navmenu-sep{height:1px;background:var(--border);margin:2px 0 4px}
 body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
@@ -71,15 +71,15 @@ body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 .logo span{color:var(--brand-blue)}
 
 /* Nav */
-.nav-sec{padding:6px 16px 4px;font-size:10px;color:var(--brand-orange);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;font-weight:800;opacity:.85}
+.nav-sec{padding:8px 16px 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px;font-weight:700}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:15px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
 .nav-item:hover{color:var(--text);background:rgba(232,119,34,.06)}
 .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(232,119,34,.08);font-weight:700}
 .nbadge{margin-left:auto;background:var(--accent);color:white;font-size:11px;padding:2px 7px;border-radius:99px;font-family:'IBM Plex Mono',monospace}
 
 /* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.07)}
-.card-hd{padding:10px 20px;border-bottom:1px solid var(--border);border-left:3px solid var(--brand-orange);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;background:var(--surface2);color:var(--text)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-hd{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;background:var(--surface2)}
 .card-bd{padding:20px}
 
 /* Forms */
@@ -136,7 +136,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 /* Table */
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{padding:11px 14px;text-align:left;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border2);background:var(--surface2)}
+.tbl th{padding:11px 14px;text-align:left;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border);background:var(--surface2)}
 .tbl td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:rgba(232,119,34,.04)}
@@ -144,7 +144,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 /* Pages */
 .page{display:none}
 .page.active{display:block}
-.pg-title{font-size:20px;font-weight:900;margin-bottom:0;color:var(--text);padding-left:10px;border-left:4px solid var(--brand-orange)}
+.pg-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .pg-sub{font-size:14px;color:var(--muted);margin-bottom:22px}
 
 /* Drop zone */
@@ -212,7 +212,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 /* Modal */
 .modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center}
 .modal-wrap.open{display:flex}
-.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:min(660px,96vw);max-height:90vh;overflow-y:auto;animation:fadeIn .2s ease;border-top:3px solid var(--brand-orange)}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:min(660px,96vw);max-height:90vh;overflow-y:auto;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 
 /* Info panel */
@@ -455,10 +455,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div class="card-hd" style="display:flex;align-items:center;gap:10px">
         📋 專案列表
         <span class="badge bd-muted" id="projListCnt" style="margin-left:6px"></span>
-        <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="checkbox" id="projShowClosed" onchange="renderProjectList(S._projListRaw||[])"> 顯示已結案
-        </label>
-        <button class="btn btn-primary btn-sm" onclick="openProjectModal(null)">➕ 新增專案</button>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openProjectModal(null)">➕ 新增專案</button>
       </div>
       <div style="overflow-x:auto">
         <table class="tbl">
@@ -676,17 +673,17 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <input type="hidden" id="np-id">
     <div class="fg2" style="margin-bottom:14px">
       <div>
-        <label class="lbl">專案代號 <span style="color:var(--danger)">*</span></label>
+        <label class="lbl">專案代號</label>
         <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
       </div>
       <div>
-        <label class="lbl">專案名稱 <span style="color:var(--danger)">*</span></label>
+        <label class="lbl">專案名稱</label>
         <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
       </div>
     </div>
     <div class="fg2" style="margin-bottom:14px">
       <div>
-        <label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
+        <label class="lbl">隸屬部門</label>
         <select class="inp" id="np-dept">
           <option value="">— 選擇部門 —</option>
         </select>
@@ -709,7 +706,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </div>
     <div class="fg2" style="margin-bottom:14px">
       <div>
-        <label class="lbl">生效日 <span style="color:var(--danger)">*</span></label>
+        <label class="lbl">生效日</label>
         <input type="date" class="inp" id="np-effect">
       </div>
       <div>
@@ -912,6 +909,18 @@ const S = {
   driveFiles: [],
   ocrQueue: [],
   receipts: [],
+  // 懶載入 flag：各 section 是否已完成首次載入
+  // 重置時機：手動 🔄、月份切換（expense 相關）、登出
+  _loaded: {
+    driveFiles:    false,  // 費用 > 上傳憑證
+    exportHistory: false,  // 費用 > 匯出紀錄
+    todo:          false,  // 待辦
+    project:       false,  // 專案頁
+    projSettings:  false,  // 專案設定
+    schedule:      false,  // 進度管理
+    finance:       false,  // 財務專區
+    sysadmin:      false,  // 系統管理
+  },
 };
 
 // ════════════════════════════════════════════════════════════
@@ -970,14 +979,12 @@ function colorBySign(n) {
   return n >= 0 ? 'var(--green)' : 'var(--red)';
 }
 // 共用：檢查目前登入者是否具有某項權限（員工表／財務專區）
-// 原本 4 處各自寫 String(S.user?.permission || '').includes('xxx')，這裡集中一處
 function hasPermission(name) {
   return String(S.user?.permission || '').includes(name);
 }
 
-// 部門查詢用 Map（O(1)），取代每次呼叫都線性 .find() 的舊寫法。
-// 只在 loadConfig() 取得新的部門清單時重建一次；查詢頻率遠高於部門清單變動頻率，
-// 用「建表攤平成本、查詢吃 O(1)」在這裡是合理的取捨。
+// 部門查詢用 Map（O(1)），取代每次都線性 .find() 的舊寫法。
+// 只在 loadConfig() / loadBootstrap() 取得新部門清單時重建一次。
 let _deptMapByKey = new Map();
 function rebuildDeptMaps() {
   _deptMapByKey = new Map();
@@ -985,13 +992,11 @@ function rebuildDeptMaps() {
     if (d.code) _deptMapByKey.set(d.code, d);
     if (d.name) _deptMapByKey.set(d.name, d);
   });
-  // allDepartments（含已刪除）先放，departments（可選清單）後放覆蓋；
-  // 兩者本來就是同一份部門資料的不同視角，不會真的衝突，這裡只是確保資料一致時 key 都查得到。
   addAll(S.config?.allDepartments);
   addAll(S.config?.departments);
 }
 
-// 依部門代碼查部門物件（先查可選清單，找不到再查含已刪除的完整清單供顯示用）
+// 依部門代碼查部門物件（O(1) Map 查詢）
 function findDept(code) {
   if (!code) return null;
   return _deptMapByKey.get(code) || null;
@@ -1140,9 +1145,13 @@ function finishLogin(person) {
   // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
   const tbl = $('driveFileTbl');
   if (tbl) tbl.innerHTML = loadingRow(4);
-  // item3: 先切換分頁（立即顯示「載入中」UI），再觸發 bootstrap 載入
+  // item3: 先切換分頁（立即顯示「載入中」UI），再觸發 bootstrap 合併載入。
+  // loadBootstrap 一次 getBootstrapData 取代原本的 loadConfig() + loadProjectsForBoard()，
+  // 從根本消除兩請求互相延遲的競態。
+  // 先設 flag 再切頁，避免 switchSection 內部懶載入 guard 重複觸發。
+  S._loaded.project = true;
   switchSection('project'); // 登入後預設顯示「專案」分頁
-  loadBootstrap(); // E類優化：合併 config+projects+persons+departments 成一次請求，取代原本分開打 loadConfig()/loadProjectsForBoard()
+  loadBootstrap();          // 合併載入 config + projects + persons + departments
 }
 
 function showBindNameUI() {
@@ -1185,13 +1194,17 @@ function renderUserBar() {
   if (depts.length) S.user.depts = depts;
   const permission = String(p?.permission || u.permission || '');
   S.user.permission = permission;
-  const isFinance = hasPermission('財務專區');
+  const isFinance = permission.includes('財務專區');
   const finBtn = $('navFinanceBtn');
   if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
 }
 
 function logout() {
   S.user = null;
+  // 重置所有懶載入 flag，確保下次登入重新拉取資料
+  Object.keys(S._loaded).forEach(k => { S._loaded[k] = false; });
+  S._ocrPageLoadedOnce = false;
+  S._pjBoard = null;
   $('appShell').style.display  = 'none';
   $('loginWrap').style.display = 'flex';
 }
@@ -1223,7 +1236,7 @@ let _deptsCache = [];
 
 async function loadDeptsAdmin(forceReload) {
   if (!hasPermission('員工表')) return;
-  // E類優化：bootstrap 登入時已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
+  // bootstrap 登入時已拿過一次，不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_deptsCache.length && !forceReload) { renderDeptsTable(); return; }
   const tbody = $('sysadmin-depts-tbody');
   if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
@@ -1233,7 +1246,8 @@ async function loadDeptsAdmin(forceReload) {
     return;
   }
   _deptsCache = res.depts ?? [];
-  S._allDepts  = _deptsCache; // 含已刪除，供 openPersonModal 使用
+  S._allDepts  = _deptsCache;
+  rebuildDeptMaps();
   renderDeptsTable();
 }
 
@@ -1311,8 +1325,7 @@ async function saveDeptAdmin() {
     onSuccess: async () => {
       await loadDeptsAdmin(true);
       if ($('sysadmin-depts-body')?.style.display === 'none') toggleDeptsSection();
-      // F2: 部門異動後刷新 config，讓新增專案的部門下拉即時更新
-      loadConfig();
+      loadConfig(); // 部門異動後刷新 config，讓新增專案的部門下拉即時更新
     },
   });
 }
@@ -1325,6 +1338,7 @@ async function softDeleteDept(idx) {
   _deptsCache[idx].deleted = true;
   renderDeptsTable(); toast('✅ 已刪除');
 }
+
 
 async function saveDeptExpenseType(idx, type) {
   const d = _deptsCache[idx]; if (!d) return;
@@ -1341,14 +1355,16 @@ function togglePersonsSection() {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (tog) tog.textContent = open ? '▶' : '▼';
+  // 懶載入：展開時才發請求（收合不重複載）
+  if (!open) loadPersonsAdmin();
 }
 
 let _personsCache = [];
 
 async function loadPersonsAdmin(forceReload) {
   if (!hasPermission('員工表')) return;
-  if (!_deptsCache.length) await loadDeptsAdmin(); // 確保已刪除部門快取先就位，避免員工列表顯示原始代碼
-  // E類優化：bootstrap 已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
+  if (!_deptsCache.length) await loadDeptsAdmin(); // 確保部門快取就位，避免員工列表顯示原始代碼
+  // bootstrap 已拿過一次，不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_personsCache.length && !forceReload) { renderPersonsTable(); return; }
   const tbody = $('sysadmin-persons-tbody');
   if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
@@ -1483,20 +1499,17 @@ async function savePersonAdmin() {
       action: 'savePersonAdmin', lineId: S.user?.lineId ?? '', isNew,
       rowIndex:     isNew ? null : parseInt(rowIndexRaw, 10),
       name,
-      linename:     $('pm-linename').value.trim(), // 隱藏欄位，保留原值
+      linename:     $('pm-linename').value.trim(),
       dept:         deptVal,
       title:        $('pm-title').value.trim(),
-      personLineId: $('pm-lineId').value.trim(),    // 隱藏欄位，保留原值
+      personLineId: $('pm-lineId').value.trim(),
       depts:        depts.join(','),
       permission,
       resigned:     $('pm-resigned').checked,
     },
     onSuccess: async () => {
       // 若編輯的是目前登入者本人，立即重拉 config 讓漢堡按鈕即時生效
-      if (name === S.user?.name) {
-        await loadConfig();
-        renderUserBar();
-      }
+      if (name === S.user?.name) { await loadConfig(); renderUserBar(); }
       await loadPersonsAdmin(true);
       if ($('sysadmin-persons-body')?.style.display === 'none') togglePersonsSection();
     },
@@ -1525,24 +1538,25 @@ const currentSyncScope = () =>
 function updateUnifiedSyncUI() {}
 
 function doUnifiedReload() {
+  // 手動 🔄：強制重載，清除對應 section 的懶載入 flag
+  const resetAndRun = (flags, fn) => { flags.forEach(f => { S._loaded[f] = false; }); fn(); };
   const actions = {
-    expense:        doReloadAll,
-    todo:           loadTasks,
-    project:        loadProjectsForBoard,
-    'proj-settings':() => { loadConfig(); loadProjectList(true); },
-    schedule:       () => loadProjectsForBoard().then(pgPopulateProjectSelect),
-    finance:        loadFinance,
-    sysadmin:       () => { loadDeptsAdmin(true); loadPersonsAdmin(true); },
+    expense:         () => doReloadAll(),
+    todo:            () => resetAndRun(['todo'],         loadTasks),
+    project:         () => resetAndRun(['project'],      loadProjectsForBoard),
+    'proj-settings': () => resetAndRun(['projSettings'], () => { loadConfig(); loadProjectList(true); }),
+    schedule:        () => { S._loaded.schedule = false; loadProjectsForBoard().then(pgPopulateProjectSelect); },
+    finance:         () => resetAndRun(['finance'],      loadFinance),
+    sysadmin:        () => { S._loaded.sysadmin = false; renderSysAdminUserBar(); loadDeptsAdmin(true); loadPersonsAdmin(true); },
   };
   (actions[_currentSection] || loadConfig)();
 }
 
-// E類優化：合併登入時的初始載入。
-// 原本登入後要分開打 loadConfig()（config）+ loadProjectsForBoard()（專案看板），
+// ── BOOTSTRAP：登入時的合併初始載入 ─────────────────────────
+// 原本登入後分開打 loadConfig() + loadProjectsForBoard()，
 // 現在改成一次 getBootstrapData 拿到 config+projects+persons+departments，
-// 從根本消除「兩個請求同時打到同一個 GAS 部署互相延遲」的競態，也不再需要靠 shouldRetryEmpty 補洞。
-// 注意：「重新整理」按鈕、單一分頁刷新（例如部門表單獨重抓）仍然各自呼叫 loadConfig()/loadProjectsForBoard()
-// 等個別函式，不受影響——這裡只取代「登入時的第一次載入」。
+// 消除兩個請求同時打到同一 GAS 部署互相延遲的競態。
+// 「重新整理」/ 各分頁單獨刷新仍各自呼叫個別函式，不受影響。
 async function loadBootstrap(_isRetry) {
   const scope = currentSyncScope();
   setNavSyncStatus(scope, '同步中...', true);
@@ -1553,7 +1567,7 @@ async function loadBootstrap(_isRetry) {
     if (!res.success) throw new Error(res.error);
     const { config, projects, persons, departments } = res.data;
 
-    // -- config（沿用 loadConfig 原本的處理）--
+    // config（沿用 loadConfig 原本的處理）
     S.config = config;
     S.config.userDeptCode = config.userDeptCode ?? '';
     S.config.startAddress = config.startAddress ?? '';
@@ -1563,16 +1577,16 @@ async function loadBootstrap(_isRetry) {
     }
     rebuildDeptMaps();
 
-    // -- 專案看板（沿用 loadProjectsForBoard 原本的處理）--
+    // 專案看板（沿用 loadProjectsForBoard 原本的處理）
     if (shouldRetryEmpty(projects, S._pjBoard, _isRetry)) return loadBootstrap(true);
     S._pjBoard = projects ?? [];
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
     renderProjectBoard();
 
-    // -- 系統管理快取（沒有「員工表」權限時後端回空陣列，先放著；
-    //    之後使用者若打開系統管理頁，loadPersonsAdmin/loadDeptsAdmin 看到已有快取就不會重複打 API）--
+    // 系統管理快取（沒有「員工表」權限時後端回空陣列；
+    // 之後使用者打開系統管理頁，loadPersonsAdmin/loadDeptsAdmin 看到已有快取不會重複打 API）
     _deptsCache   = departments ?? [];
-    S._allDepts   = _deptsCache; // 含已刪除，供 openPersonModal 使用
+    S._allDepts   = _deptsCache;
     _personsCache = persons ?? [];
 
     setNavSyncStatus(scope, '✅ 同步完成 ' + now());
@@ -1585,8 +1599,11 @@ async function loadBootstrap(_isRetry) {
   if (S.user) renderUserBar();
   renderSysAdminUserBar();
   populateSelects();
-  loadDriveFiles();
-  loadExportHistory(false);
+  // 懶載入：只在費用相關頁面才觸發 Drive 檔案與匯出紀錄的載入
+  if (_currentSection === 'expense') {
+    if (_currentExpensePage === 'upload') loadDriveFiles();
+    else if (_currentExpensePage === 'history') loadExportHistory(false);
+  }
   if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
@@ -1603,7 +1620,7 @@ async function loadConfig() {
       const fb = res.data.userDept || S.user?.dept || '';
       S.config.departments = fb ? [{ code:fb, name:fb }] : [];
     }
-    rebuildDeptMaps(); // B類優化：部門清單更新後重建查詢用 Map
+    rebuildDeptMaps(); // 部門清單更新後重建查詢用 Map
     setNavSyncStatus(scope, '✅ 同步完成 ' + now());
     flashNavSyncDone(scope);
   } catch(e) {
@@ -1611,8 +1628,11 @@ async function loadConfig() {
   }
   if (S.user) renderUserBar();
   populateSelects();
-  loadDriveFiles();
-  loadExportHistory(false);
+  // 懶載入：只在費用相關頁面才觸發 Drive 檔案與匯出紀錄的載入
+  if (_currentSection === 'expense') {
+    if (_currentExpensePage === 'upload') loadDriveFiles();
+    else if (_currentExpensePage === 'history') loadExportHistory(false);
+  }
   if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
@@ -1621,21 +1641,44 @@ function populateSelects() {
 }
 
 function onGlobalMonthChange(val) {
-  loadDriveFiles();
-  loadExportHistory(false);
+  // 月份切換：重置費用相關懶載入 flag，確保切回時重新拉取新月份資料
+  S._loaded.driveFiles    = false;
+  S._loaded.exportHistory = false;
   S.receipts = [];
   window._fuelProjList = [];
   S._ocrPageLoadedOnce = false;
-  if (_currentExpensePage === 'ocr') { S._ocrPageLoadedOnce = true; reloadOcrWithFuel(); }
-  else renderOCRResults();
+  // 立即觸發目前所在費用子頁的重載
+  if (_currentSection === 'expense') {
+    if (_currentExpensePage === 'upload') {
+      S._loaded.driveFiles = true;
+      loadDriveFiles();
+    } else if (_currentExpensePage === 'ocr') {
+      S._ocrPageLoadedOnce = true;
+      reloadOcrWithFuel();
+    } else if (_currentExpensePage === 'history') {
+      S._loaded.exportHistory = true;
+      loadExportHistory(false);
+    } else {
+      renderOCRResults();
+    }
+  }
 }
 
 function doReloadAll() {
   const page = _currentExpensePage || 'upload';
-  if (page === 'upload') { loadConfig(); }
-  else if (page === 'ocr') { reloadOcrWithFuel(); }
-  else if (page === 'history') { loadExportHistory(true); }
-  else { loadConfig(); }
+  if (page === 'upload') {
+    S._loaded.driveFiles = true; // 標記已載入，loadConfig 不會重複觸發
+    loadConfig();
+    loadDriveFiles();
+  } else if (page === 'ocr') {
+    S._ocrPageLoadedOnce = true;
+    reloadOcrWithFuel();
+  } else if (page === 'history') {
+    S._loaded.exportHistory = true;
+    loadExportHistory(true);
+  } else {
+    loadConfig();
+  }
 }
 
 async function reloadOcrWithFuel() {
@@ -1937,7 +1980,7 @@ async function doUpload() {
 function renderUploadedList(files) {
   // card 已預設顯示，直接更新計數與提示
   if (files.length) {
-    $('uploadedCnt').textContent = files.length + ' 個（本次）';
+    $('uploadedCnt').textContent = files.length + ' 筆（本次）';
   }
   // 本次上傳的完整檔名（含月份前綴，與 Drive 一致）
   S._newUploadedNames = new Set(files.map(f => f.name));
@@ -2017,10 +2060,10 @@ function renderDriveFiles() {
   const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
   $('uploadedCnt').textContent =
     sorted.length
-      ? sorted.length + ' 個'
+      ? sorted.length + ' 筆'
       : S._newUploadedNames?.size
-        ? S._newUploadedNames.size + ' 個（本次）'
-        : '0 個';
+        ? S._newUploadedNames.size + ' 筆（本次）'
+        : '0 筆';
 }
 
 function toggleDriveChk(i) {
@@ -2241,7 +2284,8 @@ function mkReceipt(id, qf, item, idx, isNew) {
 function getUserDeptDefaultExpense() {
   const userDeptCode = S.config?.userDeptCode || S.user?.dept || '';
   if (!userDeptCode) return false;
-  const dept = findDept(userDeptCode);
+  const depts = S.config?.departments?.length ? S.config.departments : _deptsCache;
+  const dept = depts.find(d => d.code === userDeptCode || d.name === userDeptCode);
   return dept?.defaultExpense ?? false;
 }
 
@@ -4188,7 +4232,7 @@ function renderPdfResultList(urls, labels) {
       transition:background .15s;
     `;
     row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
-    row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
+    row.onmouseover = () => row.style.background = 'rgba(232,119,34,.06)';
     row.onmouseout  = () => row.style.background = 'var(--surface)';
     wrap.appendChild(row);
   });
@@ -4347,23 +4391,64 @@ function switchSection(name) {
   closeNavMenu();
   updateUnifiedSyncUI();
 
-  if (name==='todo')    loadTasks();
-  if (name==='project') loadProjectsForBoard();
-  if (name==='proj-settings') {
-    populateNpDept();
-    loadProjectList(false);
+  // 懶載入：各 section 首次進入才發請求，已載入則直接顯示快取
+  if (name === 'expense') {
+    // 費用頁：依目前子頁觸發懶載入（第一次進入或月份切換後 flag 已重置）
+    if (_currentExpensePage === 'upload' && !S._loaded.driveFiles) {
+      S._loaded.driveFiles = true;
+      loadDriveFiles();
+    } else if (_currentExpensePage === 'ocr' && !S._ocrPageLoadedOnce) {
+      S._ocrPageLoadedOnce = true;
+      reloadOcrWithFuel();
+    } else if (_currentExpensePage === 'history' && !S._loaded.exportHistory) {
+      S._loaded.exportHistory = true;
+      loadExportHistory(false);
+    }
+  }
+  if (name === 'todo') {
+    if (!S._loaded.todo) {
+      S._loaded.todo = true;
+      loadTasks();
+    }
+  }
+  if (name === 'project') {
+    if (!S._loaded.project) {
+      S._loaded.project = true;
+      loadProjectsForBoard();
+    }
+  }
+  if (name === 'proj-settings') {
     renderSettingsUserBar();
+    populateNpDept();
+    if (!S._loaded.projSettings) {
+      S._loaded.projSettings = true;
+      loadProjectList(false);
+    }
   }
-  if (name==='schedule') {
+  if (name === 'schedule') {
     pgPopulateDeductMethods();
-    loadProjectsForBoard().then(pgPopulateProjectSelect);
+    // _pjBoard 已有資料時直接填充 select，不重新 fetch
+    if (S._pjBoard?.length) {
+      pgPopulateProjectSelect();
+    } else if (!S._loaded.schedule) {
+      S._loaded.schedule = true;
+      loadProjectsForBoard().then(pgPopulateProjectSelect);
+    }
   }
-  if (name==='finance') {
-    loadFinance();
+  if (name === 'finance') {
+    if (!S._loaded.finance) {
+      S._loaded.finance = true;
+      loadFinance();
+    }
   }
-  if (name==='sysadmin') {
+  if (name === 'sysadmin') {
+    // sysadmin 進入只渲染 userbar；員工表與部門表各自在 accordion 展開時懶載入
     renderSysAdminUserBar();
-    loadPersonsAdmin();
+    if (!S._loaded.sysadmin) {
+      S._loaded.sysadmin = true;
+      // 若員工表 accordion 已展開，立即載入
+      if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
+    }
   }
 }
 
@@ -4391,10 +4476,17 @@ function isProjectRelated(name) {
   ['upload','ocr','history'].forEach(p=> {
     $('sec-expense-'+p)?.classList.toggle('active', p===page);
   });
-  if (page==='history') loadExportHistory(false);
-  // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
-  // 避免使用者誤以為底下空白（之前需手動按 🔄 才會出現「申請專案」卡片）
-  if (page==='ocr' && !S._ocrPageLoadedOnce) {
+  // 懶載入：各費用子頁首次進入才發請求
+  if (page === 'upload' && !S._loaded.driveFiles) {
+    S._loaded.driveFiles = true;
+    loadDriveFiles();
+  }
+  if (page === 'history' && !S._loaded.exportHistory) {
+    S._loaded.exportHistory = true;
+    loadExportHistory(false);
+  }
+  // OCR 辨識：沿用既有的 _ocrPageLoadedOnce flag（語意一致，保留）
+  if (page === 'ocr' && !S._ocrPageLoadedOnce) {
     S._ocrPageLoadedOnce = true;
     reloadOcrWithFuel();
   }
@@ -4597,24 +4689,17 @@ async function loadProjectList(showToast, _isRetry) {
     return loadProjectList(showToast, true);
   }
   const rows = res.rows || [];
-  S._projListRaw = rows; // 全量資料（含已結案），供「顯示已結案」勾選框切換用
   renderProjectList(rows);
   flashNavSyncDone('project');
   if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
 // 渲染專案列表（newest first，已由 GAS 排序）
-// 預設僅顯示「未結案」（!closeDate || closeDate >= today），勾選「顯示已結案」才顯示全部
-function renderProjectList(rawRows) {
+function renderProjectList(rows) {
   const tbody = $('projListTbl');
   const cntEl = $('projListCnt');
   if (!tbody) return;
-  const showClosed = $('projShowClosed')?.checked;
-  const today = todayStr();
-  const rows = showClosed
-    ? rawRows
-    : rawRows.filter(p => !p.closeDate || p.closeDate >= today);
-  if (cntEl) cntEl.textContent = rows.length + ' 筆' + (showClosed ? '' : `（共 ${rawRows.length} 筆，已隱藏已結案）`);
+  if (cntEl) cntEl.textContent = rows.length + ' 筆';
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
@@ -5965,23 +6050,6 @@ const GAS_ACTION_TIMEOUT_MS = { ocrReceipt:110000, exportAll:110000 };
 
 // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
 // 呼叫端務必明確檢查 res.success，不可只靠 try/catch 或 res.rows||[]
-// ── 共用：Modal 表單送出（按鈕loading狀態 + callGAS + 成功/失敗處理 + 關閉Modal）
-// 原本 saveDeptAdmin / savePersonAdmin / saveProjectModal 三處各寫一份幾乎一樣的流程，
-// 這裡抽成共用函式；各自仍保留自己的「欄位驗證」與「成功後要做什麼」，因為那兩段才是真正的業務差異。
-// 回傳 res（成功或失敗皆回傳，方便呼叫端需要 res 內其他欄位時使用），失敗時已經 toast 過、不會關閉 Modal。
-async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
-  const btn = document.querySelector(btnSelector);
-  const origHtml = btn?.innerHTML;
-  if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
-  const res = await callGAS(payload);
-  if (btn) { btn.disabled = false; btn.innerHTML = origHtml ?? '💾 儲存'; }
-  if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return res; }
-  toast('✅ 已儲存');
-  if (modalId) closeModal(modalId);
-  if (onSuccess) await onSuccess(res);
-  return res;
-}
-
 async function callGAS(payload, timeoutMs) {
   const ms   = timeoutMs ?? GAS_ACTION_TIMEOUT_MS[payload?.action] ?? 60000;
   const ctrl = new AbortController();
@@ -6072,6 +6140,21 @@ const $ = id => document.getElementById(id);
 function se(id, txt)    { const el=$(id); if(el) el.textContent=txt; }
 function openModal(id)  { $(id).classList.add('open'); }
 function closeModal(id) { $(id).classList.remove('open'); }
+
+// ── 共用：Modal 表單送出（按鈕 loading 狀態 + callGAS + 成功/失敗處理 + 關閉 Modal）
+// saveDeptAdmin / savePersonAdmin 三處各寫一份幾乎一樣的流程，這裡抽成共用函式。
+async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
+  const btn = document.querySelector(btnSelector);
+  const origHtml = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
+  const res = await callGAS(payload);
+  if (btn) { btn.disabled = false; btn.innerHTML = origHtml ?? '💾 儲存'; }
+  if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return res; }
+  toast('✅ 已儲存');
+  if (modalId) closeModal(modalId);
+  if (onSuccess) await onSuccess(res);
+  return res;
+}
 function setBtnLoading(id, loading, label) {
   const b=$(id); if(!b) return;
   b.disabled=loading; b.innerHTML=loading?`<div class="spin"></div> ${label}`:label;
