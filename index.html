@@ -736,6 +736,70 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
+<!-- ═══════════ SECTION: 財務專區 ═══════════ -->
+<div class="app-section" id="sec-finance" style="overflow-x:auto">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="pg-title" style="margin:0">💰 財務專區</div>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto" id="fin-export-report-btn"
+      onclick="exportProjectFinanceReport()">📊 匯出專案報表</button>
+  </div>
+
+  <!-- 待開票列表 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px">
+      📄 待開票列表（業主端）
+      <label style="font-size:13px;font-weight:400;margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="fin-show-inv-done" onchange="renderFinanceInvoice()"> 顯示已完成
+      </label>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="fin-inv-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">專案代號</th>
+          <th style="min-width:120px">專案名稱</th>
+          <th style="white-space:nowrap">期次</th>
+          <th style="white-space:nowrap">實收金額</th>
+          <th style="white-space:nowrap;min-width:90px">收款狀態</th>
+          <th style="white-space:nowrap">收款日期</th>
+          <th style="white-space:nowrap;min-width:160px">開票日期</th>
+          <th style="white-space:nowrap;min-width:100px">完成狀態</th>
+        </tr></thead>
+        <tbody id="fin-inv-body">
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 待付款列表 -->
+  <div class="card">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px">
+      💸 待付款列表（廠商端）
+      <label style="font-size:13px;font-weight:400;margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="fin-show-pay-done" onchange="renderFinancePayment()"> 顯示已完成
+      </label>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="fin-pay-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">專案代號</th>
+          <th style="min-width:120px">專案名稱</th>
+          <th style="white-space:nowrap">廠商</th>
+          <th style="white-space:nowrap">期次</th>
+          <th style="white-space:nowrap">金額</th>
+          <th style="white-space:nowrap;min-width:90px">發票狀態</th>
+          <th style="white-space:nowrap">發票日期</th>
+          <th style="white-space:nowrap">付款日期</th>
+          <th style="white-space:nowrap;min-width:100px">完成狀態</th>
+        </tr></thead>
+        <tbody id="fin-pay-body">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- 專案新增/編輯 Modal -->
 <div class="modal-wrap" id="projectModal">
   <div class="modal-box" style="max-width:520px">
@@ -1388,7 +1452,7 @@ async function openPersonModal(idx) {
     }).join('');
   // fallback：員工目前部門若對應到已刪除部門（或完全找不到對應），注入一個選項供顯示，不可另選為新值
   if (p.dept) {
-    const matchedActive = activeDepts.find(d => d.code === p.dept || d.name === p.dept);
+    const matchedActive = activeDpts.find(d => d.code === p.dept || d.name === p.dept);
     if (!matchedActive) {
       const deletedMatch = allDepts.find(d => d.code === p.dept || d.name === p.dept);
       const label = deletedMatch ? `${esc(deletedMatch.name)} (已刪除)` : esc(p.dept);
