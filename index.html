@@ -1018,6 +1018,53 @@ function colorBySign(n) {
   return n >= 0 ? 'var(--green)' : 'var(--red)';
 }
 // 依部門代碼查部門物件（先查可選清單，找不到再查含已刪除的完整清單供顯示用）
+// ── 部門/專案 Store（O(1) Map lookup）──────────────────────
+const DeptStore = {
+  _byKey: new Map(),
+
+  // 從 S.config 重建查詢用 Map（O(1) lookup），取代每次查詢都線性 .find() 的舊寫法。
+  // 只在 loadConfig()/loadBootstrap() 取得新的部門清單時呼叫一次；
+  // 查詢頻率遠高於部門清單變動頻率，用「建表攤平成本、查詢吃 O(1)」是合理取捨。
+  rebuild(config) {
+    this._byKey = new Map();
+    const addAll = list => (list || []).forEach(d => {
+      if (d.code) this._byKey.set(d.code, d);
+      if (d.name) this._byKey.set(d.name, d);
+    });
+    // allDepartments（含已刪除）先放，departments（可選清單）後放覆蓋；
+    // 兩者本來就是同一份部門資料的不同視角，不會真的衝突，這裡只是確保資料一致時 key 都查得到。
+    addAll(config?.allDepartments);
+    addAll(config?.departments);
+  },
+
+  // 依代碼或名稱查部門物件，找不到回 null
+  find(code) {
+    if (!code) return null;
+    return this._byKey.get(code) || null;
+  },
+}
+
+const ProjectStore = {
+  _byId: new Map(),
+
+  // S._pjBoard 改動後呼叫一次（loadBootstrap/loadProjectsForBoard 等取得新資料時）
+  rebuild() {
+    this._byId = new Map();
+    (S._pjBoard || []).forEach(p => { if (p.id) this._byId.set(p.id, p); });
+  },
+
+  // 依專案 id 查專案物件，找不到回 null
+  find(id) {
+    if (!id) return null;
+    return this._byId.get(id) || null;
+  },
+
+  // 完整清單（含已結案，未做可見部門過濾以外的篩選）
+  list() {
+    return S._pjBoard || [];
+  },
+}
+
 // ── 部門統一存取層 ──────────────────────────────────────────
 function depts() {
   return _deptsCache.length ? _deptsCache : (S.config.allDepartments || []);
@@ -1027,7 +1074,9 @@ function activeDepts() {
 }
 function findDept(code) {
   if (!code) return null;
-  return depts().find(d => d.code === code || d.name === code) || null;
+  return DeptStore.find(code)
+    || depts().find(d => d.code === code || d.name === code)
+    || null;
 }
 // 部門顯示文字：已刪除部門加上刪除線樣式
 function deptDisplayHTML(d) {
@@ -1179,9 +1228,8 @@ function finishLogin(person) {
   // 偶發導致其中一個請求逾時/被截斷而誤判為「成功但無資料」
   // 先設 flag 再切頁，避免 switchSection 內部懶載入 guard 重複觸發
   S._loaded.project = true;
-  switchSection('project'); // 登入後預設顯示「專案」分頁
-  loadConfig();             // 僅在費用頁才順帶載入 Drive 檔案
-  loadProjectsForBoard();   // 登入後立即取得專案資料（錯開 loadConfig）
+  switchSection('project');
+  loadBootstrap(); // 登入只打一次 GAS：config+projects+persons+departments
 }
 
 function showBindNameUI() {
@@ -1282,7 +1330,10 @@ let _deptsCache = [];
 let _deptsCacheReady = false;
 
 function _syncDeptsToConfig() {
-  if (_deptsCacheReady) S.config.allDepartments = [..._deptsCache];
+  if (_deptsCacheReady) {
+    S.config.allDepartments = [..._deptsCache];
+    DeptStore.rebuild(S.config);
+  }
 }
 
 async function loadDeptsAdmin() {
@@ -1600,6 +1651,57 @@ function doUnifiedReload() {
   (actions[_currentSection] || loadConfig)();
 }
 
+function rebuildDeptMaps() { DeptStore.rebuild(S.config); }
+
+async function loadBootstrap(_isRetry) {
+  const scope = currentSyncScope();
+  setNavSyncStatus(scope, '同步中...', true);
+  const board = $('projBoard');
+  if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
+  try {
+    const res = await callGAS({ action:'getBootstrapData', lineId: S.user?.lineId ?? '' });
+    if (!res.success) throw new Error(res.error);
+    const { config, projects, persons, departments } = res.data;
+
+    // -- config（沿用 loadConfig 原本的處理）--
+    S.config = config;
+    S.config.userDeptCode = config.userDeptCode ?? '';
+    S.config.startAddress = config.startAddress ?? '';
+    if (!S.config.departments?.length) {
+      const fb = config.userDept || S.user?.dept || '';
+      S.config.departments = fb ? [{ code:fb, name:fb }] : [];
+    }
+    rebuildDeptMaps();
+
+    // -- 專案看板（沿用 loadProjectsForBoard 原本的處理）--
+    if (shouldRetryEmpty(projects, S._pjBoard, _isRetry)) return loadBootstrap(true);
+    S._pjBoard = projects ?? [];
+    ProjectStore.rebuild();
+    if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
+    renderProjectBoard();
+
+    // -- 系統管理快取（沒有「員工表」權限時後端回空陣列，先放著；
+    //    之後使用者若打開系統管理頁，loadPersonsAdmin/loadDeptsAdmin 看到已有快取就不會重複打 API）--
+    _deptsCache      = departments ?? [];
+    _deptsCacheReady = _deptsCache.length > 0;
+    _personsCache    = persons ?? [];
+    // DeptStore 隨 bootstrap 資料重建
+    DeptStore.rebuild(S.config);
+
+    setNavSyncStatus(scope, '✅ 同步完成 ' + now());
+    flashNavSyncDone(scope);
+    flashNavSyncDone('project');
+  } catch(e) {
+    if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗，請點 🔄 重新整理</div>';
+    setNavSyncStatus(scope, '❌ 連線失敗，請重試');
+  }
+  if (S.user) renderUserBar();
+  populateSelects();
+  loadDriveFiles();
+  loadExportHistory(false);
+  if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
+}
+
 async function loadConfig() {
   const scope = currentSyncScope();
   setNavSyncStatus(scope, '同步中...', true);
@@ -1617,6 +1719,7 @@ async function loadConfig() {
       S.config.allDepartments = [...(S.config.departments || [])];
     }
     if (_deptsCacheReady) { _deptsCache = [...S.config.allDepartments]; }
+    DeptStore.rebuild(S.config);
     setNavSyncStatus(scope, '✅ 同步完成 ' + now());
     flashNavSyncDone(scope);
   } catch(e) {
@@ -4758,6 +4861,7 @@ async function loadProjectsForBoard(_isRetry) {
     if (!res.success) throw new Error(res.error || '取得專案失敗');
     if (shouldRetryEmpty(res.rows, S._pjBoard, _isRetry)) return loadProjectsForBoard(true);
     S._pjBoard = res.rows ?? [];
+    ProjectStore.rebuild();
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
     renderProjectBoard();
     setNavSyncStatus('project', '✅ 同步完成 ' + now());
@@ -5444,6 +5548,7 @@ async function loadFinance() {
       const res = await callGAS({ action:'getProjects', lineId: S.user?.lineId ?? '' });
       if (!res.success) throw new Error(res.error || '取得專案失敗');
       S._pjBoard = res.rows ?? [];
+      ProjectStore.rebuild();
     }
     const inv = [], pay = [];
     for (const p of S._pjBoard) {
