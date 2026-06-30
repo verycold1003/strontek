@@ -16,8 +16,7 @@
   --accent:var(--brand-orange); --accent2:var(--brand-blue);
   --gold:#E87722;   /* 統一橘系，移除舊褐色 */
   --green:#15803d; --red:#dc2626; --danger:#dc2626; --amber:#d97706;
-  --warning-bg:rgba(234,179,8,.1); --warning-border:rgba(234,179,8,.3);
-  --warning-text:#92400e;
+  --warning-bg:rgba(234,179,8,.1); --warning-border:rgba(234,179,8,.3); --warning-text:#92400e;
   --parking:#c2410c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -40,11 +39,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   cursor:pointer;color:var(--text);position:relative}
 .mainnav-tabs{flex:1;display:flex}
 .mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-  color:var(--muted);background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-  font-size:14px;font-weight:600;transition:color .15s,border-color .15s}
+  color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  font-size:14px;font-weight:600;transition:color .15s}
 .mainnav-btn .nv-ico{font-size:17px;line-height:1}
-.mainnav-btn.active{color:var(--accent);border-bottom-color:var(--brand-orange)}
-@media(min-width:600px){#uName{display:block!important}}
+.mainnav-btn.active{color:var(--accent)}
 .navmenu{display:none;position:absolute;top:52px;left:0;min-width:210px;background:var(--surface);border-top:2px solid var(--brand-orange);
   border:1px solid var(--border2);border-radius:0 10px 10px 10px;box-shadow:0 8px 20px rgba(0,0,0,.12);
   z-index:201;overflow:hidden}
@@ -60,12 +58,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .navmenu-item{display:block;width:100%;text-align:left;padding:12px 16px;font-size:14px;
   background:none;border:none;border-left:3px solid transparent;cursor:pointer;color:var(--text);font-family:'Noto Sans TC',sans-serif;transition:background .15s,border-color .15s}
 .navmenu-item:hover{background:rgba(232,119,34,.06);border-left-color:var(--brand-orange)}
-.navmenu-syncrow{display:flex;align-items:center;gap:6px;padding:8px 16px 10px;font-size:12px;color:var(--muted)}
+.navmenu-syncrow{display:flex;align-items:center;gap:6px;padding:0 16px 10px;font-size:12px;color:var(--muted)}
 .navmenu-sep{height:1px;background:var(--border);margin:2px 0 4px}
 body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
-.app-section{display:none;height:calc(100vh - 52px);margin-top:52px;overflow-y:auto;padding:20px 18px 24px}
+.app-section{display:none;height:calc(100vh - 52px);margin-top:52px;overflow-y:auto;padding:18px}
 .app-section.active{display:block}
-.app-section .pg-title{margin-bottom:16px}
+.app-section .pg-title{margin-bottom:14px}
 .topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .main-area{overflow-y:auto;padding:24px;background:var(--bg)}
 
@@ -87,7 +85,7 @@ body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 
 /* Forms */
 .lbl{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-.inp{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;padding:9px 13px;color:var(--text);font-size:15px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.inp{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:7px;padding:9px 13px;color:var(--text);font-size:15px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,119,34,.15)}
 .inp:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)}
 select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%235a6a8a' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;-webkit-appearance:none;padding-right:28px;background-color:var(--surface)}
@@ -234,7 +232,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   .login-box{width:min(400px,92vw);padding:28px 20px}
   .topbar{padding:0 14px;gap:10px}
   .topbar .logo{font-size:15px}
-  #tbUser > div:last-child > #uDeptTitle{display:none}
   .main-area{padding:14px}
   .fg2,.fg3,.fg4{grid-template-columns:1fr 1fr!important}
   .rc-hd{grid-template-columns:24px 1fr auto auto 16px!important;gap:8px}
@@ -296,99 +293,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-
-<div class="mainnav" id="mainNav" style="display:none">
-  <div class="mainnav-burger" id="navBurgerBtn">
-    <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--brand-orange);width:100%;height:100%;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">☰</button>
-    <div class="navmenu" id="navMenuProject">
-      <div class="navmenu-syncrow" id="navSyncRow-project">
-        <span id="navSyncStatus-project">尚未同步</span>
-        <span id="navSyncDone-project" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
-        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
-      </div>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">專案功能</div>
-      <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
-      <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
-      <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">管理</div>
-      <button class="navmenu-item" onclick="switchSection('sysadmin');closeNavMenu()">🛠 系統管理</button>
-    </div>
-    <div class="navmenu" id="navMenuExpense">
-      <div class="navmenu-syncrow" id="navSyncRow-expense">
-        <span id="navSyncStatus-expense">尚未同步</span>
-        <span id="navSyncDone-expense" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
-        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
-      </div>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">申請月份</div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px">
-        <input type="month" class="inp" id="global-month" style="font-size:14px;padding:6px 9px;flex:1"
-               onchange="onGlobalMonthChange(this.value)">
-      </div>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">費用功能</div>
-      <button class="navmenu-item" onclick="switchExpensePage('upload')">
-        📤 上傳憑證 <span class="nbadge" id="nb-upload-m" style="margin-left:4px;display:none">0</span>
-      </button>
-      <button class="navmenu-item" onclick="switchExpensePage('ocr')">
-        🤖 OCR 辨識 <span class="nbadge" id="nb-ocr-m" style="margin-left:4px;display:none">0</span>
-      </button>
-      <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
-    </div>
-    <div class="navmenu" id="navMenuTodo">
-      <div class="navmenu-syncrow" id="navSyncRow-todo">
-        <span id="navSyncStatus-todo">尚未同步</span>
-        <span id="navSyncDone-todo" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
-        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
-      </div>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">顯示篩選</div>
-      <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="td-show-done" onchange="renderTaskList()"> ✅ 已完成
-      </label>
-      <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="td-show-deleted" onchange="renderTaskList()"> 🗑 已刪除
-      </label>
-    </div>
-  </div>
-  <div class="mainnav-tabs">
-    <button class="mainnav-btn" data-section="project" onclick="switchSection('project')">
-      <span class="nv-ico">🗂</span><span>專案</span>
-    </button>
-    <button class="mainnav-btn active" data-section="expense" onclick="switchSection('expense')">
-      <span class="nv-ico">💲</span><span>費用</span>
-    </button>
-    <button class="mainnav-btn" data-section="todo" onclick="switchSection('todo')">
-      <span class="nv-ico">✅</span><span>待辦</span>
-    </button>
-  </div>
-  <div style="position:relative;display:flex;align-items:center;padding:0 10px;flex-shrink:0">
-    <div id="uAvatar" onclick="toggleUserPopup()"
-      style="width:34px;height:34px;border-radius:50%;background:var(--brand-orange);color:#fff;
-             display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;
-             overflow:hidden;flex-shrink:0;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)">—</div>
-    <!-- 用戶資訊 popup -->
-    <div id="userPopup" style="display:none;position:absolute;top:44px;right:0;min-width:200px;
-      background:var(--surface);border:1px solid var(--border2);border-radius:12px;
-      box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:202;overflow:hidden;
-      border-top:3px solid var(--brand-orange)">
-      <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
-        <div id="uAvatarPopup" style="width:40px;height:40px;border-radius:50%;background:var(--brand-orange);
-          color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
-          overflow:hidden;flex-shrink:0">—</div>
-        <div style="min-width:0">
-          <div id="uNamePopup" style="font-size:14px;font-weight:700;color:var(--text)">—</div>
-          <div id="uDeptPopup" style="font-size:12px;color:var(--muted);margin-top:1px">—</div>
-        </div>
-      </div>
-      <div style="padding:8px">
-        <button onclick="logout()" class="btn btn-ghost" style="width:100%;text-align:center;font-size:13px">登出</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div class="shell" id="appShell" style="display:none">
   <div class="topbar">
     <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
@@ -399,9 +303,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <!-- ═══════════ SECTION: 費用-上傳憑證 ═══════════ -->
 <div class="app-section" id="sec-expense-upload">
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-    <span style="font-size:13px;color:var(--muted);font-weight:600">💲 費用管理</span>
-    <span style="color:var(--border2);font-size:13px">›</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📤 上傳憑證 <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
   </div>
       <div style="display:flex;flex-direction:column;gap:18px">
@@ -464,12 +368,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <!-- ═══════════ SECTION: 費用-OCR辨識 ═══════════ -->
 <div class="app-section" id="sec-expense-ocr">
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-    <span style="font-size:13px;color:var(--muted);font-weight:600">💲 費用管理</span>
-    <span style="color:var(--border2);font-size:13px">›</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">🤖 OCR 辨識 <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
   </div>
-      <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-hd" style="display:flex;align-items:center;gap:10px">
             📥 辨識佇列
@@ -514,9 +418,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <!-- ═══════════ SECTION: 費用-匯出紀錄 ═══════════ -->
 <div class="app-section" id="sec-expense-history">
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-    <span style="font-size:13px;color:var(--muted);font-weight:600">💲 費用管理</span>
-    <span style="color:var(--border2);font-size:13px">›</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <div class="pg-title" style="margin:0">💲 費用管理</div>
+    <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📋 匯出紀錄</div>
   </div>
       <div class="card">
@@ -580,7 +484,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" id="projShowClosed" onchange="renderProjectList(S._projListRaw||[])"> 顯示已結案
         </label>
-        <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="openProjectModal(null)">➕ 新增專案</button>
+        <button class="btn btn-primary btn-sm" onclick="openProjectModal(null)">➕ 新增專案</button>
       </div>
       <div style="overflow-x:auto">
         <table class="tbl">
@@ -706,7 +610,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
   </div>
-
 </div>
 
 <!-- 員工編輯 Modal -->
@@ -744,6 +647,113 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('personModal')">取消</button>
       <button class="btn btn-primary" onclick="savePersonAdmin()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 部門編輯 Modal -->
+<div class="modal-wrap" id="deptModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="deptModal-title">部門資料</div>
+    <input type="hidden" id="dm-rowIndex">
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">部門代碼 <span style="color:var(--danger)" id="dm-code-required">*</span></label>
+        <input class="inp" id="dm-code" placeholder="例：FI">
+      </div>
+      <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="例：財務部"></div>
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="lbl">費用類型</label>
+      <div style="display:flex;gap:20px;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="radio" name="dm-expense-type" id="dm-type-other" value="other" checked> 費用
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="radio" name="dm-expense-type" id="dm-type-fuel" value="fuel"> 私車補助
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('deptModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveDeptAdmin()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 專案新增/編輯共用 Modal -->
+<div class="modal-wrap" id="projectModal">
+  <div class="modal-box" style="max-width:520px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="projectModal-title">新增專案</div>
+    <input type="hidden" id="np-rowIndex">
+    <input type="hidden" id="np-id">
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">專案代號 <span style="color:var(--danger)">*</span></label>
+        <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
+      </div>
+      <div>
+        <label class="lbl">專案名稱 <span style="color:var(--danger)">*</span></label>
+        <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
+        <select class="inp" id="np-dept">
+          <option value="">— 選擇部門 —</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">採月定額</label>
+        <div class="tgl" style="width:180px" id="tgl-np-quota">
+          <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
+          <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
+        </div>
+        <input type="hidden" id="np-quota" value="true">
+      </div>
+      <div>
+        <label class="lbl">核定補助（月定額時填寫）</label>
+        <input type="number" class="inp" id="np-subsidy" placeholder="0"
+          min="0" step="100">
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:14px">
+      <div>
+        <label class="lbl">生效日 <span style="color:var(--danger)">*</span></label>
+        <input type="date" class="inp" id="np-effect">
+      </div>
+      <div>
+        <label class="lbl">結案日（可空白）</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="date" class="inp" id="np-close" style="flex:1" onchange="npRefreshCloseClearBtn()">
+          <button class="btn btn-ghost btn-sm" id="np-close-clear" style="padding:4px 8px;flex-shrink:0;display:none"
+            title="清除結案日" onclick="npClearCloseDate()">✕</button>
+        </div>
+      </div>
+    </div>
+    <!-- 預收款 -->
+    <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px">
+      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-np-prepay">
+        <button class="tgl-btn on" onclick="setNpPrepay(false)">不啟用</button>
+        <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
+      </div>
+      <input type="hidden" id="np-prepay-enabled" value="false">
+      <div id="np-prepay-fields" style="display:none">
+        <div>
+          <label class="lbl">預收金額</label>
+          <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
+        </div>
+      </div>
+      <!-- 每期扣回比例已移至「進度設定」頁，此處不重複設定 -->
+      <input type="hidden" id="np-prepay-deductpct" value="10">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
+      <button class="btn btn-primary" id="btnAddProj" onclick="saveProjectModal()">💾 儲存</button>
     </div>
   </div>
 </div>
@@ -812,105 +822,100 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-<!-- 專案新增/編輯 Modal -->
-<div class="modal-wrap" id="projectModal">
-  <div class="modal-box" style="max-width:520px">
-    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="projectModal-title">專案資料</div>
-    <input type="hidden" id="pm-proj-editId">
-    <input type="hidden" id="pm-proj-editIdx">
-    <div class="fg2" style="margin-bottom:14px">
-      <div>
-        <label class="lbl">專案代號 <span style="color:var(--danger)">*</span></label>
-        <input class="inp" id="pm-proj-code" placeholder="例：PE2-STP20260430-02">
+<div class="mainnav" id="mainNav" style="display:none">
+  <div class="mainnav-burger" id="navBurgerBtn">
+    <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--brand-orange);width:100%;height:100%;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">☰</button>
+    <div class="navmenu" id="navMenuProject">
+      <div class="navmenu-syncrow" id="navSyncRow-project">
+        <span id="navSyncStatus-project">尚未同步</span>
+        <span id="navSyncDone-project" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
+        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
       </div>
-      <div>
-        <label class="lbl">專案名稱 <span style="color:var(--danger)">*</span></label>
-        <input class="inp" id="pm-proj-name" placeholder="例：大同觀音廠B棟空調安裝工程">
-      </div>
+      <div class="navmenu-sep"></div>
+      <div class="nav-sec">專案功能</div>
+      <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
+      <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
+      <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
+      <div class="navmenu-sep"></div>
+      <div class="nav-sec">管理</div>
+      <button class="navmenu-item" id="navSysadminBtn" onclick="switchSection('sysadmin');closeNavMenu()" style="display:none">🛠 系統管理</button>
     </div>
-    <div class="fg2" style="margin-bottom:14px">
-      <div>
-        <label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
-        <select class="inp" id="pm-proj-dept"><option value="">— 選擇部門 —</option></select>
+    <div class="navmenu" id="navMenuExpense">
+      <div class="navmenu-syncrow" id="navSyncRow-expense">
+        <span id="navSyncStatus-expense">尚未同步</span>
+        <span id="navSyncDone-expense" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
+        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
       </div>
-      <div>
-        <label class="lbl">類型</label>
-        <div class="tgl" style="width:180px" id="tgl-pm-proj-quota">
-          <button class="tgl-btn on" onclick="setPmProjQuota(true)">✅ 月定額</button>
-          <button class="tgl-btn"    onclick="setPmProjQuota(false)">🛣 里程實報</button>
+      <div class="navmenu-sep"></div>
+      <div class="nav-sec">申請月份</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px">
+        <input type="month" class="inp" id="global-month" style="font-size:14px;padding:6px 9px;flex:1"
+               onchange="onGlobalMonthChange(this.value)">
+      </div>
+      <div class="navmenu-sep"></div>
+      <div class="nav-sec">費用功能</div>
+      <button class="navmenu-item" onclick="switchExpensePage('upload')">
+        📤 上傳憑證 <span class="nbadge" id="nb-upload-m" style="margin-left:4px;display:none">0</span>
+      </button>
+      <button class="navmenu-item" onclick="switchExpensePage('ocr')">
+        🤖 OCR 辨識 <span class="nbadge" id="nb-ocr-m" style="margin-left:4px;display:none">0</span>
+      </button>
+      <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
+    </div>
+    <div class="navmenu" id="navMenuTodo" style="min-width:180px;padding:8px 0">
+      <div class="navmenu-syncrow" id="navSyncRow-todo">
+        <span id="navSyncStatus-todo">尚未同步</span>
+        <span id="navSyncDone-todo" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
+        <button onclick="doUnifiedReload()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" title="重新整理">🔄</button>
+      </div>
+      <div class="navmenu-sep"></div>
+      <div class="nav-sec">顯示篩選</div>
+      <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="td-show-done" onchange="renderTaskList()"> ✅ 已完成
+      </label>
+      <label class="navmenu-item" style="cursor:pointer;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="td-show-deleted" onchange="renderTaskList()"> 🗑 已刪除
+      </label>
+    </div>
+  </div>
+  <div class="mainnav-tabs">
+    <button class="mainnav-btn" data-section="project" onclick="switchSection('project')">
+      <span class="nv-ico">🗂</span><span>專案</span>
+    </button>
+    <button class="mainnav-btn active" data-section="expense" onclick="switchSection('expense')">
+      <span class="nv-ico">💲</span><span>費用</span>
+    </button>
+    <button class="mainnav-btn" data-section="todo" onclick="switchSection('todo')">
+      <span class="nv-ico">✅</span><span>待辦</span>
+    </button>
+  </div>
+  <div style="position:relative;display:flex;align-items:center;padding:0 10px;flex-shrink:0">
+    <div id="uAvatar" onclick="toggleUserPopup()"
+      style="width:34px;height:34px;border-radius:50%;background:var(--brand-orange);color:#fff;
+             display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;
+             overflow:hidden;flex-shrink:0;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)">—</div>
+    <!-- 使用者資訊彈出視窗：姓名/部門/職稱 + 登出（原系統管理頁底部的登出卡片移至此處） -->
+    <div id="userPopup" style="display:none;position:absolute;top:44px;right:0;min-width:200px;
+      background:var(--surface);border:1px solid var(--border2);border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:202;overflow:hidden;
+      border-top:3px solid var(--brand-orange)">
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
+        <div id="uAvatarPopup" style="width:40px;height:40px;border-radius:50%;background:var(--brand-orange);
+          color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
+          overflow:hidden;flex-shrink:0">—</div>
+        <div style="min-width:0">
+          <div id="uNamePopup" style="font-size:14px;font-weight:700;color:var(--text)">—</div>
+          <div id="uDeptPopup" style="font-size:12px;color:var(--muted);margin-top:1px">—</div>
         </div>
-        <input type="hidden" id="pm-proj-quota" value="true">
       </div>
-    </div>
-    <div class="fg2" style="margin-bottom:14px">
-      <div>
-        <label class="lbl">核定補助（月定額時填寫）</label>
-        <input type="number" class="inp" id="pm-proj-subsidy" placeholder="0" min="0" step="100">
+      <div style="padding:8px">
+        <button onclick="logout()" class="btn btn-ghost" style="width:100%;text-align:center;font-size:13px">登出</button>
       </div>
-      <div>
-        <label class="lbl">生效日 <span style="color:var(--danger)">*</span></label>
-        <input type="date" class="inp" id="pm-proj-effect">
-      </div>
-    </div>
-    <div class="fg2" style="margin-bottom:14px">
-      <div>
-        <label class="lbl">結案日（可空白）</label>
-        <div style="display:flex;align-items:center;gap:4px">
-          <input type="date" class="inp" id="pm-proj-close" style="flex:1" onchange="pmProjRefreshCloseClearBtn()">
-          <button class="btn btn-ghost btn-sm" id="pm-proj-close-clear" style="padding:4px 8px;flex-shrink:0;display:none"
-            title="清除結案日" onclick="pmProjClearCloseDate()">✕</button>
-        </div>
-      </div>
-    </div>
-    <div style="margin-bottom:16px;padding:12px;border:1px solid var(--border);border-radius:10px">
-      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-pm-proj-prepay">
-        <button class="tgl-btn on" onclick="setPmProjPrepay(false)">不啟用</button>
-        <button class="tgl-btn"    onclick="setPmProjPrepay(true)">預收款</button>
-      </div>
-      <input type="hidden" id="pm-proj-prepay-enabled" value="false">
-      <div id="pm-proj-prepay-fields" style="display:none">
-        <label class="lbl">預收金額</label>
-        <input type="number" class="inp" id="pm-proj-prepay-amount" placeholder="0" min="0" step="1000">
-      </div>
-      <input type="hidden" id="pm-proj-prepay-deductpct" value="10">
-    </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
-      <span id="pm-proj-msg" style="font-size:13px;flex:1"></span>
-      <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
-      <button class="btn btn-primary" id="pm-proj-save-btn" onclick="saveProjectModal()">💾 儲存</button>
     </div>
   </div>
 </div>
 
-<!-- 部門編輯 Modal -->
-<div class="modal-wrap" id="deptModal">
-  <div class="modal-box" style="max-width:420px">
-    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="deptModal-title">部門資料</div>
-    <input type="hidden" id="dm-rowIndex">
-    <div class="fg2" style="margin-bottom:14px">
-      <div>
-        <label class="lbl">部門代碼 <span style="color:var(--danger)" id="dm-code-required">*</span></label>
-        <input class="inp" id="dm-code" placeholder="例：FI">
-      </div>
-      <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="例：財務部"></div>
-    </div>
-    <div style="margin-bottom:18px">
-      <label class="lbl">費用類型</label>
-      <div style="display:flex;gap:20px;margin-top:6px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="radio" name="dm-expense-type" id="dm-type-other" value="other" checked> 費用
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="radio" name="dm-expense-type" id="dm-type-fuel" value="fuel"> 私車補助
-        </label>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-ghost" onclick="closeModal('deptModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveDeptAdmin()">💾 儲存</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- DUPLICATE INVOICE MODAL -->
 <div class="modal-wrap" id="dupModal">
@@ -958,7 +963,6 @@ const S = {
     projSettings:  false,  // 專案設定
     schedule:      false,  // 進度管理
     finance:       false,  // 財務專區
-    sysadmin:      false,  // 系統管理
   },
 };
 
@@ -977,12 +981,37 @@ const S = {
 // 注意：兩個來源都已在後端依 lineId 做可見部門過濾；
 //       前端這裡再對 S.config.projects 做一次部門 guard，
 //       是為了防範 config.departments 更新後 projects 快取未同步的邊緣情況。
+// ── ProjectStore：專案看板資料的單一查詢入口（Single Responsibility）──
+// 原本「依 id 找專案」這段邏輯 (S._pjBoard||[]).find(x=>x.id===id) 在 6 個地方各寫一次，
+// 這裡集中成一個 Map（O(1)），跟 DeptStore 走同一套模式：
+// 內部狀態 + rebuild() + 對外查詢方法，保留舊變數 S._pjBoard 不變，只是多了一層查詢介面。
+const ProjectStore = {
+  _byId: new Map(),
+
+  // S._pjBoard 改動後呼叫一次（loadBootstrap/loadProjectsForBoard 等取得新資料時）
+  rebuild() {
+    this._byId = new Map();
+    (S._pjBoard || []).forEach(p => { if (p.id) this._byId.set(p.id, p); });
+  },
+
+  // 依專案 id 查專案物件，找不到回 null
+  find(id) {
+    if (!id) return null;
+    return this._byId.get(id) || null;
+  },
+
+  // 完整清單（含已結案，未做可見部門過濾以外的篩選）
+  list() {
+    return S._pjBoard || [];
+  },
+};
+
 function getProjList(filter) {
   filter = filter || 'active';
 
   if (filter === 'all') {
     // _pjBoard 由 getProjects 取得，後端已做部門過濾，直接用
-    return (S._pjBoard || []);
+    return ProjectStore.list();
   }
 
   // 'active' / 'fuel-active' 都用 S.config.projects（後端已排除未生效、已結案）
@@ -1017,8 +1046,16 @@ function curMonth() {
 function colorBySign(n) {
   return n >= 0 ? 'var(--green)' : 'var(--red)';
 }
-// 依部門代碼查部門物件（先查可選清單，找不到再查含已刪除的完整清單供顯示用）
-// ── 部門/專案 Store（O(1) Map lookup）──────────────────────
+// 共用：檢查目前登入者是否具有某項權限（員工表／財務專區）
+// 原本 4 處各自寫 String(S.user?.permission || '').includes('xxx')，這裡集中一處
+function hasPermission(name) {
+  return String(S.user?.permission || '').includes(name);
+}
+
+// ── DeptStore：使用者可見部門資料的單一查詢入口（Single Responsibility）──
+// 注意：這裡管的是「一般使用者可查詢/顯示的部門資料」（來自 S.config.departments/allDepartments）。
+// 系統管理頁的 CRUD 完整清單（_deptsCache，含已刪除、給管理者編輯用）是另一個職責，
+// 故意不塞進同一個物件——「查部門資訊」跟「管理部門列表」是兩件不同的事，合在一起反而違反 SRP。
 const DeptStore = {
   _byKey: new Map(),
 
@@ -1042,42 +1079,13 @@ const DeptStore = {
     if (!code) return null;
     return this._byKey.get(code) || null;
   },
-}
+};
 
-const ProjectStore = {
-  _byId: new Map(),
-
-  // S._pjBoard 改動後呼叫一次（loadBootstrap/loadProjectsForBoard 等取得新資料時）
-  rebuild() {
-    this._byId = new Map();
-    (S._pjBoard || []).forEach(p => { if (p.id) this._byId.set(p.id, p); });
-  },
-
-  // 依專案 id 查專案物件，找不到回 null
-  find(id) {
-    if (!id) return null;
-    return this._byId.get(id) || null;
-  },
-
-  // 完整清單（含已結案，未做可見部門過濾以外的篩選）
-  list() {
-    return S._pjBoard || [];
-  },
-}
-
-// ── 部門統一存取層 ──────────────────────────────────────────
-function depts() {
-  return _deptsCache.length ? _deptsCache : (S.config.allDepartments || []);
-}
-function activeDepts() {
-  return depts().filter(d => !d.deleted);
-}
-function findDept(code) {
-  if (!code) return null;
-  return DeptStore.find(code)
-    || depts().find(d => d.code === code || d.name === code)
-    || null;
-}
+// 向後相容的薄包裝：維持舊的全域函式名稱/呼叫方式，
+// 讓既有呼叫端（findDept(...)/rebuildDeptMaps()）不用一次性全部改寫，
+// 之後要漸進搬到直接呼叫 DeptStore.find()/DeptStore.rebuild() 也可以，不影響現有行為。
+function rebuildDeptMaps() { DeptStore.rebuild(S.config); }
+function findDept(code) { return DeptStore.find(code); }
 // 部門顯示文字：已刪除部門加上刪除線樣式
 function deptDisplayHTML(d) {
   if (!d) return '';
@@ -1219,17 +1227,10 @@ function finishLogin(person) {
   document.body.classList.add('has-mainnav');
   $('mainNav').style.display = 'flex';
   renderUserBar();
-  // 立刻顯示 uploadedCard loading，不等 loadConfig 完成
-  const tbl = $('driveFileTbl');
-  if (tbl) tbl.innerHTML = loadingRow(4);
-  // item3: 先切換分頁（立即顯示「載入中」UI），再觸發兩個資料載入請求，
-  // 並讓 loadProjectsForBoard 的請求略微錯開 loadConfig，
-  // 避免兩個請求同時打到同一個 GAS Web App 部署造成互相延遲，
-  // 偶發導致其中一個請求逾時/被截斷而誤判為「成功但無資料」
-  // 先設 flag 再切頁，避免 switchSection 內部懶載入 guard 重複觸發
-  S._loaded.project = true;
-  switchSection('project');
-  loadBootstrap(); // 登入只打一次 GAS：config+projects+persons+departments
+  // 懶載入：登入只拉 config（使用者資訊、部門清單等基本資料），
+  // 專案/待辦/費用等各分頁資料留到使用者實際切換進去時才載入（見 switchSection 內的 _loaded 判斷）
+  switchSection('project'); // 登入後預設顯示「專案」分頁，會觸發其懶載入
+  loadConfig();
 }
 
 function showBindNameUI() {
@@ -1274,35 +1275,40 @@ function renderUserBar() {
   const dept  = p?.dept  || u.dept  || '';
   const title = p?.title || u.title || '';
   const depts = p?.depts?.length ? p.depts : (dept ? [dept] : []);
-  const nm = $('uName'), av = $('uAvatar'), dt = $('uDeptTitle');
-  // mainnav 右側 avatar + userPopup 同步
-  const avatarHtml = u.avatar
-    ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-    : (u.name?.[0] || '?');
-  if (av) av.innerHTML = avatarHtml;
-  const apop = $('uAvatarPopup'), npop = $('uNamePopup'), dpop = $('uDeptPopup');
-  if (apop) apop.innerHTML = avatarHtml;
-  if (npop) npop.textContent = u.name || '—';
-  if (dpop) dpop.textContent = [S.config?.userDept, u.title].filter(Boolean).join('・') || '—';
-  if (nm) nm.textContent = u.name;
-  if (dt) dt.textContent = depts.join(' / ') + (title ? ' · ' + title : '');
-  if (av) av.innerHTML = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : u.name[0];
   if (dept)         { S.user.dept = dept; S.config.userDept = dept; }
   if (title)        S.user.title = title;
   if (depts.length) S.user.depts = depts;
   const permission = String(p?.permission || u.permission || '');
   S.user.permission = permission;
-  const isFinance = permission.includes('財務專區');
+
+  // 右上角頭像 + 彈出視窗（姓名/部門/職稱 + 登出）
+  const avatarHtml = u.avatar
+    ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    : (u.name?.[0] || '?');
+  const av = $('uAvatar');
+  if (av) av.innerHTML = avatarHtml;
+  const apop = $('uAvatarPopup'), npop = $('uNamePopup'), dpop = $('uDeptPopup');
+  if (apop) apop.innerHTML = avatarHtml;
+  if (npop) npop.textContent = u.name || '—';
+  if (dpop) dpop.textContent = [depts.join(' / '), title].filter(Boolean).join('・') || '—';
+
+  const isFinance = hasPermission('財務專區');
   const finBtn = $('navFinanceBtn');
   if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
+
+  // 系統管理入口：僅 Sheet persons 權限欄位含「員工表」者可見
+  const sysBtn = $('navSysadminBtn');
+  if (sysBtn) sysBtn.style.display = hasPermission('員工表') ? 'block' : 'none';
 }
 
 function logout() {
   S.user = null;
-  // 重置所有懶載入 flag，確保下次登入重新拉取資料
+  // 重置所有懶載入 flag 與快取，確保下次登入（可能是不同使用者）重新拉取資料
   Object.keys(S._loaded).forEach(k => { S._loaded[k] = false; });
   S._ocrPageLoadedOnce = false;
-  S._pjBoard = null;
+  S._pjBoard    = null;
+  _deptsCache   = [];
+  _personsCache = [];
   $('appShell').style.display  = 'none';
   $('loginWrap').style.display = 'flex';
 }
@@ -1310,7 +1316,7 @@ function logout() {
 // ── 系統管理 ──────────────────────────────────────────────────
 function renderSysAdminUserBar() {
   const u = S.user; if (!u) return;
-  const hasPerm = String(S.user?.permission || '').includes('員工表');
+  const hasPerm = hasPermission('員工表');
   const persCard  = $('sysadmin-persons-card');
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
@@ -1327,26 +1333,20 @@ function toggleDeptsSection() {
 }
 
 let _deptsCache = [];
-let _deptsCacheReady = false;
 
-function _syncDeptsToConfig() {
-  if (_deptsCacheReady) {
-    S.config.allDepartments = [..._deptsCache];
-    DeptStore.rebuild(S.config);
-  }
-}
-
-async function loadDeptsAdmin() {
-  if (!String(S.user?.permission || '').includes('員工表')) return;
+async function loadDeptsAdmin(forceReload) {
+  if (!hasPermission('員工表')) return;
+  // E類優化：bootstrap 登入時已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
+  if (_deptsCache.length && !forceReload) { renderDeptsTable(); return; }
   const tbody = $('sysadmin-depts-tbody');
-  if (tbody) tbody.innerHTML = loadingRow(4);
+  if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
   const res = await callGAS({ action:'getDeptsAdmin', lineId: S.user?.lineId ?? '' });
   if (!res.success) {
-    if (tbody) tbody.innerHTML = errorRow(4, res.error);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
     return;
   }
   _deptsCache = res.depts ?? [];
-  _deptsCacheReady = true;
+  S._allDepts  = _deptsCache; // 含已刪除，供 openPersonModal 使用
   renderDeptsTable();
 }
 
@@ -1355,7 +1355,7 @@ function renderDeptsTable() {
   // 部門表僅顯示未刪除部門；已刪除部門完全隱藏（不提供從此處復原）
   const visible = _deptsCache.filter(d => !d.deleted);
   if (!visible.length) {
-    tbody.innerHTML = emptyRow(4, '尚無部門資料');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">尚無部門資料</td></tr>';
     return;
   }
   tbody.innerHTML = visible.map(d => {
@@ -1416,17 +1416,18 @@ async function saveDeptAdmin() {
     if (dupCode) { toast('❌ 部門代碼已存在：' + code); return; }
   }
   const defaultExpense = $('dm-type-fuel').checked;
-  const btn = document.querySelector('#deptModal .btn-primary');
-  if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
-  const res = await callGAS({ action:'saveDeptAdmin', lineId: S.user?.lineId ?? '', isNew,
-    rowIndex: isNew ? null : myIdx, code, name, defaultExpense });
-  if (btn) { btn.disabled=false; btn.innerHTML='💾 儲存'; }
-  if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); return; }
-  toast('✅ 已儲存'); closeModal('deptModal');
-  await loadDeptsAdmin();
-  _syncDeptsToConfig();
-  if ($('sysadmin-depts-body')?.style.display === 'none') toggleDeptsSection();
-  loadConfig();
+  await submitModalAction({
+    btnSelector: '#deptModal .btn-primary',
+    modalId: 'deptModal',
+    payload: { action:'saveDeptAdmin', lineId: S.user?.lineId ?? '', isNew,
+      rowIndex: isNew ? null : myIdx, code, name, defaultExpense },
+    onSuccess: async () => {
+      await loadDeptsAdmin(true);
+      if ($('sysadmin-depts-body')?.style.display === 'none') toggleDeptsSection();
+      // F2: 部門異動後刷新 config，讓新增專案的部門下拉即時更新
+      loadConfig();
+    },
+  });
 }
 
 async function softDeleteDept(idx) {
@@ -1435,18 +1436,15 @@ async function softDeleteDept(idx) {
   const res = await callGAS({ action:'deleteDeptAdmin', lineId: S.user?.lineId ?? '', code: d.code, deleted: true });
   if (!res.success) { toast('❌ ' + (res.error||'刪除失敗')); return; }
   _deptsCache[idx].deleted = true;
-  _syncDeptsToConfig();
   renderDeptsTable(); toast('✅ 已刪除');
 }
-
 
 async function saveDeptExpenseType(idx, type) {
   const d = _deptsCache[idx]; if (!d) return;
   const defaultExpense = (type === 'fuel');
   const res = await callGAS({ action:'saveDeptExpenseType', lineId: S.user?.lineId ?? '', code: d.code, defaultExpense });
-  if (!res.success) { toast('❌ 儲存失敗：' + (res.error||'')); await loadDeptsAdmin(); return; }
+  if (!res.success) { toast('❌ 儲存失敗：' + (res.error||'')); await loadDeptsAdmin(true); return; }
   _deptsCache[idx].defaultExpense = defaultExpense;
-  _syncDeptsToConfig();
   toast('✅ 已儲存');
 }
 
@@ -1456,20 +1454,21 @@ function togglePersonsSection() {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (tog) tog.textContent = open ? '▶' : '▼';
-  // 懶載入：展開時才發請求（收合不重複載）
-  if (!open) loadPersonsAdmin();
+  if (!open) loadPersonsAdmin(); // 展開時才載入，內部已用 _personsCache 長度判斷是否需要重抓
 }
 
 let _personsCache = [];
 
-async function loadPersonsAdmin() {
-  if (!String(S.user?.permission || '').includes('員工表')) return;
-  if (!_deptsCacheReady) await loadDeptsAdmin();
+async function loadPersonsAdmin(forceReload) {
+  if (!hasPermission('員工表')) return;
+  if (!_deptsCache.length) await loadDeptsAdmin(); // 確保已刪除部門快取先就位，避免員工列表顯示原始代碼
+  // E類優化：bootstrap 已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
+  if (_personsCache.length && !forceReload) { renderPersonsTable(); return; }
   const tbody = $('sysadmin-persons-tbody');
-  if (tbody) tbody.innerHTML = loadingRow(8);
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
   const res = await callGAS({ action:'getPersonsAdmin', lineId: S.user?.lineId ?? '' });
   if (!res.success) {
-    if (tbody) tbody.innerHTML = errorRow(8, res.error);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
     return;
   }
   _personsCache = res.persons ?? [];
@@ -1479,13 +1478,17 @@ async function loadPersonsAdmin() {
 function renderPersonsTable() {
   const tbody = $('sysadmin-persons-tbody'); if (!tbody) return;
   if (!_personsCache.length) {
-    tbody.innerHTML = emptyRow(8, '尚無員工資料');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
     return;
   }
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
+  const findDept = code => allDepts.find(d => d.code === code || d.name === code);
   const deptLabel = code => {
     const d = findDept(code);
     if (!d) return esc(code || '');
-    return deptDisplayHTML(d);
+    return d.deleted
+      ? `<span style="text-decoration:line-through;color:var(--muted)">${esc(d.name)}</span>`
+      : esc(d.name);
   };
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
@@ -1516,17 +1519,17 @@ async function openPersonModal(idx) {
 
   // 部門下拉：僅列出未刪除部門；若員工目前部門對應到已刪除部門，額外注入該筆 fallback 選項
   if (!_deptsCache.length) await loadDeptsAdmin();
-  const allDepts   = depts();
-  const activeDpts = activeDepts();
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
+  const activeDepts = allDepts.filter(d => !d.deleted);
   const deptSel = $('pm-dept');
   let deptOptions = '<option value="">（未設定）</option>' +
-    activeDpts.map(d => {
+    activeDepts.map(d => {
       const sel = (p.dept === d.code || p.dept === d.name) ? ' selected' : '';
       return `<option value="${esc(d.code)}"${sel}>${esc(d.name)}</option>`;
     }).join('');
   // fallback：員工目前部門若對應到已刪除部門（或完全找不到對應），注入一個選項供顯示，不可另選為新值
   if (p.dept) {
-    const matchedActive = activeDpts.find(d => d.code === p.dept || d.name === p.dept);
+    const matchedActive = activeDepts.find(d => d.code === p.dept || d.name === p.dept);
     if (!matchedActive) {
       const deletedMatch = allDepts.find(d => d.code === p.dept || d.name === p.dept);
       const label = deletedMatch ? `${esc(deletedMatch.name)} (已刪除)` : esc(p.dept);
@@ -1538,14 +1541,14 @@ async function openPersonModal(idx) {
   // 可顯示部門：僅列出未刪除部門；員工目前已勾選的已刪除部門額外加入（刪除線），供取消勾選
   const pDepts = p.depts || [];
   const deptsBox = $('pm-depts');
-  let deptsHtml = activeDpts.map(d => {
+  let deptsHtml = activeDepts.map(d => {
     const checked = pDepts.includes(d.code) || pDepts.includes(d.name);
     return `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg)">
       <input type="checkbox" class="pm-depts-chk" value="${esc(d.code)}" ${checked?'checked':''} style="width:14px;height:14px">${esc(d.name)}
     </label>`;
   }).join('');
   pDepts.forEach(code => {
-    if (activeDpts.some(d => d.code === code || d.name === code)) return; // 已在上面列出
+    if (activeDepts.some(d => d.code === code || d.name === code)) return; // 已在上面列出
     const deletedMatch = allDepts.find(d => d.code === code || d.name === code);
     const label = deletedMatch ? deletedMatch.name : code;
     deptsHtml += `<label style="display:flex;align-items:center;gap:5px;font-size:13px;padding:3px 6px;border-radius:6px;background:var(--bg);text-decoration:line-through;color:var(--muted)">
@@ -1567,7 +1570,7 @@ async function savePersonAdmin() {
   const rowIndexRaw = $('pm-rowIndex').value;
   const isNew = rowIndexRaw === '';
 
-  const allDepts = depts();
+  const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
   const isDeletedDept = code => !!code && allDepts.some(d => (d.code === code || d.name === code) && d.deleted);
 
   // 部門：不允許儲存已刪除部門，必須改選有效部門或（未設定）
@@ -1583,36 +1586,35 @@ async function savePersonAdmin() {
   depts = depts.filter(c => !isDeletedDept(c));
   if (removedCount) toast(`⚠️ 已自動移除 ${removedCount} 個已刪除的可顯示部門`);
 
-  const btn = document.querySelector('#personModal .btn-primary');
-  if (btn) { btn.disabled=true; btn.textContent='儲存中...'; }
   const permission = [
     $('pm-perm-persons').checked ? '員工表'   : '',
     $('pm-perm-finance').checked ? '財務專區' : '',
   ].filter(Boolean).join(',');
-  const res = await callGAS({
-    action: 'savePersonAdmin', lineId: S.user?.lineId ?? '', isNew,
-    rowIndex:     isNew ? null : parseInt(rowIndexRaw, 10),
-    name,
-    linename:     $('pm-linename').value.trim(), // 隱藏欄位，保留原值
-    dept:         deptVal,
-    title:        $('pm-title').value.trim(),
-    personLineId: $('pm-lineId').value.trim(),    // 隱藏欄位，保留原值
-    depts:        depts.join(','),
-    permission,
-    resigned:     $('pm-resigned').checked,
+  await submitModalAction({
+    btnSelector: '#personModal .btn-primary',
+    modalId: 'personModal',
+    payload: {
+      action: 'savePersonAdmin', lineId: S.user?.lineId ?? '', isNew,
+      rowIndex:     isNew ? null : parseInt(rowIndexRaw, 10),
+      name,
+      linename:     $('pm-linename').value.trim(), // 隱藏欄位，保留原值
+      dept:         deptVal,
+      title:        $('pm-title').value.trim(),
+      personLineId: $('pm-lineId').value.trim(),    // 隱藏欄位，保留原值
+      depts:        depts.join(','),
+      permission,
+      resigned:     $('pm-resigned').checked,
+    },
+    onSuccess: async () => {
+      // 若編輯的是目前登入者本人，立即重拉 config 讓漢堡按鈕即時生效
+      if (name === S.user?.name) {
+        await loadConfig();
+        renderUserBar();
+      }
+      await loadPersonsAdmin(true);
+      if ($('sysadmin-persons-body')?.style.display === 'none') togglePersonsSection();
+    },
   });
-  if (btn) { btn.disabled=false; btn.innerHTML='💾 儲存'; }
-  if (!res.success) { toast('❌ ' + (res.error||'儲存失敗')); return; }
-  toast('✅ 已儲存');
-  closeModal('personModal');
-  // 若編輯的是目前登入者本人（lineId比對），立即重拉config讓漢堡按鈕即時生效
-  const editedLineId = $('pm-lineId').value.trim();
-  if (editedLineId && editedLineId === S.user?.lineId) {
-    await loadConfig();
-    renderUserBar();
-  }
-  await loadPersonsAdmin();
-  if ($('sysadmin-persons-body')?.style.display === 'none') togglePersonsSection();
 }
 
 // ── 統一同步狀態 ──────────────────────────────────────────────
@@ -1637,69 +1639,17 @@ const currentSyncScope = () =>
 function updateUnifiedSyncUI() {}
 
 function doUnifiedReload() {
-  // 手動 🔄：強制重載，清除對應 section 的懶載入 flag
   const resetAndRun = (flags, fn) => { flags.forEach(f => { S._loaded[f] = false; }); fn(); };
   const actions = {
-    expense:         () => doReloadAll(),
-    todo:            () => resetAndRun(['todo'],         loadTasks),
-    project:         () => resetAndRun(['project'],      loadProjectsForBoard),
-    'proj-settings': () => resetAndRun(['projSettings'], () => { loadConfig(); loadProjectList(true); }),
-    schedule:        () => { S._loaded.schedule = false; loadProjectsForBoard().then(pgPopulateProjectSelect); },
-    finance:         () => resetAndRun(['finance'],      loadFinance),
-    sysadmin:        () => { S._loaded.sysadmin = false; renderSysAdminUserBar(); loadPersonsAdmin(); },
+    expense:        doReloadAll,
+    todo:           () => resetAndRun(['todo'],         loadTasks),
+    project:        () => resetAndRun(['project'],      loadProjectsForBoard),
+    'proj-settings':() => resetAndRun(['projSettings'], () => { loadConfig(); loadProjectList(true); }),
+    schedule:       () => { S._loaded.schedule = false; loadProjectsForBoard().then(pgPopulateProjectSelect); },
+    finance:        () => resetAndRun(['finance'],      loadFinance),
+    sysadmin:       () => { loadDeptsAdmin(true); loadPersonsAdmin(true); },
   };
   (actions[_currentSection] || loadConfig)();
-}
-
-function rebuildDeptMaps() { DeptStore.rebuild(S.config); }
-
-async function loadBootstrap(_isRetry) {
-  const scope = currentSyncScope();
-  setNavSyncStatus(scope, '同步中...', true);
-  const board = $('projBoard');
-  if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
-  try {
-    const res = await callGAS({ action:'getBootstrapData', lineId: S.user?.lineId ?? '' });
-    if (!res.success) throw new Error(res.error);
-    const { config, projects, persons, departments } = res.data;
-
-    // -- config（沿用 loadConfig 原本的處理）--
-    S.config = config;
-    S.config.userDeptCode = config.userDeptCode ?? '';
-    S.config.startAddress = config.startAddress ?? '';
-    if (!S.config.departments?.length) {
-      const fb = config.userDept || S.user?.dept || '';
-      S.config.departments = fb ? [{ code:fb, name:fb }] : [];
-    }
-    rebuildDeptMaps();
-
-    // -- 專案看板（沿用 loadProjectsForBoard 原本的處理）--
-    if (shouldRetryEmpty(projects, S._pjBoard, _isRetry)) return loadBootstrap(true);
-    S._pjBoard = projects ?? [];
-    ProjectStore.rebuild();
-    if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
-    renderProjectBoard();
-
-    // -- 系統管理快取（沒有「員工表」權限時後端回空陣列，先放著；
-    //    之後使用者若打開系統管理頁，loadPersonsAdmin/loadDeptsAdmin 看到已有快取就不會重複打 API）--
-    _deptsCache      = departments ?? [];
-    _deptsCacheReady = _deptsCache.length > 0;
-    _personsCache    = persons ?? [];
-    // DeptStore 隨 bootstrap 資料重建
-    DeptStore.rebuild(S.config);
-
-    setNavSyncStatus(scope, '✅ 同步完成 ' + now());
-    flashNavSyncDone(scope);
-    flashNavSyncDone('project');
-  } catch(e) {
-    if (board) board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗，請點 🔄 重新整理</div>';
-    setNavSyncStatus(scope, '❌ 連線失敗，請重試');
-  }
-  if (S.user) renderUserBar();
-  populateSelects();
-  loadDriveFiles();
-  loadExportHistory(false);
-  if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
 async function loadConfig() {
@@ -1715,11 +1665,7 @@ async function loadConfig() {
       const fb = res.data.userDept || S.user?.dept || '';
       S.config.departments = fb ? [{ code:fb, name:fb }] : [];
     }
-    if (!S.config.allDepartments?.length) {
-      S.config.allDepartments = [...(S.config.departments || [])];
-    }
-    if (_deptsCacheReady) { _deptsCache = [...S.config.allDepartments]; }
-    DeptStore.rebuild(S.config);
+    rebuildDeptMaps(); // B類優化：部門清單更新後重建查詢用 Map
     setNavSyncStatus(scope, '✅ 同步完成 ' + now());
     flashNavSyncDone(scope);
   } catch(e) {
@@ -1727,10 +1673,15 @@ async function loadConfig() {
   }
   if (S.user) renderUserBar();
   populateSelects();
-  // 懶載入：只在費用相關頁面才觸發 Drive 檔案與匯出紀錄的載入
+  // 懶載入：只在費用相關頁面才觸發 Drive 檔案與匯出紀錄的載入（依 _loaded flag 避免重複）
   if (_currentSection === 'expense') {
-    if (_currentExpensePage === 'upload') loadDriveFiles();
-    else if (_currentExpensePage === 'history') loadExportHistory(false);
+    if (_currentExpensePage === 'upload' && !S._loaded.driveFiles) {
+      S._loaded.driveFiles = true;
+      loadDriveFiles();
+    } else if (_currentExpensePage === 'history' && !S._loaded.exportHistory) {
+      S._loaded.exportHistory = true;
+      loadExportHistory(false);
+    }
   }
   if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
@@ -1747,19 +1698,17 @@ function onGlobalMonthChange(val) {
   window._fuelProjList = [];
   S._ocrPageLoadedOnce = false;
   // 立即觸發目前所在費用子頁的重載
-  if (_currentSection === 'expense') {
-    if (_currentExpensePage === 'upload') {
-      S._loaded.driveFiles = true;
-      loadDriveFiles();
-    } else if (_currentExpensePage === 'ocr') {
-      S._ocrPageLoadedOnce = true;
-      reloadOcrWithFuel();
-    } else if (_currentExpensePage === 'history') {
-      S._loaded.exportHistory = true;
-      loadExportHistory(false);
-    } else {
-      renderOCRResults();
-    }
+  if (_currentExpensePage === 'upload') {
+    S._loaded.driveFiles = true;
+    loadDriveFiles();
+  } else if (_currentExpensePage === 'ocr') {
+    S._ocrPageLoadedOnce = true;
+    reloadOcrWithFuel();
+  } else if (_currentExpensePage === 'history') {
+    S._loaded.exportHistory = true;
+    loadExportHistory(false);
+  } else {
+    renderOCRResults();
   }
 }
 
@@ -1770,7 +1719,6 @@ function doReloadAll() {
     loadConfig();
     loadDriveFiles();
   } else if (page === 'ocr') {
-    S._ocrPageLoadedOnce = true;
     reloadOcrWithFuel();
   } else if (page === 'history') {
     S._loaded.exportHistory = true;
@@ -2259,6 +2207,26 @@ function clearQueue()   { S.ocrQueue=[]; renderQueue(); badge('nb-ocr',0); $('bt
 // ════════════════════════════════════════════════════════════
 // RUN OCR
 // ════════════════════════════════════════════════════════════
+// F類優化：原本逐張 await（序列），改成限制併發數的批次處理。
+// 限制併發數（而非無限平行）是因為 GAS 的 UrlFetchApp／Gemini API 都有速率限制，
+// 太多同時請求容易直接被 429 打回來，反而更慢。
+// ⚠️ 重要：「Gemini OCR 呼叫」本身是安全可併發的（每張圖獨立、互不影響），
+// 但「寫入 OcrResults 並判斷發票重複」這段如果沒有保護，併發下會有 race condition
+// （兩個併發執行各自讀到舊的重複清單，導致同一批裡的重複發票號碼都被誤判成不重複）。
+// 這裡已經在後端 logOcrResults() 加了 LockService 鎖住那段，所以可以放心併發。
+const OCR_CONCURRENCY = 3;
+
+async function runWithConcurrency(items, limit, worker) {
+  let idx = 0;
+  async function next() {
+    if (idx >= items.length) return;
+    const item = items[idx++];
+    await worker(item);
+    return next();
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, next));
+}
+
 async function runOCR() {
   const pending = S.ocrQueue.filter(q => q.status==='pending');
   if (!pending.length) { toast('沒有待辨識項目'); return; }
@@ -2267,10 +2235,11 @@ async function runOCR() {
   const bar=$('ocrProgBar'), txt=$('ocrProgTxt'), fl=$('ocrProgFile');
 
   _ocrCountBefore = S.receipts.length;
+  let completed = 0;
+  const total = pending.length;
 
-  for (let i=0; i<pending.length; i++) {
-    const qf = pending[i];
-    txt.textContent=`${i+1}/${pending.length}`; bar.style.width=`${(i/pending.length)*100}%`; fl.textContent=qf.name;
+  async function processOne(qf) {
+    fl.textContent = qf.name; // 併發下這裡只能顯示「最近一個開始處理的檔名」，仍保留進度線索用
 
     // 解析 qAttribution → attribution / attributionTarget
     const qa = qf.qAttribution || 'project';
@@ -2335,11 +2304,17 @@ async function runOCR() {
       });
     }
 
-    // ── 每一個 file 辨識完就立即渲染結果 ──
+    // ── 每完成一筆就立即更新進度與渲染（順序依完成時間，不是送出順序）──
+    completed++;
+    txt.textContent = `${completed}/${total}`;
+    bar.style.width = `${(completed/total)*100}%`;
     renderQueue();
     renderOCRResults();
     updateStats();
   }
+
+  await runWithConcurrency(pending, OCR_CONCURRENCY, processOne);
+
   bar.style.width='100%'; fl.textContent='✅ 全部完成';
   setBtnLoading('btnOCR', false, '▶ 開始辨識');
   updateStats();
@@ -2442,7 +2417,7 @@ function renderOCRResults() {
       border-radius:10px;background:${active?'rgba(232,119,34,.08)':'var(--surface)'};
       cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif">
       <div style="font-size:13px;font-weight:800;color:${active?'var(--accent)':'var(--muted)'}">${icon} ${label}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+      <div style="font-size:12px;color:#888;margin-top:2px">
         ${isFuel ? '' : `<span id="tab-${key}-cnt">${cnt} 張</span> `}
         <strong id="tab-${key}-amt" style="color:${active?'var(--gold)':'var(--muted)'}">$${amt.toLocaleString()}</strong>
       </div>
@@ -2605,7 +2580,7 @@ function initOtherAttrDropdown() {
   // 場景4A：批次歸屬選「未結案」專案（新申請不應指向已結案）
   const items = getProjList('active')
     .map(p => ({ id: p.id, name: p.name, quota: p.quota }))
-    .concat(activeDepts().map(d => ({ id: d.code, name: d.name, noCode: true })))
+    .concat((S.config.departments||[]).map(d => ({ id: d.code, name: d.name, noCode: true })))
     .concat([{ id: '其他', name: '管理部', noCode: true }]);
   fdInit('fd-other-attr', items, item => {
     _otherSelectedItem = item;
@@ -2897,7 +2872,7 @@ function initFuelProjDropdowns() {
   const projItems = getProjList('active')
     .filter(p => !selectedIds.includes(p.id))
     .map(p => ({ id: p.id, name: p.name, quota: p.quota, type: p.quota ? 'quota' : 'mile' }));
-  const deptItems = activeDepts()
+  const deptItems = (S.config.departments || [])
     .filter(d => !selectedIds.includes(d.code))
     .map(d => ({ id: d.code, name: d.name, type: 'dept', noCode: true }));
   const otherItem = selectedIds.includes('其他') ? [] : [{ id: '其他', name: '管理部', type: 'other', noCode: true }];
@@ -3024,7 +2999,7 @@ function fuelFRRowHTML(idx, fi, fr) {
         <input class="inp" id="fprsn-${idx}-${fi}" value="${esc(fr.reason||'')}"
           placeholder="外勤事由" onchange="saveFuelFRs(${idx})"></div>
       <div><label class="lbl">來回/單程</label>
-        <div class="tgl" style="width:120px">
+        <div class="tgl">
           <button class="tgl-btn ${fr.isRound!==false?'on':''}" id="fprnd-${idx}-${fi}"
             onclick="setFuelFRRound(${idx},${fi},true)">來回</button>
           <button class="tgl-btn ${fr.isRound===false?'on':''}" id="fpone-${idx}-${fi}"
@@ -3078,7 +3053,7 @@ function toggleApplyProjInfo() {
           return p ? `・${p.id} ${p.name}（月定額 $${(p.subsidy||0).toLocaleString()}）` : '';
         }
         const p = S.config.projects.find(x => x.id === fp.projId);
-        const d = !p && fp.deptId ? findDept(fp.deptId) : null;
+        const d = !p && fp.deptId ? (S.config.departments||[]).find(x=>x.code===fp.deptId) : null;
         const label = p ? `${p.id} ${p.name}` : d ? d.name : fp.deptId || '部門';
         return `・${label}（里程實報）`;
       }).filter(Boolean);
@@ -3106,7 +3081,7 @@ function initFuelMileDropdownAt(idx) {
   // 場景5A：里程實報選「未結案」專案（新申請不應指向已結案）+ 部門 + 管理部
   const projItems = getProjList('active')
     .map(p => ({ id: p.id, name: p.name, badge: p.quota ? '月定額' : '里程' }));
-  const deptItems = activeDepts().map(d => ({ id: d.code, name: d.name, badge: '部門', noCode: true }));
+  const deptItems = (S.config.departments || []).map(d => ({ id: d.code, name: d.name, badge: '部門', noCode: true }));
   const otherItem = [{ id: '其他', name: '管理部', badge: '部門', noCode: true }];
   const allItems  = [...projItems, ...deptItems, ...otherItem];
 
@@ -3396,21 +3371,30 @@ function rcHTML(r) {
   // ── 辨識失敗：顯示專用卡片，提醒使用者重新辨識或手動填寫 ──
   if (r.status === 'error') {
     return `
-    <div id="rc-${r.id}" style="border:1px solid rgba(220,38,38,.25);border-radius:12px;margin-bottom:12px;background:rgba(220,38,38,.04);overflow:hidden">
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:rgba(220,38,38,.07);flex-wrap:wrap">
-        <span style="font-size:20px">❌</span>
+    <div id="rc-${r.id}" style="border:2px solid var(--red,#e53935);border-radius:12px;margin-bottom:12px;background:#fff8f8;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:#ffebee;flex-wrap:wrap">
+        <span style="font-size:22px">❌</span>
         <div style="flex:1 1 100%;min-width:200px">
-          <div style="font-weight:700;color:var(--red);font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
-          ${r.error ? `<div style="font-size:11px;color:var(--red);opacity:.8;margin-top:3px">錯誤：${r.error}</div>` : ''}
+          <div style="font-weight:700;color:#c62828;font-size:14px">辨識失敗 — 請重新辨識或手動填寫</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.source||''}">${r.source||'未知檔案'}</div>
+          ${r.error ? `<div style="font-size:11px;color:#b71c1c;margin-top:3px">錯誤：${r.error}</div>` : ''}
         </div>
-        <div style="display:flex;gap:8px;margin-left:32px;flex-wrap:wrap;align-items:center">
-          <button onclick="retryOCR('${r.id}')" class="btn btn-primary btn-sm">🔄 重新辨識</button>
-          <button onclick="editErrorReceipt('${r.id}')" class="btn btn-ghost btn-sm">✏️ 手動填寫</button>
-          <button onclick="removeErrorReceipt('${r.id}')" class="btn btn-danger btn-sm btn-icon" title="移除">🗑</button>
+        <div style="display:flex;gap:8px;margin-left:32px;flex-wrap:wrap">
+        <button onclick="retryOCR('${r.id}')"
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#1565c0;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔄 重新辨識
+        </button>
+        <button onclick="editErrorReceipt('${r.id}')"
+          style="flex-shrink:0;padding:7px 14px;border-radius:8px;border:none;background:#f5f5f5;color:#333;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #ddd">
+          ✏️ 手動填寫
+        </button>
+        <button onclick="removeErrorReceipt('${r.id}')"
+          style="flex-shrink:0;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:#b71c1c;font-size:16px;cursor:pointer" title="移除">
+          🗑
+        </button>
         </div>
       </div>
-      <div id="rc-edit-${r.id}" style="display:none;padding:14px;border-top:1px solid rgba(220,38,38,.2);flex-direction:column;gap:10px">
+      <div id="rc-edit-${r.id}" style="display:none;padding:14px;border-top:1px solid #ffcdd2;flex-direction:column;gap:10px">
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:140px">
             <label class="lbl">廠商/說明</label>
@@ -3509,7 +3493,7 @@ function rcHTML(r) {
         <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${r.vendor}${newTag}
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">${r.source || ''}${r.idx > 0 ? ' [第'+r.idx+'張]' : ''} · ${r.date || ''}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">${r.source || ''}${r.idx > 0 ? ' [第'+r.idx+'張]' : ''} · ${r.date || ''}</div>
         <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${catBadge}${dupBadge}</div>
       </div>
       <div class="mono" style="font-size:17px;font-weight:800;color:var(--gold)">$${r.amount.toLocaleString()}</div>
@@ -3579,7 +3563,7 @@ function rcHTML(r) {
   // 還原已存值用：含已結案（場景4B/5B，既有申請可能指向已結案專案）
   const _allProjItems = allProjects;
   const _deptItems = [
-    ...activeDepts().map(d=>({id:d.code, name:d.name})),
+    ...(S.config.departments||[]).map(d=>({id:d.code, name:d.name})),
     {id:'其他', name:'其他'},
   ];
   const _recentIds = recentIds;
@@ -3883,7 +3867,7 @@ function fieldRowHTML(rid, i, pf) {
         <input class="inp" id="fr-rsn-${rid}-${i}" value="${esc(def.reason)}" placeholder="外勤事由"
           onchange="saveFRs('${rid}')"></div>
       <div><label class="lbl">來回 / 單程</label>
-        <div class="tgl" style="width:120px">
+        <div class="tgl">
           <button class="tgl-btn ${def.isRound?'on':''}"  id="fr-rnd-${rid}-${i}"
             onclick="setFRRound('${rid}',${i},true)">來回</button>
           <button class="tgl-btn ${def.isRound?'':'on'}" id="fr-one-${rid}-${i}"
@@ -4224,7 +4208,7 @@ function renderDupModal(r) {
       : `<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8">
            <div style="color:var(--red);font-weight:700;margin-bottom:4px">⚠️ 此發票號碼已存在於系統紀錄中</div>
            <div style="color:var(--muted)">目前暫存 Key：<span class="mono" style="color:var(--text)">${r._tempKey}</span></div>
-           <div style="color:var(--muted);margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
+           <div style="color:#888;margin-top:2px">請確認是否為同一張發票（覆蓋），或是辨識錯誤（保留流水號）</div>
          </div>`
     }`;
 
@@ -4321,7 +4305,7 @@ function renderPdfResultList(urls, labels) {
       transition:background .15s;
     `;
     row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
-    row.onmouseover = () => row.style.background = 'rgba(232,119,34,.06)';
+    row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
     row.onmouseout  = () => row.style.background = 'var(--surface)';
     wrap.appendChild(row);
   });
@@ -4374,7 +4358,7 @@ async function _doExport(skipStash = false) {
       attrLabel = proj ? proj.id+' '+proj.name : fp.projId;
     } else if (fp.attrType === 'dept') {
       attribution = 'dept'; deptId = fp.deptId;
-      const dept = findDept(fp.deptId);
+      const dept = (S.config.departments||[]).find(d=>d.code===fp.deptId);
       attrLabel = dept ? dept.name : fp.deptId;
     } else if (fp.attrType === 'other') {
       attribution = 'other'; attrLabel = '其他';
@@ -4480,9 +4464,44 @@ function switchSection(name) {
   closeNavMenu();
   updateUnifiedSyncUI();
 
-  // 懶載入：各 section 首次進入才發請求，已載入則直接顯示快取
+  // 懶載入：各 section 首次進入才發請求，已載入則直接顯示既有快取
+  if (name === 'todo' && !S._loaded.todo) {
+    S._loaded.todo = true;
+    loadTasks();
+  }
+  if (name === 'project' && !S._loaded.project) {
+    S._loaded.project = true;
+    loadProjectsForBoard();
+  }
+  if (name === 'proj-settings') {
+    populateNpDept();
+    renderSettingsUserBar();
+    if (!S._loaded.projSettings) {
+      S._loaded.projSettings = true;
+      loadProjectList(false);
+    }
+  }
+  if (name === 'schedule') {
+    pgPopulateDeductMethods();
+    if (S._pjBoard?.length) {
+      pgPopulateProjectSelect(); // 已有快取直接填充，不重新 fetch
+    } else if (!S._loaded.schedule) {
+      S._loaded.schedule = true;
+      loadProjectsForBoard().then(pgPopulateProjectSelect);
+    }
+  }
+  if (name === 'finance' && !S._loaded.finance) {
+    S._loaded.finance = true;
+    loadFinance();
+  }
+  if (name === 'sysadmin') {
+    if (!hasPermission('員工表')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
+    renderSysAdminUserBar();
+    // 員工表 accordion 預設收合，只在已展開時才載入；收合狀態下展開時由 togglePersonsSection 觸發
+    if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
+  }
   if (name === 'expense') {
-    // 費用頁：依目前子頁觸發懶載入（第一次進入或月份切換後 flag 已重置）
+    // 費用頁：依目前子頁觸發懶載入（首次進入或月份切換後 flag 已重置）
     if (_currentExpensePage === 'upload' && !S._loaded.driveFiles) {
       S._loaded.driveFiles = true;
       loadDriveFiles();
@@ -4492,51 +4511,6 @@ function switchSection(name) {
     } else if (_currentExpensePage === 'history' && !S._loaded.exportHistory) {
       S._loaded.exportHistory = true;
       loadExportHistory(false);
-    }
-  }
-  if (name === 'todo') {
-    if (!S._loaded.todo) {
-      S._loaded.todo = true;
-      loadTasks();
-    }
-  }
-  if (name === 'project') {
-    if (!S._loaded.project) {
-      S._loaded.project = true;
-      loadProjectsForBoard();
-    }
-  }
-  if (name === 'proj-settings') {
-    renderSettingsUserBar();
-    populateNpDept();
-    if (!S._loaded.projSettings) {
-      S._loaded.projSettings = true;
-      loadProjectList(false);
-    }
-  }
-  if (name === 'schedule') {
-    pgPopulateDeductMethods();
-    // _pjBoard 已有資料時直接填充 select，不重新 fetch
-    if (S._pjBoard?.length) {
-      pgPopulateProjectSelect();
-    } else if (!S._loaded.schedule) {
-      S._loaded.schedule = true;
-      loadProjectsForBoard().then(pgPopulateProjectSelect);
-    }
-  }
-  if (name === 'finance') {
-    if (!S._loaded.finance) {
-      S._loaded.finance = true;
-      loadFinance();
-    }
-  }
-  if (name === 'sysadmin') {
-    // sysadmin 進入只渲染 userbar；員工表與部門表各自在 accordion 展開時懶載入
-    renderSysAdminUserBar();
-    if (!S._loaded.sysadmin) {
-      S._loaded.sysadmin = true;
-      // 若員工表 accordion 已展開，立即載入
-      if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
     }
   }
 }
@@ -4574,8 +4548,9 @@ function isProjectRelated(name) {
     S._loaded.exportHistory = true;
     loadExportHistory(false);
   }
-  // OCR 辨識：沿用既有的 _ocrPageLoadedOnce flag（語意一致，保留）
-  if (page === 'ocr' && !S._ocrPageLoadedOnce) {
+  // 首次進入「OCR 辨識」子頁時自動載入申請專案歸屬與佇列，
+  // 避免使用者誤以為底下空白（之前需手動按 🔄 才會出現「申請專案」卡片）
+  if (page==='ocr' && !S._ocrPageLoadedOnce) {
     S._ocrPageLoadedOnce = true;
     reloadOcrWithFuel();
   }
@@ -4613,91 +4588,153 @@ function nav(name) {
 }
 
 // ════════════════════════════════════════════════════════════
-// D. 專案設定 — 新增/編輯 modal
+// D. 新增專案頁
 // ════════════════════════════════════════════════════════════
 
-function setPmProjQuota(isQuota) {
-  $('pm-proj-quota').value = isQuota ? 'true' : 'false';
-  $('tgl-pm-proj-quota')?.querySelectorAll('.tgl-btn').forEach((b,i)=>b.classList.toggle('on',i===(isQuota?0:1)));
-  const sub=$('pm-proj-subsidy'); if(sub){sub.disabled=!isQuota;if(!isQuota)sub.value='';}
+// 填充部門下拉（從 S.config.departments）
+function populateNpDept() {
+  const sel = $('np-dept');
+  if (!sel) return;
+  const depts = S.config.departments || [];
+  sel.innerHTML = '<option value="">— 選擇部門 —</option>' +
+    depts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
-function setPmProjPrepay(enabled) {
-  $('pm-proj-prepay-enabled').value=enabled?'true':'false';
-  $('tgl-pm-proj-prepay')?.querySelectorAll('.tgl-btn').forEach((b,i)=>b.classList.toggle('on',i===(enabled?1:0)));
-  const f=$('pm-proj-prepay-fields');if(f)f.style.display=enabled?'block':'none';
-}
-function openProjectModal(idx) {
-  const isNew=idx===null;
-  $('projectModal-title').textContent=isNew?'➕ 新增專案':'✏️ 編輯專案';
-  const p=isNew?{}:((S._projListRaw||[])[idx]||{});
-  $('pm-proj-editId').value=isNew?'':(p.id||'');
-  $('pm-proj-editIdx').value=isNew?'':String(idx);
-  const ci=$('pm-proj-code'); ci.value=p.code||p.id||''; ci.readOnly=!isNew; ci.style.background=isNew?'':'var(--surface2)';
-  $('pm-proj-name').value=p.name||''; $('pm-proj-effect').value=p.effectDate||'';
-  $('pm-proj-close').value=p.closeDate||''; pmProjRefreshCloseClearBtn();
-  $('pm-proj-msg').textContent='';
-  const quota=isNew?true:!!p.quota; const prepay=p.prepay||{enabled:false,amount:0,deductPct:10};
-  $('pm-proj-quota').value=quota?'true':'false';
-  $('tgl-pm-proj-quota')?.querySelectorAll('.tgl-btn').forEach((b,i)=>b.classList.toggle('on',i===(quota?0:1)));
-  const sub=$('pm-proj-subsidy'); if(sub){sub.value=p.subsidy||'';sub.disabled=!quota;}
-  $('pm-proj-prepay-enabled').value=prepay.enabled?'true':'false';
-  $('pm-proj-prepay-amount').value=prepay.amount||0;
-  $('pm-proj-prepay-deductpct').value=prepay.deductPct||10;
-  $('tgl-pm-proj-prepay')?.querySelectorAll('.tgl-btn').forEach((b,i)=>b.classList.toggle('on',i===(prepay.enabled?1:0)));
-  const pf=$('pm-proj-prepay-fields');if(pf)pf.style.display=prepay.enabled?'block':'none';
-  const ds=$('pm-proj-dept'); populateNpDept(ds);
-  if(p.deptCode){
-    if(!activeDepts().find(d=>d.code===p.deptCode)){
-      const del=findDept(p.deptCode);
-      ds.innerHTML+=`<option value="${esc(p.deptCode)}" style="text-decoration:line-through;color:var(--muted)">${esc(del?del.name+' (已刪除)':p.deptCode)}</option>`;
-    }
-    ds.value=p.deptCode;
+
+// 月定額 toggle
+function setNpQuota(isQuota) {
+  $('np-quota').value = isQuota ? 'true' : 'false';
+  const tgl = $('tgl-np-quota');
+  if (tgl) {
+    tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+      b.classList.toggle('on', i === (isQuota ? 0 : 1)));
   }
+  // 里程實報時核定補助 disable
+  const sub = $('np-subsidy');
+  if (sub) {
+    sub.disabled = !isQuota;
+    if (!isQuota) sub.value = '';
+  }
+}
+
+// 預收款 toggle
+function setNpPrepay(enabled) {
+  $('np-prepay-enabled').value = enabled ? 'true' : 'false';
+  const tgl = $('tgl-np-prepay');
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
+    b.classList.toggle('on', i === (enabled ? 1 : 0)));
+  const fields = $('np-prepay-fields');
+  if (fields) fields.style.display = enabled ? 'block' : 'none';
+}
+
+// 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
+function openProjectModal(i) {
+  populateNpDept();
+  const isNew = (i === null || i === undefined);
+  const p = isNew ? null : (S._projList || [])[i];
+  if (!isNew && !p) return;
+
+  $('projectModal-title').textContent = isNew ? '➕ 新增專案' : '✏️ 編輯專案';
+  $('np-rowIndex').value = isNew ? '' : i;
+  $('np-id').value       = isNew ? '' : p.id;
+  $('np-code').value     = isNew ? '' : (p.code || '');
+  $('np-code').disabled  = false;
+  $('np-name').value     = isNew ? '' : (p.name || '');
+  $('np-dept').value     = isNew ? '' : (p.deptCode || '');
+  $('np-effect').value   = isNew ? '' : (p.effectDate || '');
+  $('np-close').value    = isNew ? '' : (p.closeDate || '');
+  npRefreshCloseClearBtn();
+
+  const quota = isNew ? true : !!p.quota;
+  setNpQuota(quota);
+  $('np-subsidy').value = (!isNew && quota && p.subsidy) ? p.subsidy : '';
+
+  const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
+  setNpPrepay(!!prepay.enabled);
+  $('np-prepay-amount').value     = prepay.amount || '';
+  $('np-prepay-deductpct').value  = prepay.deductPct || 10;
+
+  $('npMsg').textContent = '';
+  const btn = $('btnAddProj');
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
   openModal('projectModal');
 }
-function pmProjClearCloseDate() {
-  const el = $('pm-proj-close'); if (!el) return;
+
+// 結案日清除按鈕（比照員工/財務專區樣式）
+function npClearCloseDate() {
+  const el = $('np-close'); if (!el) return;
   el.value = '';
-  pmProjRefreshCloseClearBtn();
+  npRefreshCloseClearBtn();
 }
-function pmProjRefreshCloseClearBtn() {
-  const el = $('pm-proj-close'), btn = $('pm-proj-close-clear');
+function npRefreshCloseClearBtn() {
+  const el = $('np-close'), btn = $('np-close-clear');
   if (!el || !btn) return;
   btn.style.display = el.value ? 'inline-flex' : 'none';
 }
+
+// 儲存（新增或編輯，依 np-rowIndex 是否為空判斷）
 async function saveProjectModal() {
-  const isNew=$('pm-proj-editId').value==='', editId=$('pm-proj-editId').value;
-  const code=$('pm-proj-code').value.trim(), name=$('pm-proj-name').value.trim();
-  const dept=$('pm-proj-dept').value, quota=$('pm-proj-quota').value==='true';
-  const subsidy=parseFloat($('pm-proj-subsidy').value)||0;
-  const effect=$('pm-proj-effect').value, close=$('pm-proj-close').value;
-  const prepayEnabled=$('pm-proj-prepay-enabled').value==='true';
-  const msg=$('pm-proj-msg');
-  if(!code||!name||!effect){if(msg){msg.textContent='⚠️ 請填寫專案代號、名稱、生效日';msg.style.color='var(--red)';}return;}
-  if(!dept){if(msg){msg.textContent='⚠️ 請選擇隸屬部門';msg.style.color='var(--red)';}return;}
-  const btn=$('pm-proj-save-btn'); if(btn){btn.disabled=true;btn.textContent='儲存中...';}
-  if(msg)msg.textContent='';
-  const payload={action:isNew?'addProject':'updateProject',id:isNew?code:editId,code,name,quota,subsidy,effectDate:effect,closeDate:close||'',deptCode:dept,prepay:{enabled:prepayEnabled,amount:parseFloat($('pm-proj-prepay-amount').value)||0,deductPct:parseFloat($('pm-proj-prepay-deductpct').value)||10}};
-  if(isNew){payload.client=[];payload.vendors=[];payload.addedBy=S.user?.name||'';}
-  try{
-    const res=await callGAS(payload);
-    if(res.success){if(msg){msg.textContent='✅ 已儲存';msg.style.color='var(--green)';}setTimeout(()=>closeModal('projectModal'),600);loadProjectList(false);loadConfig();loadProjectsForBoard();}
-    else{if(msg){msg.textContent='❌ '+(res.error||'儲存失敗');msg.style.color='var(--red)';}}
-  }catch(e){if(msg){msg.textContent='❌ '+e.message;msg.style.color='var(--red)';}}
-  if(btn){btn.disabled=false;btn.innerHTML='💾 儲存';}
+  const rowIndexRaw = $('np-rowIndex').value;
+  const isNew    = rowIndexRaw === '';
+  const id       = $('np-id').value;
+  const code     = $('np-code')?.value.trim();
+  const name     = $('np-name')?.value.trim();
+  const deptCode = $('np-dept')?.value;
+  const quota    = $('np-quota')?.value === 'true';
+  const subsidy  = parseFloat($('np-subsidy')?.value) || 0;
+  const effect   = $('np-effect')?.value;
+  const close    = $('np-close')?.value;
+  const prepayEnabled = $('np-prepay-enabled')?.value === 'true';
+  const prepayAmount  = parseFloat($('np-prepay-amount')?.value) || 0;
+  const prepayPct     = parseFloat($('np-prepay-deductpct')?.value) || 0;
+  const msg      = $('npMsg');
+
+  if (!code || !name || !effect) {
+    if (msg) { msg.textContent = '⚠️ 請填寫專案代號、名稱、生效日'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (!deptCode) {
+    if (msg) { msg.textContent = '⚠️ 請選擇隸屬部門'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+
+  const btn = $('btnAddProj');
+  if (btn) { btn.disabled = true; btn.textContent = isNew ? '新增中...' : '儲存中...'; }
+  if (msg) msg.textContent = '';
+
+  const payload = isNew
+    ? {
+        action: 'addProject',
+        id: code, code, name, quota, subsidy,
+        effectDate: effect, closeDate: close || '',
+        deptCode: deptCode || '',
+        client: [], vendors: [],
+        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
+        addedBy: S.user?.name || '',
+      }
+    : {
+        action: 'updateProject',
+        id, code, name, deptCode, quota, subsidy,
+        effectDate: effect, closeDate: close || '',
+        prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
+      };
+
+  try {
+    const res = await callGAS(payload);
+    if (res.success) {
+      toast(isNew ? '✅ 已新增！' : '✅ 已儲存');
+      closeModal('projectModal');
+      loadProjectList(true);
+      loadConfig();
+      loadProjectsForBoard();
+    } else {
+      if (msg) { msg.textContent = '❌ ' + (res.error || (isNew ? '新增失敗' : '儲存失敗')); msg.style.color = 'var(--red)'; }
+    }
+  } catch(e) {
+    if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
 }
 
-// 填充部門下拉（sel：目標 select 元素，預設找 np-dept；供 projectModal 傳入 pm-proj-dept）
-function populateNpDept(sel) {
-  const el = sel || $('np-dept');
-  if (!el) return;
-  const ad = activeDepts();
-  el.innerHTML = '<option value="">— 選擇部門 —</option>' +
-    ad.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
-}
-
-
-// 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
 // 載入專案列表
 async function loadProjectList(showToast, _isRetry) {
   const tbody   = $('projListTbl');
@@ -4716,19 +4753,26 @@ async function loadProjectList(showToast, _isRetry) {
     return loadProjectList(showToast, true);
   }
   const rows = res.rows || [];
+  S._projListRaw = rows; // 全量資料（含已結案），供「顯示已結案」勾選框切換用
   renderProjectList(rows);
   flashNavSyncDone('project');
   if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
 // 渲染專案列表（newest first，已由 GAS 排序）
-function renderProjectList(rows) {
+// 預設僅顯示「未結案」（!closeDate || closeDate >= today），勾選「顯示已結案」才顯示全部
+function renderProjectList(rawRows) {
   const tbody = $('projListTbl');
   const cntEl = $('projListCnt');
   if (!tbody) return;
-  if (cntEl) cntEl.textContent = rows.length + ' 筆';
+  const showClosed = $('projShowClosed')?.checked;
+  const today = todayStr();
+  const rows = showClosed
+    ? rawRows
+    : rawRows.filter(p => !p.closeDate || p.closeDate >= today);
+  if (cntEl) cntEl.textContent = rows.length + ' 筆' + (showClosed ? '' : `（共 ${rawRows.length} 筆，已隱藏已結案）`);
   if (!rows.length) {
-    tbody.innerHTML = emptyRow(8, '尚無專案');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map((p, i) => {
@@ -4793,7 +4837,7 @@ function renderTaskList() {
       <input type="checkbox" ${t.status==='已完成'?'checked':''} ${t.status==='已刪除'?'disabled':''} style="width:18px;height:18px;cursor:pointer" onchange="toggleTask('${t.id}',this.checked)">
       <div style="flex:1;${faded?'text-decoration:line-through;color:var(--muted)':''}">
         ${esc(t.content)}
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}${t.status==='已刪除'?' · 🗑已刪除':''}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}${t.status==='已刪除'?' · 🗑已刪除':''}</div>
       </div>
       ${t.status==='已刪除'
         ? `<button class="btn btn-ghost btn-sm" onclick="restoreTask('${t.id}')">↩ 還原</button>`
@@ -5027,7 +5071,7 @@ function renderProjectBoard() {
   const board = $('projBoard');
   const wrap  = $('proj-select-fd-wrap');
   if (!board || !wrap) return;
-  const rows = S._pjBoard || [];
+  const rows = ProjectStore.list();
   if (!rows.length) {
     wrap.innerHTML = '';
     board.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">尚無專案，請點左上角 ☰ 新增專案</div>';
@@ -5266,7 +5310,7 @@ async function loadProjectExpenses(projectId, _isRetry) {
 
 // ── 業主端「待收款/已收款」badge 點擊 → 編輯收款狀態 ─────────
 function pjEditClientPay(projectId, periodIndex) {
-  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  const p = ProjectStore.find(projectId);
   if (!p) return;
   const idx = Number(periodIndex);
   const c = (p.client||[])[idx];
@@ -5312,7 +5356,7 @@ function pjEditClientPay(projectId, periodIndex) {
 // ── 廠商端「待收票/已收票」badge 點擊 → 編輯收票狀態 ─────────
 // item13: 預設空白，加重置按鈕
 function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
-  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  const p = ProjectStore.find(projectId);
   if (!p) return;
   const vi = Number(vendorIndex);
   const pj = Number(periodIndex);
@@ -5350,7 +5394,7 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
 
 // ── 驗收完成：業主端標記 invoiced=true，廠商端標記 invReceived=true ──
 async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl) {
-  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  const p = ProjectStore.find(projectId);
   if (!p) return;
 
   // 顯示 loading：按鈕換成轉圈圈，避免使用者重複點擊或誤以為沒反應
@@ -5655,7 +5699,7 @@ function renderFinancePayment() {
 
 // ── 財務：更新開票日期 → invoiced=true ──────────────────────
 async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
-  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  const p = ProjectStore.find(projectId);
   if (!p) return;
   const c = (p.client||[])[periodIdx];
   if (!c) return;
@@ -5676,7 +5720,7 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
 
 // ── 財務：更新付款日期 → vendorPaid=true ────────────────────
 async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
-  const p = (S._pjBoard||[]).find(x=>x.id===projectId);
+  const p = ProjectStore.find(projectId);
   if (!p) return;
   const c = ((p.vendors||[])[vendorIdx]?.periods||[])[periodIdx];
   if (!c) return;
@@ -5740,7 +5784,7 @@ function pgPopulateTargetSelect() {
 function pgLoadProject(id) {
   const editor = $('pg-editor');
   if (!id) { S._pgProject = null; if (editor) editor.innerHTML=''; pgPopulateTargetSelect(); return; }
-  const p = (S._pjBoard||[]).find(x=>x.id===id);
+  const p = ProjectStore.find(id);
   if (!p) return;
   // 深拷貝，避免直接改到 board 快取
   S._pgProject = JSON.parse(JSON.stringify(p));
@@ -6079,6 +6123,23 @@ const GAS_ACTION_TIMEOUT_MS = { ocrReceipt:110000, exportAll:110000 };
 
 // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
 // 呼叫端務必明確檢查 res.success，不可只靠 try/catch 或 res.rows||[]
+// ── 共用：Modal 表單送出（按鈕loading狀態 + callGAS + 成功/失敗處理 + 關閉Modal）
+// 原本 saveDeptAdmin / savePersonAdmin / saveProjectModal 三處各寫一份幾乎一樣的流程，
+// 這裡抽成共用函式；各自仍保留自己的「欄位驗證」與「成功後要做什麼」，因為那兩段才是真正的業務差異。
+// 回傳 res（成功或失敗皆回傳，方便呼叫端需要 res 內其他欄位時使用），失敗時已經 toast 過、不會關閉 Modal。
+async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
+  const btn = document.querySelector(btnSelector);
+  const origHtml = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
+  const res = await callGAS(payload);
+  if (btn) { btn.disabled = false; btn.innerHTML = origHtml ?? '💾 儲存'; }
+  if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return res; }
+  toast('✅ 已儲存');
+  if (modalId) closeModal(modalId);
+  if (onSuccess) await onSuccess(res);
+  return res;
+}
+
 async function callGAS(payload, timeoutMs) {
   const ms   = timeoutMs ?? GAS_ACTION_TIMEOUT_MS[payload?.action] ?? 60000;
   const ctrl = new AbortController();
