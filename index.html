@@ -45,7 +45,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .mainnav-btn.active{color:var(--accent)}
 .navmenu{display:none;position:absolute;top:52px;left:0;min-width:210px;background:var(--surface);border-top:2px solid var(--brand-orange);
   border:1px solid var(--border2);border-radius:0 10px 10px 10px;box-shadow:0 8px 20px rgba(0,0,0,.12);
-  z-index:201;overflow:hidden}
+  padding-top:8px;z-index:201;overflow:hidden}
 .navmenu.open{display:block}
 .navmenu.menu-hidden{display:none!important}
 
@@ -862,7 +862,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </button>
       <button class="navmenu-item" onclick="switchExpensePage('history')">📋 匯出紀錄</button>
     </div>
-    <div class="navmenu" id="navMenuTodo" style="min-width:180px;padding:8px 0">
+    <div class="navmenu" id="navMenuTodo">
       <div class="navmenu-syncrow" id="navSyncRow-todo">
         <span id="navSyncStatus-todo">尚未同步</span>
         <span id="navSyncDone-todo" style="color:var(--green);font-weight:700;display:none">✅ 完成</span>
@@ -1957,16 +1957,18 @@ async function doUpload() {
 
   const done = [];
   const total = S.pendingFiles.length;
+  let completed = 0;
 
-  for (let i = 0; i < total; i++) {
-    const rawFile = S.pendingFiles[i];
-    txt.textContent = `${i + 1}/${total}`;
-    bar.style.width = `${(i / total) * 100}%`;
-    fl.textContent  = rawFile.name;
-
+  // C+D類優化：原本逐檔序列 await（一次一個來回），改成限制併發數的批次上傳，
+  // 沿用 OCR 辨識（runOCR）已經建立的 runWithConcurrency 共用 helper。
+  // 可以安全併發的原因：handleUploadFile() 後端只是單純 appendRow 寫入 Uploads 表，
+  // 不像 OCR 的 logOcrResults() 有「讀現有清單判斷重複→決定值→寫入」這種需要鎖保護的邏輯，
+  // 上傳之間互不依賴，併發不會造成資料錯亂。
+  async function uploadOne(rawFile) {
+    fl.textContent = rawFile.name; // 併發下只能顯示「最近一個開始處理的檔名」，仍保留進度線索用
     try {
       // normalizeFileForUpload 回傳 File[]（PDF 多頁時會有多個）
-      const files = await normalizeFileForUpload(rawFile, i + 1, total);
+      const files = await normalizeFileForUpload(rawFile, S.pendingFiles.indexOf(rawFile) + 1, total);
 
       for (const f of files) {
         if (files.length > 1 || f.name !== rawFile.name) {
@@ -2012,7 +2014,12 @@ async function doUpload() {
     } catch (e) {
       toast('❌ ' + rawFile.name + ' 上傳失敗：' + e.message);
     }
+    completed++;
+    txt.textContent = `${completed}/${total}`;
+    bar.style.width = `${(completed/total)*100}%`;
   }
+
+  await runWithConcurrency(S.pendingFiles, BATCH_CONCURRENCY, uploadOne);
 
   bar.style.width='100%'; fl.textContent='✅ 完成';
   setBtnLoading('btnUpload', false, '☁️ 上傳至 Drive');
@@ -2207,14 +2214,12 @@ function clearQueue()   { S.ocrQueue=[]; renderQueue(); badge('nb-ocr',0); $('bt
 // ════════════════════════════════════════════════════════════
 // RUN OCR
 // ════════════════════════════════════════════════════════════
-// F類優化：原本逐張 await（序列），改成限制併發數的批次處理。
-// 限制併發數（而非無限平行）是因為 GAS 的 UrlFetchApp／Gemini API 都有速率限制，
+// B+C+D類優化：原本逐項 await（序列），改成限制併發數的批次處理。
+// 限制併發數（而非無限平行）是因為 GAS 的 UrlFetchApp／Gemini API／Drive API 都有速率限制，
 // 太多同時請求容易直接被 429 打回來，反而更慢。
-// ⚠️ 重要：「Gemini OCR 呼叫」本身是安全可併發的（每張圖獨立、互不影響），
-// 但「寫入 OcrResults 並判斷發票重複」這段如果沒有保護，併發下會有 race condition
-// （兩個併發執行各自讀到舊的重複清單，導致同一批裡的重複發票號碼都被誤判成不重複）。
-// 這裡已經在後端 logOcrResults() 加了 LockService 鎖住那段，所以可以放心併發。
-const OCR_CONCURRENCY = 3;
+// runWithConcurrency 是通用 helper，OCR 辨識（runOCR）與上傳憑證（doUpload）共用同一份，
+// 不必各自重寫一套併發節流邏輯；常數也跟著通用化命名，避免「上傳卻用 OCR 專屬命名」的語意混淆。
+const BATCH_CONCURRENCY = 3;
 
 async function runWithConcurrency(items, limit, worker) {
   let idx = 0;
@@ -2313,7 +2318,7 @@ async function runOCR() {
     updateStats();
   }
 
-  await runWithConcurrency(pending, OCR_CONCURRENCY, processOne);
+  await runWithConcurrency(pending, BATCH_CONCURRENCY, processOne);
 
   bar.style.width='100%'; fl.textContent='✅ 全部完成';
   setBtnLoading('btnOCR', false, '▶ 開始辨識');
@@ -4403,11 +4408,14 @@ async function _doExport(skipStash = false) {
   toast(`⏳ 產生 PDF 中（油資${fuelReceipts.length}張 / 其他${otherReceipts.length}張）...`);
 
   try {
+    // A類優化：原本 personDept/personTitle 各自呼叫一次 .find() 查整個 persons 陣列，
+    // 對同一個人查兩次；合併成一次查找後分別取值，O(2n) 變 O(n)。
+    const me = S.config?.persons?.find(p => p.name === (S.user?.name || ''));
     const res = await callGAS({
       action:   'exportAll',
       person,   month,
-      personDept:  (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.dept  || S.user?.dept  || ''),
-      personTitle: (S.config?.persons?.find(p => p.name === (S.user?.name||''))?.title || S.user?.title || ''),
+      personDept:  me?.dept  || S.user?.dept  || '',
+      personTitle: me?.title || S.user?.title || '',
       fuelProjData,
       otherReceipts,
       fuelReceipts,
