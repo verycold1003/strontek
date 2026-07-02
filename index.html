@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>專案管理</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -286,7 +287,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
       <div id="bindLineName" style="font-size:13px;color:var(--text);background:rgba(255,255,255,.05);border-radius:7px;padding:8px 12px;margin-bottom:10px;line-height:1.8"></div>
       <label class="lbl" style="display:block;margin-bottom:5px">您的中文姓名</label>
-      <input id="bindNameInput" class="inp" placeholder="例：張家榮" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')doBindName()">
+      <input id="bindNameInput" class="inp" placeholder="姓名" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')doBindName()">
       <button class="btn btn-primary btn-full" id="btnBindName" onclick="doBindName()">🔗 比對並綁定帳號</button>
       <div id="bindNameErr" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
     </div>
@@ -619,7 +620,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <input type="hidden" id="pm-rowIndex">
     <input type="hidden" id="pm-linename">
     <input type="hidden" id="pm-lineId">
-    <div style="margin-bottom:14px"><label class="lbl">姓名 <span style="color:var(--danger)">*</span></label><input class="inp" id="pm-name" placeholder="員工姓名"></div>
+    <div style="margin-bottom:14px"><label class="lbl">姓名 <span style="color:var(--danger)">*</span></label><input class="inp" id="pm-name" placeholder="姓名"></div>
     <div class="fg2" style="margin-bottom:14px">
       <div><label class="lbl">部門</label><select class="inp" id="pm-dept"></select></div>
       <div><label class="lbl">職稱</label><input class="inp" id="pm-title" placeholder="職稱"></div>
@@ -659,9 +660,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="fg2" style="margin-bottom:14px">
       <div>
         <label class="lbl">部門代碼 <span style="color:var(--danger)" id="dm-code-required">*</span></label>
-        <input class="inp" id="dm-code" placeholder="例：FI">
+        <input class="inp" id="dm-code" placeholder="部門代碼">
       </div>
-      <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="例：財務部"></div>
+      <div><label class="lbl">部門名稱 <span style="color:var(--danger)">*</span></label><input class="inp" id="dm-name" placeholder="部門名稱"></div>
     </div>
     <div style="margin-bottom:18px">
       <label class="lbl">費用類型</label>
@@ -690,11 +691,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="fg2" style="margin-bottom:14px">
       <div>
         <label class="lbl">專案代號 <span style="color:var(--danger)">*</span></label>
-        <input class="inp" id="np-code" placeholder="例：PE2-STP20260430-02">
+        <input class="inp" id="np-code" placeholder="專案代號">
       </div>
       <div>
         <label class="lbl">專案名稱 <span style="color:var(--danger)">*</span></label>
-        <input class="inp" id="np-name" placeholder="例：大同觀音廠B棟空調安裝工程">
+        <input class="inp" id="np-name" placeholder="專案名稱">
       </div>
     </div>
     <div class="fg2" style="margin-bottom:14px">
@@ -715,7 +716,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <input type="hidden" id="np-quota" value="true">
       </div>
       <div>
-        <label class="lbl">核定補助（月定額時填寫）</label>
+        <label class="lbl">核定補助</label>
         <input type="number" class="inp" id="np-subsidy" placeholder="0"
           min="0" step="100">
       </div>
@@ -726,7 +727,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <input type="date" class="inp" id="np-effect">
       </div>
       <div>
-        <label class="lbl">結案日（可空白）</label>
+        <label class="lbl">結案日</label>
         <div style="display:flex;align-items:center;gap:4px">
           <input type="date" class="inp" id="np-close" style="flex:1" onchange="npRefreshCloseClearBtn()">
           <button class="btn btn-ghost btn-sm" id="np-close-clear" style="padding:4px 8px;flex-shrink:0;display:none"
@@ -1115,7 +1116,13 @@ function getMileageRate(yearMonth) {
 // ════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+// LINE 設定快取（頁面載入時取一次，LIFF 和 OAuth 登入按鈕共用）
+// ════════════════════════════════════════════════════════════
+let _lineConfig = null; // { channelId, redirectUri, liffId }
+
+const LINE_BTN_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
+
+document.addEventListener('DOMContentLoaded', async () => {
   const ym = new Date().toISOString().slice(0,7);
   $('global-month').value = ym;
 
@@ -1124,41 +1131,104 @@ document.addEventListener('DOMContentLoaded', () => {
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); onFilePick(e.dataTransfer.files); });
 
-  handleLineCallback();
+  // ── 預先拿 LINE 設定（LIFF ID + Channel ID + Redirect URI）
+  // LIFF 初始化和登入按鈕共用同一份，不重複呼叫後端
+  try {
+    const cfg = await callGAS({ action: 'getLineConfig' });
+    if (cfg.success) _lineConfig = cfg;
+  } catch (e) {
+    console.warn('getLineConfig failed:', e);
+  }
+
+  // ── LIFF 優先：在 Line App 內直接取得 userId，跳過 OAuth ──
+  const liffHandled = await initLiffAuth();
+  if (!liffHandled) handleLineCallback();
 });
 
 // ════════════════════════════════════════════════════════════
-// LINE LOGIN
+// LIFF 初始化（只在 Line App 內有作用）
+// ════════════════════════════════════════════════════════════
+async function initLiffAuth() {
+  if (typeof liff === 'undefined') return false;
+
+  const liffId = _lineConfig?.liffId || '';
+  if (!liffId) {
+    console.warn('LIFF_ID 未設定，跳過 LIFF 初始化');
+    return false;
+  }
+
+  try {
+    await liff.init({ liffId });
+  } catch (e) {
+    console.warn('LIFF init failed, fallback to LINE OAuth:', e);
+    return false;
+  }
+
+  if (!liff.isInClient()) return false;
+
+  // ── 在 Line App 內開啟 ──
+  const msgEl = $('loginCallbackMsg');
+  if (msgEl) { msgEl.style.display = 'block'; msgEl.textContent = '✅ LINE 身份驗證中，請稍候...'; }
+
+  try {
+    const profile    = await liff.getProfile();
+    const lineUserId = profile.userId;
+    const lineName   = profile.displayName;
+    const avatar     = profile.pictureUrl || '';
+
+    const res = await callGAS({ action: 'liffVerify', lineUserId, lineName });
+
+    if (res.success) {
+      finishLogin({ ...res.person, avatar });
+    } else if (res.needName) {
+      S._pendingBind = { lineId: lineUserId, lineName, avatar };
+      if (msgEl) msgEl.style.display = 'none';
+      showBindNameUI();
+    } else {
+      if (msgEl) msgEl.style.display = 'none';
+      toast('❌ ' + (res.error || 'LIFF 驗證失敗，請聯繫管理員'));
+    }
+  } catch (e) {
+    if (msgEl) msgEl.style.display = 'none';
+    console.error('LIFF auth error:', e);
+    toast('❌ LIFF 驗證失敗：' + e.message);
+  }
+
+  return true;
+}
+
+// ════════════════════════════════════════════════════════════
+// LINE LOGIN（OAuth，一般瀏覽器用）
 // ════════════════════════════════════════════════════════════
 async function startLineLogin() {
   const btn = $('btnLineLogin');
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 連線 GAS 中...'; }
 
-  let chId = '', redirect = '', gasErr = '';
-  try {
-    const res = await callGAS({ action: 'getLineConfig' });
-    if (res.success && res.channelId) {
-      chId     = res.channelId;
-      redirect = res.redirectUri || '';
-    } else {
-      gasErr = res.error || 'getLineConfig 回傳 success:false';
+  // 優先用頁面載入時已快取的設定，沒有才重新拿
+  let cfg = _lineConfig;
+  let gasErr = '';
+  if (!cfg?.channelId) {
+    try {
+      const res = await callGAS({ action: 'getLineConfig' });
+      if (res.success && res.channelId) { cfg = res; _lineConfig = res; }
+      else gasErr = res.error || 'getLineConfig 回傳 success:false';
+    } catch (e) {
+      gasErr = e.message;
     }
-  } catch (e) {
-    gasErr = e.message;
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = LINE_BTN_SVG; }
 
-  if (!chId) {
+  if (!cfg?.channelId) {
     toast('❌ ' + (gasErr ? 'GAS 連線失敗：' + gasErr : 'LINE_CHANNEL_ID 未設定'));
     return;
   }
 
   const state = crypto.randomUUID();
   localStorage.setItem('line_state', state);
-  const redirectUri = redirect || window.location.href.split('?')[0];
+  const redirectUri = cfg.redirectUri || window.location.href.split('?')[0];
   const params = new URLSearchParams({
-    response_type: 'code', client_id: chId, redirect_uri: redirectUri,
+    response_type: 'code', client_id: cfg.channelId, redirect_uri: redirectUri,
     state, scope: 'profile openid', nonce: crypto.randomUUID(),
   });
   window.location.href = 'https://access.line.me/oauth2/v2.1/authorize?' + params;
@@ -1177,11 +1247,10 @@ function handleLineCallback() {
   localStorage.removeItem('line_state');
 
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
-  const LINE_BTN_LABEL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
   const CALLBACK_TIMEOUT_MS = 30000;  // 30 秒 timeout
   const btnLine = $('btnLineLogin');
   function restoreLineBtn() {
-    if (btnLine) { btnLine.disabled = false; btnLine.innerHTML = LINE_BTN_LABEL; }
+    if (btnLine) { btnLine.disabled = false; btnLine.innerHTML = LINE_BTN_SVG; }
     $('loginCallbackMsg').style.display = 'none';
   }
   if (btnLine) { btnLine.disabled = true; btnLine.innerHTML = '<div class="spin"></div> 驗證中...'; }
@@ -4645,7 +4714,11 @@ function openProjectModal(i) {
   $('np-rowIndex').value = isNew ? '' : i;
   $('np-id').value       = isNew ? '' : p.id;
   $('np-code').value     = isNew ? '' : (p.code || '');
-  $('np-code').disabled  = false;
+  // 第3點：編輯模式鎖定專案代號，防止改代號後 OCRResults/FuelProjects 等已儲存代號的資料斷頭
+  // 新增模式可自由輸入；編輯模式設為 readonly（視覺上仍可看到，但無法修改）
+  $('np-code').readOnly  = !isNew;
+  $('np-code').style.background = isNew ? '' : 'var(--surface2)';
+  $('np-code').style.cursor     = isNew ? '' : 'not-allowed';
   $('np-name').value     = isNew ? '' : (p.name || '');
   $('np-dept').value     = isNew ? '' : (p.deptCode || '');
   $('np-effect').value   = isNew ? '' : (p.effectDate || '');
@@ -4778,7 +4851,7 @@ function renderProjectList(rawRows) {
   const rows = showClosed
     ? rawRows
     : rawRows.filter(p => !p.closeDate || p.closeDate >= today);
-  if (cntEl) cntEl.textContent = rows.length + ' 筆' + (showClosed ? '' : `（共 ${rawRows.length} 筆，已隱藏已結案）`);
+  if (cntEl) cntEl.textContent = rows.length + ' 筆';
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
     return;
