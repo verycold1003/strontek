@@ -453,6 +453,18 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <!-- ═══════════ SECTION: 待辦 ═══════════ -->
 <div class="app-section" id="sec-todo">
   <div class="pg-title">✅ 待辦事項</div>
+
+  <!-- 群組摘要待辦 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🤖 群組摘要待辦
+        <span class="badge bd-muted" id="taskSummaryCnt" style="margin-left:6px"></span>
+      </span>
+    </div>
+    <div id="taskSummaryList"></div>
+  </div>
+
+  <!-- 手動新增待辦 -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-bd">
       <div style="display:flex;gap:8px">
@@ -464,7 +476,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
   <div class="card">
     <div class="card-hd">
-      📋 清單
+      📋 手動待辦
       <span class="badge bd-muted" id="taskListCnt" style="margin-left:6px"></span>
     </div>
     <div id="taskList"></div>
@@ -4889,12 +4901,17 @@ function renderProjectList(rawRows) {
 // 待辦事項 (Tasks)
 // ════════════════════════════════════════════════════════════
 async function loadTasks(_isRetry) {
-  const list = $('taskList');
-  if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
+  const list    = $('taskList');
+  const sumList = $('taskSummaryList');
+  const loading = '<div style="padding:24px;text-align:center;color:var(--muted)">載入中...</div>';
+  if (list)    list.innerHTML    = loading;
+  if (sumList) sumList.innerHTML = loading;
   setNavSyncStatus('todo', '同步中...', true);
   const res = await callGAS({ action:'getTasks' });
   if (!res.success) {
-    if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
+    const err = '<div style="padding:24px;text-align:center;color:var(--red)">❌ 載入失敗</div>';
+    if (list)    list.innerHTML    = err;
+    if (sumList) sumList.innerHTML = err;
     setNavSyncStatus('todo', '❌ 連線失敗，請重試'); return;
   }
   if (shouldRetryEmpty(res.rows, S._taskList, _isRetry)) return loadTasks(true);
@@ -4904,41 +4921,86 @@ async function loadTasks(_isRetry) {
   flashNavSyncDone('todo');
 }
 
-function renderTaskList() {
-  const list = $('taskList'); if (!list) return;
-  const all = S._taskList ?? [];
-  const showDone = $('td-show-done')?.checked, showDeleted = $('td-show-deleted')?.checked;
-  const rows = all.filter(t => !(t.status==='已刪除'&&!showDeleted) && !(t.status==='已完成'&&!showDone));
-  const cnt = $('taskListCnt');
-  if (cnt) cnt.textContent = all.filter(t=>t.status==='待處理').length + ' 待處理';
-  if (!rows.length) { list.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">尚無待辦事項</div>'; return; }
-  list.innerHTML = rows.map(t => {
-    const faded = t.status==='已完成'||t.status==='已刪除';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)">
-      <input type="checkbox" ${t.status==='已完成'?'checked':''} ${t.status==='已刪除'?'disabled':''} style="width:18px;height:18px;cursor:pointer" onchange="toggleTask('${t.id}',this.checked)">
-      <div style="flex:1;${faded?'text-decoration:line-through;color:var(--muted)':''}">
-        ${esc(t.content)}
-        <div style="font-size:11px;color:#888;margin-top:2px">${esc(t.addedBy)} · ${t.addedAt}${t.status==='已刪除'?' · 🗑已刪除':''}</div>
-      </div>
-      ${t.status==='已刪除'
+function renderTaskRow(t, showDelete) {
+  const faded   = t.status === '已完成' || t.status === '已刪除';
+  const isDone  = t.status === '已完成';
+  const isDel   = t.status === '已刪除';
+
+  // 副標題：新增者・新增時間 | 完成者・完成時間（若已完成）
+  let meta = `${esc(t.addedBy)} · ${t.addedAt}`;
+  if (isDone && t.doneBy)  meta += ` ✅ ${esc(t.doneBy)} · ${t.doneAt}`;
+  if (isDel)               meta += ' · 🗑已刪除';
+
+  return `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)">
+    <input type="checkbox"
+      ${isDone ? 'checked' : ''} ${isDel ? 'disabled' : ''}
+      style="width:18px;height:18px;cursor:pointer"
+      onchange="toggleTask('${t.id}',this.checked)">
+    <div style="flex:1;${faded ? 'text-decoration:line-through;color:var(--muted)' : ''}">
+      ${esc(t.content)}
+      <div style="font-size:11px;color:#888;margin-top:2px">${meta}</div>
+    </div>
+    ${showDelete
+      ? isDel
         ? `<button class="btn btn-ghost btn-sm" onclick="restoreTask('${t.id}')">↩ 還原</button>`
-        : `<button class="btn btn-danger btn-sm" onclick="doDeleteTask('${t.id}')">🗑</button>`}
-    </div>`;
-  }).join('');
+        : `<button class="btn btn-danger btn-sm" onclick="doDeleteTask('${t.id}')">🗑</button>`
+      : ''}
+  </div>`;
+}
+
+function renderTaskList() {
+  const showDone    = $('td-show-done')?.checked;
+  const showDeleted = $('td-show-deleted')?.checked;
+  const all         = S._taskList ?? [];
+
+  // ── 群組摘要待辦 ──
+  const sumList = $('taskSummaryList');
+  const sumAll  = all.filter(t => t.source === '群組摘要');
+  const sumRows = sumAll.filter(t =>
+    !(t.status === '已刪除' && !showDeleted) &&
+    !(t.status === '已完成' && !showDone)
+  );
+  const sumCnt = $('taskSummaryCnt');
+  if (sumCnt) sumCnt.textContent = sumAll.filter(t => t.status === '待處理').length + ' 待處理';
+  if (sumList) {
+    sumList.innerHTML = sumRows.length
+      ? sumRows.map(t => renderTaskRow(t, false)).join('')
+      : '<div style="padding:24px;text-align:center;color:var(--muted)">目前沒有群組摘要待辦</div>';
+  }
+
+  // ── 手動待辦 ──
+  const list    = $('taskList');
+  const manAll  = all.filter(t => t.source !== '群組摘要');
+  const manRows = manAll.filter(t =>
+    !(t.status === '已刪除' && !showDeleted) &&
+    !(t.status === '已完成' && !showDone)
+  );
+  const cnt = $('taskListCnt');
+  if (cnt) cnt.textContent = manAll.filter(t => t.status === '待處理').length + ' 待處理';
+  if (list) {
+    list.innerHTML = manRows.length
+      ? manRows.map(t => renderTaskRow(t, true)).join('')
+      : '<div style="padding:24px;text-align:center;color:var(--muted)">尚無手動待辦事項</div>';
+  }
 }
 
 async function doAddTask() {
-  const input = $('td-input');
+  const input   = $('td-input');
   const content = input?.value.trim();
   if (!content) return;
   input.disabled = true;
   try {
-    const res = await callGAS({ action:'addTask', content, addedBy: S.user?.name || '' });
+    const res = await callGAS({
+      action: 'addTask',
+      content,
+      addedBy: S.user?.name || '',
+      source:  '手動'
+    });
     if (res.success) {
       input.value = '';
       loadTasks();
     } else {
-      toast('❌ ' + (res.error||'新增失敗'));
+      toast('❌ ' + (res.error || '新增失敗'));
     }
   } catch(e) {
     toast('❌ ' + e.message);
@@ -4948,24 +5010,25 @@ async function doAddTask() {
 }
 
 async function toggleTask(id, checked) {
-  const status = checked ? '已完成' : '待處理';
-  const res = await callGAS({ action:'updateTaskStatus', id, status });
+  const status  = checked ? '已完成' : '待處理';
+  const doneBy  = checked ? (S.user?.name || '') : '';
+  const res = await callGAS({ action:'updateTaskStatus', id, status, doneBy });
   if (res.success) loadTasks();
-  else toast('❌ ' + (res.error||'更新失敗'));
+  else toast('❌ ' + (res.error || '更新失敗'));
 }
 
 async function doDeleteTask(id) {
   const confirmed = await showConfirm('確定刪除此待辦事項？');
   if (!confirmed) return;
-  const res = await callGAS({ action:'updateTaskStatus', id, status:'已刪除' });
+  const res = await callGAS({ action:'updateTaskStatus', id, status:'已刪除', doneBy:'' });
   if (res.success) loadTasks();
-  else toast('❌ ' + (res.error||'刪除失敗'));
+  else toast('❌ ' + (res.error || '刪除失敗'));
 }
 
 async function restoreTask(id) {
-  const res = await callGAS({ action:'updateTaskStatus', id, status:'待處理' });
+  const res = await callGAS({ action:'updateTaskStatus', id, status:'待處理', doneBy:'' });
   if (res.success) loadTasks();
-  else toast('❌ ' + (res.error||'還原失敗'));
+  else toast('❌ ' + (res.error || '還原失敗'));
 }
 
 // ════════════════════════════════════════════════════════════
