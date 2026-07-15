@@ -1494,11 +1494,11 @@ function renderDeptsTable() {
     return `<tr>
     <td style="font-weight:600;white-space:nowrap">${esc(d.code)}</td>
     <td style="white-space:nowrap">${esc(d.name)}</td>
-    <td style="text-align:center;white-space:nowrap;min-width:80px">
+    <td style="text-align:center;white-space:nowrap;min-width:110px">
       <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
         background:${d.defaultExpense ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.12)'};
         color:${d.defaultExpense ? '#b91c1c' : '#065f46'}">
-        ${d.defaultExpense ? '私車補助' : '費用'}
+        ${d.defaultExpense ? '費用/私車補助' : '費用'}
       </span>
     </td>
     <td style="white-space:nowrap">
