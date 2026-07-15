@@ -354,10 +354,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <thead>
                 <tr>
                   <th><div class="chkbox" id="chkAll" onclick="toggleAllDrive()"></div></th>
+                  <th></th>
                   <th>檔名</th><th style="min-width:90px;white-space:nowrap">日期</th><th>Drive</th>
                 </tr>
               </thead>
-              <tbody id="driveFileTbl"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">
+              <tbody id="driveFileTbl"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">
                 <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
                   <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
                   載入中...
@@ -656,6 +657,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
           <input type="checkbox" id="pm-perm-finance" style="width:16px;height:16px"> 財務專區
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px">
+          <input type="checkbox" id="pm-perm-acting" style="width:16px;height:16px"> 代申請
         </label>
       </div>
     </div>
@@ -1398,7 +1402,10 @@ function renderUserBar() {
   const apop = $('uAvatarPopup'), npop = $('uNamePopup'), dpop = $('uDeptPopup');
   if (apop) apop.innerHTML = avatarHtml;
   if (npop) npop.textContent = u.name || '—';
-  if (dpop) dpop.textContent = [depts.join(' / '), title].filter(Boolean).join('・') || '—';
+  if (dpop) {
+    const deptName = dept ? (findDept(dept)?.name || dept) : '';
+    dpop.textContent = [deptName, title].filter(Boolean).join('・') || '—';
+  }
 
   const isFinance = hasPermission('財務專區');
   const finBtn = $('navFinanceBtn');
@@ -1691,6 +1698,7 @@ async function openPersonModal(idx) {
   const perms = String(p.permission || '').split(',').map(s=>s.trim());
   $('pm-perm-persons').checked = perms.includes('員工表');
   $('pm-perm-finance').checked = perms.includes('財務專區');
+  $('pm-perm-acting').checked  = perms.includes('代申請');
 
   openModal('personModal');
 }
@@ -1720,6 +1728,7 @@ async function savePersonAdmin() {
   const permission = [
     $('pm-perm-persons').checked ? '員工表'   : '',
     $('pm-perm-finance').checked ? '財務專區' : '',
+    $('pm-perm-acting').checked  ? '代申請'   : '',
   ].filter(Boolean).join(',');
   await submitModalAction({
     btnSelector: '#personModal .btn-primary',
@@ -2211,7 +2220,7 @@ async function loadDriveFiles() {
   // res.success，不能只靠 try/catch 偵測失敗，否則失敗會被誤判為「成功但無資料」。
   const res = await callGAS({ action:'listFiles', person, month });
   if (!res.success) {
-    if (tbl) tbl.innerHTML = errorRow(4, '❌ 載入失敗，請點 🔄 重試');
+    if (tbl) tbl.innerHTML = errorRow(5, '❌ 載入失敗，請點 🔄 重試');
     if (S._newUploadedNames?.size) {
       S.driveFiles = [...S._newUploadedNames].map(name => ({
         name, date: new Date().toISOString().slice(0,10), driveUrl: '#'
@@ -2256,8 +2265,17 @@ function renderDriveFiles() {
       ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">已辨識</span>`
       : '';
     const driveHref = f.driveUrl || f.url || '#';
+    // 縮圖：比照 OCR 辨識佇列的做法，用 Drive fileId 組 thumbnail URL；
+    // PDF 或缺 id 時用預設圖示；LINE LIFF WebView 若因無 Google session 載入失敗則 onerror 退回圖示
+    const isPdf = (f.mimeType || f.name || '').toLowerCase().includes('pdf');
+    const thumbHtml = (f.id && !isPdf)
+      ? `<img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" alt=""
+             style="width:100%;height:100%;object-fit:cover"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:18px'}))">`
+      : `<span style="font-size:18px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
       <td style="width:36px"><div class="chkbox ${isNew?'on':''}" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
+      <td style="width:44px"><div class="file-thumb">${thumbHtml}</div></td>
       <td style="font-size:14px">${f.name}${newTag}${recognizedTag}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
       <td>${driveHref !== '#'
@@ -2266,8 +2284,8 @@ function renderDriveFiles() {
       }</td>
     </tr>`;
   }).join('') || (hiddenCnt
-    ? emptyRow(4, `已辨識 ${hiddenCnt} 筆已隱藏，勾選「顯示已辨識」查看`)
-    : emptyRow(4, '此月份無憑證紀錄'));
+    ? emptyRow(5, `已辨識 ${hiddenCnt} 筆已隱藏，勾選「顯示已辨識」查看`)
+    : emptyRow(5, '此月份無憑證紀錄'));
 
   // 若有新上傳檔案，自動啟用辨識按鈕
   if (newNames.size > 0) {
@@ -4525,8 +4543,10 @@ async function _doExport(skipStash = false) {
 
   // ── 組裝 fuelProjData：從 _fuelProjList 取外勤資料 ──────
   // 格式：[{ fp, receipts[] }]
-  // 油資 receipts 全部帶（不管勾選，申請單需要完整油資發票清單）
-  const fuelReceipts = S.receipts.filter(r => r.category === 'fuel');
+  // 油資 receipts 全部帶（不管勾選，申請單需要完整油資發票清單），
+  // 但已匯出且目前被「顯示已匯出」篩選隱藏的收據不應該再被匯出——畫面上看不到的資料不匯出
+  const isExportVisible = r => S._showExported || !r.exported;
+  const fuelReceipts = S.receipts.filter(r => r.category === 'fuel' && isExportVisible(r));
   const fuelProjData = (window._fuelProjList || []).map(fp => {
     // 找屬於此 fp 的 receipts
     const fpReceipts = fp.type === 'quota'
@@ -4563,10 +4583,11 @@ async function _doExport(skipStash = false) {
     return { fp, attribution, projectId, deptId, attrLabel, fieldRows, allFieldRows, receipts: fpReceipts };
   });
 
-  // ── 其他：只帶 _checked=true 的（含原停車費，統一歸入其他）──
+  // ── 其他：只帶 _checked=true 的（含原停車費，統一歸入其他），
+  //    已匯出且被「顯示已匯出」篩選隱藏的收據排除在外——畫面上看不到的資料不匯出 ──
   const _userDeptCode = S.config?.userDeptCode || S.user?.dept || '其他';
   const otherReceipts = S.receipts
-    .filter(r => r.category !== 'fuel')
+    .filter(r => r.category !== 'fuel' && r._checked !== false && isExportVisible(r))
     .map(r => ({
       ...r,
       supplement: r.supplement || r.notes || '',
