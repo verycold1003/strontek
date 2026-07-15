@@ -849,8 +849,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
-      <div class="navmenu-sep"></div>
-      <div class="nav-sec">管理</div>
+      <div class="navmenu-sep" id="navSecSepAdmin"></div>
+      <div class="nav-sec" id="navSecAdmin">管理</div>
       <button class="navmenu-item" id="navSysadminBtn" onclick="switchSection('sysadmin');closeNavMenu()" style="display:none">🛠 系統管理</button>
     </div>
     <div class="navmenu" id="navMenuExpense">
@@ -1379,7 +1379,12 @@ function renderUserBar() {
 
   // 系統管理入口：僅 Sheet persons 權限欄位含「員工表」者可見
   const sysBtn = $('navSysadminBtn');
-  if (sysBtn) sysBtn.style.display = hasPermission('員工表') ? 'block' : 'none';
+  const canSysadmin = hasPermission('員工表');
+  if (sysBtn) sysBtn.style.display = canSysadmin ? 'block' : 'none';
+  // 「管理」區塊目前僅含系統管理一個項目，無權限時整個區塊標題與分隔線一併隱藏
+  const secAdmin = $('navSecAdmin'), sepAdmin = $('navSecSepAdmin');
+  if (secAdmin) secAdmin.style.display = canSysadmin ? 'block' : 'none';
+  if (sepAdmin) sepAdmin.style.display = canSysadmin ? 'block' : 'none';
 }
 
 function logout() {
