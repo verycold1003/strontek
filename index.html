@@ -454,17 +454,17 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 <div class="app-section" id="sec-todo">
   <div class="pg-title">✅ 待辦事項</div>
 
-  <!-- 群組摘要待辦 -->
+  <!-- 群組待辦 -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd" style="display:flex;align-items:center;justify-content:space-between">
-      <span>🤖 群組摘要待辦
+      <span>🤖 群組待辦
         <span class="badge bd-muted" id="taskSummaryCnt" style="margin-left:6px"></span>
       </span>
     </div>
     <div id="taskSummaryList"></div>
   </div>
 
-  <!-- 手動新增待辦 -->
+  <!-- 新增個人待辦 -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-bd">
       <div style="display:flex;gap:8px">
@@ -476,7 +476,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
   <div class="card">
     <div class="card-hd">
-      📋 手動待辦
+      📋 個人待辦
       <span class="badge bd-muted" id="taskListCnt" style="margin-left:6px"></span>
     </div>
     <div id="taskList"></div>
@@ -4953,7 +4953,7 @@ function renderTaskList() {
   const showDeleted = $('td-show-deleted')?.checked;
   const all         = S._taskList ?? [];
 
-  // ── 群組摘要待辦 ──
+  // ── 群組待辦 ──
   const sumList = $('taskSummaryList');
   const sumAll  = all.filter(t => t.source === '群組摘要');
   const sumRows = sumAll.filter(t =>
@@ -4965,10 +4965,10 @@ function renderTaskList() {
   if (sumList) {
     sumList.innerHTML = sumRows.length
       ? sumRows.map(t => renderTaskRow(t, false)).join('')
-      : '<div style="padding:24px;text-align:center;color:var(--muted)">目前沒有群組摘要待辦</div>';
+      : '<div style="padding:24px;text-align:center;color:var(--muted)">目前沒有群組待辦</div>';
   }
 
-  // ── 手動待辦 ──
+  // ── 個人待辦 ──
   const list    = $('taskList');
   const manAll  = all.filter(t => t.source !== '群組摘要');
   const manRows = manAll.filter(t =>
@@ -4980,7 +4980,7 @@ function renderTaskList() {
   if (list) {
     list.innerHTML = manRows.length
       ? manRows.map(t => renderTaskRow(t, true)).join('')
-      : '<div style="padding:24px;text-align:center;color:var(--muted)">尚無手動待辦事項</div>';
+      : '<div style="padding:24px;text-align:center;color:var(--muted)">尚無個人待辦事項</div>';
   }
 }
 
