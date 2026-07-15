@@ -309,6 +309,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📤 上傳憑證 <span class="nbadge" id="nb-upload" style="display:none">0</span></div>
   </div>
+  <div class="actingBanner" style="display:none;align-items:center;gap:6px;background:rgba(232,119,34,.1);color:var(--accent);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;margin-bottom:12px"></div>
       <div style="display:flex;flex-direction:column;gap:18px">
         <div class="card">
           <div class="card-hd">📁 選擇檔案</div>
@@ -343,6 +344,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div class="card-hd">
             ✅ 已上傳至雲端
             <span class="badge bd-green" id="uploadedCnt">—</span>
+            <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;color:var(--muted);cursor:pointer">
+              <div class="chkbox" id="chkShowRecognized" onclick="toggleShowRecognized()" style="width:16px;height:16px;flex-shrink:0"></div>
+              顯示已辨識
+            </label>
           </div>
           <div style="overflow-x:auto">
             <table class="tbl">
@@ -374,6 +379,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">🤖 OCR 辨識 <span class="nbadge" id="nb-ocr" style="display:none">0</span></div>
   </div>
+  <div class="actingBanner" style="display:none;align-items:center;gap:6px;background:rgba(232,119,34,.1);color:var(--accent);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;margin-bottom:12px"></div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-hd" style="display:flex;align-items:center;gap:10px">
@@ -424,6 +430,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="color:var(--muted);font-size:18px">-</div>
     <div class="pg-title" style="margin:0">📋 匯出紀錄</div>
   </div>
+  <div class="actingBanner" style="display:none;align-items:center;gap:6px;background:rgba(232,119,34,.1);color:var(--accent);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;margin-bottom:12px"></div>
       <div class="card">
         <div class="card-hd">
           📄 已產生 PDF
@@ -865,6 +872,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <input type="month" class="inp" id="global-month" style="font-size:14px;padding:6px 9px;flex:1"
                onchange="onGlobalMonthChange(this.value)">
       </div>
+      <div class="navmenu-sep" id="navSecSepActing" style="display:none"></div>
+      <div class="nav-sec" id="navSecActing" style="display:none">代辦申請</div>
+      <div id="navActingRow" style="display:none;padding:4px 16px 8px">
+        <select class="inp" id="actingPersonSelect" style="font-size:14px;padding:6px 9px;width:100%"
+                onchange="onActingPersonChange(this.value)">
+          <option value="">（幫自己申請）</option>
+        </select>
+      </div>
       <div class="navmenu-sep"></div>
       <div class="nav-sec">費用功能</div>
       <button class="navmenu-item" onclick="switchExpensePage('upload')">
@@ -966,6 +981,9 @@ const S = {
   driveFiles: [],
   ocrQueue: [],
   receipts: [],
+  actingAs: null, // 代辦申請：{name} 表示目前正在幫該員工申請，null 表示幫自己申請
+  _showRecognized: false, // 費用>上傳憑證：預設隱藏已辨識過的檔案
+  _showExported:   false, // 費用>OCR辨識結果：預設隱藏已匯出過的收據
   // 懶載入 flag：各 section 是否已完成首次載入
   // 重置時機：手動 🔄、月份切換（expense 相關）、登出
   _loaded: {
@@ -1063,6 +1081,15 @@ function colorBySign(n) {
 // 原本 4 處各自寫 String(S.user?.permission || '').includes('xxx')，這裡集中一處
 function hasPermission(name) {
   return String(S.user?.permission || '').includes(name);
+}
+// 費用模組實際申請人：有代辦對象時用被代辦人，否則用登入者本人
+function effectivePerson() {
+  return S.actingAs?.name || S.user?.name || '';
+}
+// 費用模組實際操作者（代辦時才有值）：供後端記錄「代辦人」稽核欄位用
+function actingByFor(person) {
+  const me = S.user?.name || '';
+  return (me && person && me !== person) ? me : '';
 }
 
 // ── DeptStore：使用者可見部門資料的單一查詢入口（Single Responsibility）──
@@ -1385,6 +1412,24 @@ function renderUserBar() {
   const secAdmin = $('navSecAdmin'), sepAdmin = $('navSecSepAdmin');
   if (secAdmin) secAdmin.style.display = canSysadmin ? 'block' : 'none';
   if (sepAdmin) sepAdmin.style.display = canSysadmin ? 'block' : 'none';
+
+  // 代辦申請：僅 Sheet persons 權限欄位含「代申請」者可見；可代辦對象為全體員工
+  const canActFor = hasPermission('代申請');
+  const secAct = $('navSecActing'), sepAct = $('navSecSepActing'), rowAct = $('navActingRow');
+  [secAct, sepAct, rowAct].forEach(el => { if (el) el.style.display = canActFor ? 'block' : 'none'; });
+  if (canActFor) {
+    const sel = $('actingPersonSelect');
+    if (sel) {
+      const curVal = sel.value;
+      const others = (S.config?.persons || [])
+        .filter(p => p.name && p.name !== (S.user?.name || ''))
+        .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+      sel.innerHTML = '<option value="">（幫自己申請）</option>' +
+        others.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+      // 重建選項後，優先還原目前選取的代辦對象；若尚未選過則沿用畫面上原本的值
+      sel.value = S.actingAs?.name || curVal || '';
+    }
+  }
 }
 
 function logout() {
@@ -1776,6 +1821,27 @@ function populateSelects() {
   if ($('page-project')?.classList.contains('active')) populateNpDept();
 }
 
+// 切換「代辦申請」對象：等同換了一個人的費用資料視角，
+// 沿用 onGlobalMonthChange 的重置/重載邏輯，並更新頂部提示列
+function onActingPersonChange(name) {
+  S.actingAs = name ? { name } : null;
+  renderActingBanner();
+  onGlobalMonthChange(curMonth());
+}
+
+function renderActingBanner() {
+  const els = document.querySelectorAll('.actingBanner');
+  els.forEach(el => {
+    if (S.actingAs?.name) {
+      el.style.display = 'flex';
+      el.textContent = `🧑‍💼 目前代 ${S.actingAs.name} 申請`;
+    } else {
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+  });
+}
+
 function onGlobalMonthChange(val) {
   // 月份切換：重置費用相關懶載入 flag，確保切回時重新拉取新月份資料
   S._loaded.driveFiles    = false;
@@ -1815,7 +1881,7 @@ function doReloadAll() {
 }
 
 async function reloadOcrWithFuel() {
-  const person = S.user?.name ?? '', month = curMonth();
+  const person = effectivePerson(), month = curMonth();
   setNavSyncStatus('expense', '同步中...', true);
   try {
     await saveFuelProjToSheet(true);
@@ -1884,7 +1950,7 @@ async function loadOcrResults(auto = false) {
   let timedOut = false;
   const timer = setTimeout(() => { timedOut=true; hideLoading(); if(!auto) toast('⚠️ 載入逾時，請按 🔄 重試'); }, 20000);
 
-  const res = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', month });
+  const res = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', person: effectivePerson(), month });
   clearTimeout(timer);
   if (timedOut) return;
   hideLoading();
@@ -1926,6 +1992,8 @@ async function loadOcrResults(auto = false) {
       ocrKey:     row.key       || '',
       notes:      row.notes     || '',
       fieldRows:  frParsed,
+      exported:   !!row.exported,
+      exportedAt: row.exportedAt || '',
       _isNew:     false,
       _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
     });
@@ -1948,7 +2016,7 @@ async function loadOcrResults(auto = false) {
   // 非同步還原 _fuelProjList（不管有無油資發票，Sheet 可能已有申請專案資料）。
   // 這一步不可只在 rows.length > 0 時才執行，否則「本月沒有發票但有申請專案」
   // 的情況會被跳過，導致切換月份後申請專案卡片同樣停留在舊資料
-  const _fpPerson = S.user?.name || '';
+  const _fpPerson = effectivePerson();
   const _fpMonth  = curMonth();
   if (_fpPerson && _fpMonth) {
     callGAS({ action: 'getFuelProjects', month: _fpMonth, person: _fpPerson })
@@ -2028,7 +2096,7 @@ function removePending(i) {
 }
 
 async function doUpload() {
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
   if (!S.pendingFiles.length) { toast('⚠️ 請先選擇檔案'); return; }
   if (!person) { toast('⚠️ 尚未登入，請先以 LINE 登入'); return; }
@@ -2068,6 +2136,7 @@ async function doUpload() {
           base64:   b64,
           person,
           month,
+          actingBy: actingByFor(person),
         });
         if (!res.success) {
           toast('❌ ' + f.name + ' 上傳失敗：' + (res.error || '未知錯誤'));
@@ -2130,7 +2199,7 @@ function renderUploadedList(files) {
 // DRIVE FILES
 // ════════════════════════════════════════════════════════════
 async function loadDriveFiles() {
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
 
   // 顯示 loading（card 已預設顯示，直接更新 tbody）
@@ -2158,11 +2227,11 @@ async function loadDriveFiles() {
 function renderDriveFiles() {
   const newNames = S._newUploadedNames || new Set();
   const freshMap = S._freshUploadMap || new Map();
-  const sorted   = [...S.driveFiles].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const allSorted = [...S.driveFiles].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   // ── Fallback：listFiles 讀回的資料若缺 id/driveUrl（read-after-write 時間差），
   //    用本次上傳當下 GAS 直接回傳的正確值補上，避免畫面顯示 — 或 OCR 佇列缺 id ──
-  sorted.forEach(f => {
+  allSorted.forEach(f => {
     const missing = !f.id || !f.driveUrl || f.driveUrl === '#';
     if (missing && freshMap.has(f.name)) {
       const fresh = freshMap.get(f.name);
@@ -2172,6 +2241,10 @@ function renderDriveFiles() {
     }
   });
 
+  // 已辨識過的檔案預設隱藏，只在勾選「顯示已辨識」時才列出
+  const sorted = S._showRecognized ? allSorted : allSorted.filter(f => !f.recognized);
+  const hiddenCnt = allSorted.length - sorted.length;
+
   S._driveFilesSorted = sorted;
 
   $('driveFileTbl').innerHTML = sorted.map((f, i) => {
@@ -2179,31 +2252,41 @@ function renderDriveFiles() {
     const newTag = isNew
       ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">新產生</span>`
       : '';
+    const recognizedTag = f.recognized
+      ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">已辨識</span>`
+      : '';
     const driveHref = f.driveUrl || f.url || '#';
     return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
       <td style="width:36px"><div class="chkbox ${isNew?'on':''}" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
-      <td style="font-size:14px">${f.name}${newTag}</td>
+      <td style="font-size:14px">${f.name}${newTag}${recognizedTag}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
       <td>${driveHref !== '#'
         ? `<a href="${driveHref}" target="_blank" style="color:var(--accent);font-size:14px;font-weight:700">↗</a>`
         : `<span style="color:var(--border2);font-size:13px">—</span>`
       }</td>
     </tr>`;
-  }).join('') || emptyRow(4, '此月份無憑證紀錄');
+  }).join('') || (hiddenCnt
+    ? emptyRow(4, `已辨識 ${hiddenCnt} 筆已隱藏，勾選「顯示已辨識」查看`)
+    : emptyRow(4, '此月份無憑證紀錄'));
 
   // 若有新上傳檔案，自動啟用辨識按鈕
   if (newNames.size > 0) {
     $('btnSendOCR').disabled = false;
   }
 
-  // 更新計數（card 已預設顯示，不需再 display:block）
-  const cnt = sorted.length || (S._newUploadedNames?.size ? S._newUploadedNames.size : 0);
+  // 更新計數（card 已預設顯示，不需再 display:block）——計數以「全部」為準，不受顯示篩選影響
   $('uploadedCnt').textContent =
-    sorted.length
-      ? sorted.length + ' 筆'
+    allSorted.length
+      ? allSorted.length + ' 筆' + (hiddenCnt ? `（已辨識隱藏 ${hiddenCnt}）` : '')
       : S._newUploadedNames?.size
         ? S._newUploadedNames.size + ' 筆（本次）'
         : '0 筆';
+}
+
+function toggleShowRecognized() {
+  S._showRecognized = !S._showRecognized;
+  $('chkShowRecognized')?.classList.toggle('on', S._showRecognized);
+  renderDriveFiles();
 }
 
 function toggleDriveChk(i) {
@@ -2354,6 +2437,7 @@ async function runOCR() {
         fileId: qf.id,
         attribution,
         attributionTarget,
+        actingBy: actingByFor(effectivePerson()),
       });
       const items = res.items || [];
       items.forEach((item, idx) => {
@@ -2487,9 +2571,12 @@ function renderOCRResults() {
     if (a._isNew !== b._isNew) return a._isNew ? -1 : 1;
     return (b.date || '').localeCompare(a.date || '');
   });
+  // 已匯出過的收據預設隱藏，只在勾選「顯示已匯出」時才列出
+  const visible = S._showExported ? sorted : sorted.filter(r => !r.exported);
+  const hiddenExportedCnt = sorted.length - visible.length;
   const tabs = {
-    fuel:  sorted.filter(r => r.category === 'fuel'),
-    other: sorted.filter(r => r.category !== 'fuel'),
+    fuel:  visible.filter(r => r.category === 'fuel'),
+    other: visible.filter(r => r.category !== 'fuel'),
   };
 
   if (!tabs[_ocrTab]?.length && !(_ocrTab === 'fuel' && hasFuelProj)) {
@@ -2515,7 +2602,13 @@ function renderOCRResults() {
     </button>`;
   };
 
-  const tabHtml = `<div style="display:flex;gap:10px;margin-bottom:14px">
+  const tabHtml = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-left:auto">
+      <div class="chkbox ${S._showExported?'on':''}" id="chkShowExported" onclick="toggleShowExported()" style="width:16px;height:16px;flex-shrink:0"></div>
+      顯示已匯出${hiddenExportedCnt ? `（已隱藏 ${hiddenExportedCnt} 筆）` : ''}
+    </label>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
     ${tabBtn('other','📄','費用',tabs.other.length,otherAmt)}
     ${tabBtn('fuel','🚗','私車補助',tabs.fuel.length,fuelAmt)}
   </div>`;
@@ -2554,6 +2647,11 @@ function switchOcrTab(tab) {
   renderOCRResults();
 }
 
+function toggleShowExported() {
+  S._showExported = !S._showExported;
+  renderOCRResults();
+}
+
 // ── 油資 tab：上方發票列表 + 下方多專案 + 差額 ──────────────
 // S._fuelProjects = [{ uid, projId, fieldRows[] }]  // 當前選擇的專案列表
 if (!window._fuelProjList) window._fuelProjList = [];
@@ -2573,6 +2671,7 @@ function renderOtherTab(otherReceipts) {
     const defChk  = r._checked;
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
+    const exportedTag = r.exported ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">已匯出</span>` : '';
 
     // 歸屬 badge
     const attrBadge = (() => {
@@ -2589,7 +2688,7 @@ function renderOtherTab(otherReceipts) {
           onclick="upR('${r.id}','_checked',this.classList.toggle('on'));syncAllOcrChk();updateStats();updateOtherApplyBtn()"
           style="flex-shrink:0"></div>
         <div style="flex:1;min-width:120px;cursor:pointer" onclick="toggleOtherRow('${r.id}')">
-          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}</div>
+          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${exportedTag}</div>
           <div style="font-size:12px;color:var(--muted)">${r.source||r.date||''} · ${r.invoiceNo||'—'}</div>
           <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}</div>
         </div>
@@ -2749,6 +2848,7 @@ function renderFuelTab(fuelReceipts) {
     if (r._checked === undefined) r._checked = true; // 油資預設全勾
     const isNew  = r._isNew;
     const newTag = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
+    const exportedTag = r.exported ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">已匯出</span>` : '';
     const dupBadge = r._isDuplicate ? `<span class="badge bd-red" style="margin-left:4px">⚠️重複</span>` : '';
     return `<div id="fuel-inv-${r.id}" style="border-bottom:1px solid var(--border)">
       <!-- 列頭 -->
@@ -2758,7 +2858,7 @@ function renderFuelTab(fuelReceipts) {
           onclick="event.stopPropagation();upR('${r.id}','_checked',this.classList.toggle('on'));syncAllOcrChk();updateStats()"
           style="flex-shrink:0"></div>
         <div style="flex:1;min-width:120px">
-          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}</div>
+          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}${exportedTag}</div>
           <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
         </div>
         <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
@@ -3344,7 +3444,7 @@ function syncFuelProjToSheet(idx) {
 }
 async function _syncFuelProjToSheet(idx) {
   const fp     = window._fuelProjList[idx];
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
   if (!fp || !person || !month) return;
 
@@ -3409,7 +3509,7 @@ async function _syncFuelProjToSheet(idx) {
 
 // 全量暫存 _fuelProjList（🔄 前呼叫）
 async function saveFuelProjToSheet(silent = false) {
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
   if (!person || !month || !window._fuelProjList.length) return;
 
@@ -4411,7 +4511,7 @@ function renderPdfResultList(urls, labels) {
 }
 
 async function _doExport(skipStash = false) {
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
   if (!person) { toast('⚠️ 尚未登入，無法匯出'); return; }
 
@@ -4496,12 +4596,13 @@ async function _doExport(skipStash = false) {
   try {
     // A類優化：原本 personDept/personTitle 各自呼叫一次 .find() 查整個 persons 陣列，
     // 對同一個人查兩次；合併成一次查找後分別取值，O(2n) 變 O(n)。
-    const me = S.config?.persons?.find(p => p.name === (S.user?.name || ''));
+    // 代辦模式下 person 是被代辦人，部門/職稱要用被代辦人的資料，而非操作者自己的
+    const me = S.config?.persons?.find(p => p.name === person);
     const res = await callGAS({
       action:   'exportAll',
       person,   month,
-      personDept:  me?.dept  || S.user?.dept  || '',
-      personTitle: me?.title || S.user?.title || '',
+      personDept:  me?.dept  || (S.actingAs ? '' : S.user?.dept)  || '',
+      personTitle: me?.title || (S.actingAs ? '' : S.user?.title) || '',
       fuelProjData,
       otherReceipts,
       fuelReceipts,
@@ -6228,7 +6329,7 @@ async function doStashAll(silent = false) {
 // EXPORT HISTORY（匯出紀錄頁）
 // ════════════════════════════════════════════════════════════
 async function loadExportHistory(showToast) {
-  const person = S.user?.name || '';
+  const person = effectivePerson();
   const month  = curMonth();
   const tbody  = $('histTblBody');
   const cntEl  = $('histCnt');
