@@ -2277,7 +2277,7 @@ function renderDriveFiles() {
              onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:18px'}))">`
       : `<span style="font-size:18px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
-      <td style="width:36px"><div class="chkbox ${isNew?'on':''}" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
+      <td style="width:36px"><div class="chkbox on" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
       <td style="width:44px"><div class="file-thumb">${thumbHtml}</div></td>
       <td style="font-size:14px">${f.name}${newTag}${recognizedTag}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
@@ -2289,6 +2289,10 @@ function renderDriveFiles() {
   }).join('') || (hiddenCnt
     ? emptyRow(5, `已辨識 ${hiddenCnt} 筆已隱藏，勾選「顯示已辨識」查看`)
     : emptyRow(5, '此月份無憑證紀錄'));
+
+  // 清單預設全選：有資料就整批打勾（含表頭全選鈕），並啟用辨識按鈕
+  $('chkAll')?.classList.toggle('on', sorted.length > 0);
+  $('btnSendOCR').disabled = sorted.length === 0;
 
   // 若有新上傳檔案，自動啟用辨識按鈕
   if (newNames.size > 0) {
@@ -2422,6 +2426,20 @@ async function runWithConcurrency(items, limit, worker) {
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, next));
 }
 
+// item1: 手機瀏覽器（尤其 iOS）在長時間 POST 過程中若螢幕鎖定/App切背景，
+// 常見的失敗訊息就是單純的「Load failed」（非我們自訂的逾時訊息）——此時 GAS 端
+// 其實已經執行完成並寫入 OcrResults，只是連線在回傳途中斷了。
+// 這裡在 ocrReceipt 失敗時，回頭用 getOcrResults 依 fileId 確認是否已有資料，
+// 有的話直接撿回來用，避免「資料明明有卻顯示辨識失敗」。
+async function recoverOcrResultsByFileId(fileId) {
+  if (!fileId) return [];
+  try {
+    const r = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', person: effectivePerson(), month: curMonth() });
+    if (!r.success) return [];
+    return (r.rows || []).filter(row => row.fileId === fileId);
+  } catch (_) { return []; }
+}
+
 async function runOCR() {
   const pending = S.ocrQueue.filter(q => q.status==='pending');
   if (!pending.length) { toast('沒有待辨識項目'); return; }
@@ -2482,13 +2500,28 @@ async function runOCR() {
       });
       qf.status = res.success ? 'done' : 'error';
       if (!res.success) {
-        S.receipts.push({
-          id: qf.id+'_err', source: qf.name, status:'error',
-          error: res.error || '辨識失敗', category:'other',
-          attribution, projectId: attribution==='project'?attributionTarget:'',
-          dept: attribution==='dept'?attributionTarget:(S.user?.dept||''),
-          vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
-        });
+        const recovered = await recoverOcrResultsByFileId(qf.id);
+        if (recovered.length) {
+          recovered.forEach((item, idx) => {
+            const id = `${qf.id}_${idx}`;
+            if (!S.receipts.find(r => r.id===id)) {
+              const rec = mkReceipt(id, qf, item, idx, true);
+              rec.attribution = item.attribution || attribution;
+              if (rec.attribution === 'project') rec.projectId = item.attributionTarget || attributionTarget;
+              else if (rec.attribution === 'dept') rec.dept = item.attributionTarget || attributionTarget;
+              S.receipts.push(rec);
+            }
+          });
+          qf.status = 'done';
+        } else {
+          S.receipts.push({
+            id: qf.id+'_err', source: qf.name, status:'error',
+            error: res.error || '辨識失敗', category:'other',
+            attribution, projectId: attribution==='project'?attributionTarget:'',
+            dept: attribution==='dept'?attributionTarget:(S.user?.dept||''),
+            vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
+          });
+        }
       }
     } catch(e) {
       qf.status='error';
@@ -6353,6 +6386,11 @@ async function stashThenExport() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 準備中...'; }
   try {
     await doStashAll(true); // true = 靜默模式
+    // item3: FuelProjects 的寫入是 500ms debounce，若使用者剛勾選/調整就馬上匯出，
+    // debounce 還沒送出時 sheet 裡還沒有對應列，匯出後 markFuelProjectsExported 會因為
+    // 找不到列而標記失敗（靜默跳過）。這裡強制 flush 全部 pending 寫入並等待完成，
+    // 確保匯出當下 sheet 內容已是最新狀態。
+    await saveFuelProjToSheet(true);
   } catch(e) { /* 靜默 */ }
   // item4: 不在此提前恢復按鈕，PDF 產生（_doExport 內的 exportAll 呼叫）才是真正
   // 耗時的步驟，loading 應持續到那一步完成（成功或失敗）才解除
