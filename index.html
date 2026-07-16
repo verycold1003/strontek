@@ -242,7 +242,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   .fg2{grid-template-columns:1fr!important}
   /* ── modal bottom sheet ── */
   .modal-wrap{align-items:flex-end!important;padding:0!important}
-  .modal-box{width:100vw!important;max-width:100vw!important;border-radius:16px 16px 0 0!important;
+  .modal-box{width:100%!important;max-width:100%!important;border-radius:16px 16px 0 0!important;
     padding:20px 16px 32px!important;position:relative!important;
     max-height:92vh!important;animation:slideUp .28s cubic-bezier(.32,1,.6,1)!important}
   /* ── app-section padding 縮小 ── */
@@ -956,11 +956,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Gemini 辨識到的發票號碼已存在於紀錄中，請確認如何處理</div>
     <div id="dupModalBody"></div>
     <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-danger" style="flex:1" id="btnDupOverwrite" onclick="resolveDup('overwrite')">
-        🔄 覆蓋舊紀錄<br><span style="font-size:10px;font-weight:400;opacity:.8">舊的標記刪除，沿用此發票號碼</span>
+      <button class="btn btn-danger" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5" id="btnDupOverwrite" onclick="resolveDup('overwrite')">
+        🔄 覆蓋舊紀錄<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">舊的標記刪除，沿用此發票號碼</span>
       </button>
-      <button class="btn btn-gold" style="flex:1" id="btnDupKeep" onclick="resolveDup('keepSerial')">
-        🆕 新增流水號<br><span style="font-size:10px;font-weight:400;opacity:.8">視為誤植，改用年月流水號</span>
+      <button class="btn btn-gold" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5" id="btnDupKeep" onclick="resolveDup('keepSerial')">
+        🆕 新增流水號<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">視為誤植，改用年月流水號</span>
       </button>
     </div>
     <div id="dupRemaining" style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center"></div>
@@ -1939,6 +1939,9 @@ async function restoreFuelProjList(rows) {
       deptId:    attrType === 'dept' ? attrTarget : '',
       attrType, type: attrType === 'quota' ? 'quota' : 'mile',
       fieldRows, _isExpired: proj ? !!(proj.closeDate && proj.closeDate < today) : false,
+      exported:   !!row.exported,   // 月定額專案本身已匯出（里程實報的已匯出狀態在各 fieldRow 內）
+      exportedAt: row.exportedAt || '',
+      _checked: true,
     });
   });
 }
@@ -2680,12 +2683,14 @@ if (!window._fuelProjList) window._fuelProjList = [];
 let _otherSelectedItem = null;
 
 function renderOtherTab(otherReceipts) {
+  // 判斷條件：只要還有發票未設定歸屬，全部預設不勾（避免漏設歸屬就匯出）；
+  // 等全部發票都設定好歸屬了，才自動全部預設勾選。只影響尚未手動勾選過的（_checked === undefined）
+  const hasUnattributed = otherReceipts.some(r => r.status !== 'error' && !r.otherAttr);
   const rows = otherReceipts.map(r => {
     // 辨識失敗：改用專用的「重新辨識/手動填寫」卡片，而非一般收據樣式
     if (r.status === 'error') return rcHTML(r);
 
-    // 預設全不勾，讓使用者自行決定匯出哪幾筆
-    if (r._checked === undefined) r._checked = false;
+    if (r._checked === undefined) r._checked = !hasUnattributed;
     const defChk  = r._checked;
     const isNew   = r._isNew;
     const newTag  = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
@@ -2866,7 +2871,6 @@ function renderFuelTab(fuelReceipts) {
     if (r._checked === undefined) r._checked = true; // 油資預設全勾
     const isNew  = r._isNew;
     const newTag = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
-    const exportedTag = r.exported ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">已匯出</span>` : '';
     const dupBadge = r._isDuplicate ? `<span class="badge bd-red" style="margin-left:4px">⚠️重複</span>` : '';
     return `<div id="fuel-inv-${r.id}" style="border-bottom:1px solid var(--border)">
       <!-- 列頭 -->
@@ -2876,7 +2880,7 @@ function renderFuelTab(fuelReceipts) {
           onclick="event.stopPropagation();upR('${r.id}','_checked',this.classList.toggle('on'));syncAllOcrChk();updateStats()"
           style="flex-shrink:0"></div>
         <div style="flex:1;min-width:120px">
-          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}${exportedTag}</div>
+          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}</div>
           <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
         </div>
         <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
@@ -2973,10 +2977,15 @@ function renderFuelTab(fuelReceipts) {
             if (!proj) return '';
             const idx = window._fuelProjList.indexOf(fp);
             const expLabel = fp._isExpired ? '（已結案）' : '';
+            const exportedTag = fp.exported
+              ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
             return `<span style="display:inline-flex;align-items:center;gap:6px;
               background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
               padding:4px 12px;font-size:13px;font-weight:700">
-              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月
+              <div class="chkbox ${fp._checked!==false?'on':''}" title="匯出時是否包含此專案"
+                onclick="toggleFuelQuotaChecked(${idx})"
+                style="width:15px;height:15px;flex-shrink:0"></div>
+              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月${exportedTag}
               <span onclick="removeFuelProj(${idx})"
                 style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
             </span>`;
@@ -3058,12 +3067,17 @@ function updateFuelDiff() {
       const proj = S.config.projects.find(p => p.id === fp.projId);
       if (!proj) return '';
       const idx = window._fuelProjList.indexOf(fp);
+      const exportedTag = fp.exported
+        ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
       return `<span style="display:inline-flex;align-items:center;gap:6px;
         background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
         padding:4px 12px;font-size:13px;font-weight:700">
+        <div class="chkbox ${fp._checked!==false?'on':''}" title="匯出時是否包含此專案"
+          onclick="toggleFuelQuotaChecked(${idx})"
+          style="width:15px;height:15px;flex-shrink:0"></div>
         ${proj.id} ${proj.name}
         <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
-          核定 $${(proj.subsidy||0).toLocaleString()}/月</span>
+          核定 $${(proj.subsidy||0).toLocaleString()}/月</span>${exportedTag}
         <span onclick="removeFuelProj(${idx})"
           style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
       </span>`;
@@ -3095,7 +3109,7 @@ function initFuelProjDropdowns() {
       if (window._fuelProjList.find(fp => fp.type === 'quota' && fp.projId === item.id)) {
         toast('⚠️ 此月定額專案已加入');
       } else {
-        window._fuelProjList.push({ uid:'fp_'+Date.now(), projId:item.id, type:'quota', fieldRows:[] });
+        window._fuelProjList.push({ uid:'fp_'+Date.now(), projId:item.id, type:'quota', fieldRows:[], _checked:true });
         const newIdx = window._fuelProjList.length - 1;
         syncFuelProjToSheet && syncFuelProjToSheet(newIdx);
         updateStats(); // 即時更新 tab 金額
@@ -3189,6 +3203,8 @@ function fuelMileRowHTML(fp, idx) {
 function fuelFRRowHTML(idx, fi, fr) {
   fr = fr || {};
   const att2Checked = fr._att2 !== false;
+  const exportedTag = fr.exported
+    ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">已匯出</span>` : '';
   return `<div id="fp-fr-${idx}-${fi}" style="background:var(--surface2);border:1px solid var(--border);
     border-radius:8px;padding:10px 12px;margin-bottom:6px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -3196,7 +3212,7 @@ function fuelFRRowHTML(idx, fi, fr) {
         <input type="checkbox" id="fpatt2-${idx}-${fi}" ${att2Checked?'checked':''}
           onchange="saveFuelFRs(${idx})"
           style="width:16px;height:16px;accent-color:var(--accent)">
-        <span style="font-size:12px;font-weight:800;color:var(--muted)">外勤 ${fi+1}</span>
+        <span style="font-size:12px;font-weight:800;color:var(--muted)">外勤 ${fi+1}</span>${exportedTag}
       </label>
       <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="removeFuelFR(${idx},${fi})">✕</button>
     </div>
@@ -3245,7 +3261,20 @@ function fuelFRRowHTML(idx, fi, fr) {
   </div>`;
 }
 
-function removeFuelProj(idx) {
+function toggleFuelQuotaChecked(idx) {
+  const fp = window._fuelProjList[idx];
+  if (!fp) return;
+  fp._checked = fp._checked === false; // 反轉
+  renderOCRResults();
+}
+
+async function removeFuelProj(idx) {
+  const fp = window._fuelProjList[idx];
+  if (!fp) return;
+  const proj = S.config.projects.find(p => p.id === fp.projId);
+  const label = proj ? `${proj.id} ${proj.name}` : (fp.projId || '此專案');
+  const ok = await showConfirm(`確定要移除「${label}」這筆月定額申請嗎？`);
+  if (!ok) return;
   window._fuelProjList.splice(idx, 1);
   renderOCRResults();
 }
@@ -3306,7 +3335,7 @@ function initFuelMileDropdownAt(idx) {
           toast('⚠️ 此月定額專案已加入');
         } else {
           window._fuelProjList.splice(idx, 1);
-          window._fuelProjList.push({ uid: 'fp_' + Date.now(), projId: proj.id, type: 'quota', fieldRows: [] });
+          window._fuelProjList.push({ uid: 'fp_' + Date.now(), projId: proj.id, type: 'quota', fieldRows: [], _checked: true });
         }
         renderOCRResults();
         return;
@@ -3369,10 +3398,20 @@ function addFuelFR(idx) {
   syncFuelProjToSheet(idx);
 }
 
-function removeFuelFR(idx, fi) {
+async function removeFuelFR(idx, fi) {
   const fp = window._fuelProjList[idx];
-  if (!fp) return;
+  if (!fp?.fieldRows?.[fi]) return;
+  const isLast = fp.fieldRows.length <= 1;
+  const ok = await showConfirm(isLast
+    ? '這是此專案最後一筆外勤紀錄，刪除後會一併移除整個申請專案，確定要刪除嗎？'
+    : '確定要刪除這筆外勤紀錄嗎？');
+  if (!ok) return;
   fp.fieldRows.splice(fi, 1);
+  if (isLast) {
+    window._fuelProjList.splice(idx, 1);
+    renderOCRResults();
+    return;
+  }
   // 重繪外勤列表
   const list = $(`fuel-fr-list-${idx}`);
   if (list) list.innerHTML = fp.fieldRows.map((fr, i) => fuelFRRowHTML(idx, i, fr)).join('');
@@ -3382,7 +3421,12 @@ function removeFuelFR(idx, fi) {
 
 function setFuelFRRound(idx, fi, val) {
   const fp = window._fuelProjList[idx];
-  if (fp?.fieldRows?.[fi]) fp.fieldRows[fi].isRound = val;
+  if (fp?.fieldRows?.[fi]) {
+    fp.fieldRows[fi].isRound = val;
+    // 內容有異動，取消已匯出註記
+    delete fp.fieldRows[fi].exported;
+    delete fp.fieldRows[fi].exportedAt;
+  }
   $(`fprnd-${idx}-${fi}`)?.classList.toggle('on',  val);
   $(`fpone-${idx}-${fi}`)?.classList.toggle('on', !val);
   // 立即更新單筆公里數文字
@@ -3434,11 +3478,18 @@ function saveFuelFRs(idx) {
   if (!fp) return;
   const rows = fp.fieldRows || [];
   rows.forEach((fr, fi) => {
-    fr.date    = $(`fpd-${idx}-${fi}`)?.value    || fr.date;
-    fr.reason  = $(`fprsn-${idx}-${fi}`)?.value  || fr.reason;
-    fr.end     = $(`fpe-${idx}-${fi}`)?.value    || fr.end;
-    fr.km      = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || fr.km;
-    fr.isRound = $(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    const newDate    = $(`fpd-${idx}-${fi}`)?.value    || fr.date;
+    const newReason  = $(`fprsn-${idx}-${fi}`)?.value  || fr.reason;
+    const newEnd     = $(`fpe-${idx}-${fi}`)?.value    || fr.end;
+    const newKm      = parseFloat($(`fpkm-${idx}-${fi}`)?.value) || fr.km;
+    const newIsRound = $(`fprnd-${idx}-${fi}`)?.classList.contains('on') ?? fr.isRound;
+    // 內容有異動（日期/事由/終點/公里數/來回單程）就取消已匯出註記
+    if (fr.exported && (newDate !== fr.date || newReason !== fr.reason ||
+        newEnd !== fr.end || newKm !== fr.km || newIsRound !== fr.isRound)) {
+      delete fr.exported;
+      delete fr.exportedAt;
+    }
+    fr.date = newDate; fr.reason = newReason; fr.end = newEnd; fr.km = newKm; fr.isRound = newIsRound;
     const att2El = $(`fpatt2-${idx}-${fi}`);
     if (att2El) fr._att2 = att2El.checked;
     if (!fr.start) fr.start = S.config.startAddress || '';
@@ -3559,7 +3610,12 @@ async function queryFuelMaps(idx, fi) {
     if (kmEl) kmEl.value = km;
     // 更新 fieldRows km
     const fp = window._fuelProjList[idx];
-    if (fp?.fieldRows?.[fi]) { fp.fieldRows[fi].km = km; fp.fieldRows[fi].end = end; fp.fieldRows[fi].start = start; }
+    if (fp?.fieldRows?.[fi]) {
+      fp.fieldRows[fi].km = km; fp.fieldRows[fi].end = end; fp.fieldRows[fi].start = start;
+      // 內容有異動，取消已匯出註記
+      delete fp.fieldRows[fi].exported;
+      delete fp.fieldRows[fi].exportedAt;
+    }
     const isRound = fp?.fieldRows?.[fi]?.isRound !== false;
     const totalKm = parseFloat((km * (isRound ? 2 : 1)).toFixed(1));
     const amt     = Math.round(totalKm * rate);
@@ -3961,7 +4017,14 @@ document.addEventListener('click', e => {
   });
 });
 
-function upR(id, k, v) { const r = S.receipts.find(x => x.id === id); if (r) r[k] = v; }
+function upR(id, k, v) {
+  const r = S.receipts.find(x => x.id === id);
+  if (!r) return;
+  r[k] = v;
+  // 費用/停車費（非私車補助）：內容有異動就取消已匯出註記，避免舊 PDF 已匯出但內容已變的誤判
+  const CONTENT_KEYS = ['vendor', 'amount', 'date', 'invoiceNo', 'category', 'supplement', 'notes'];
+  if (CONTENT_KEYS.includes(k) && r.exported) { r.exported = false; r.exportedAt = ''; }
+}
 
 // 每欄 change 觸發暫存單筆（不需等全部完成）
 async function stashSingle(id) {
@@ -4547,7 +4610,9 @@ async function _doExport(skipStash = false) {
   // 但已匯出且目前被「顯示已匯出」篩選隱藏的收據不應該再被匯出——畫面上看不到的資料不匯出
   const isExportVisible = r => S._showExported || !r.exported;
   const fuelReceipts = S.receipts.filter(r => r.category === 'fuel' && isExportVisible(r));
-  const fuelProjData = (window._fuelProjList || []).map(fp => {
+  const fuelProjData = (window._fuelProjList || [])
+    .filter(fp => fp.type !== 'quota' || fp._checked !== false) // 月定額未勾選就不納入本次匯出
+    .map(fp => {
     // 找屬於此 fp 的 receipts
     const fpReceipts = fp.type === 'quota'
       ? fuelReceipts.filter(r => r.projectId === fp.projId)
