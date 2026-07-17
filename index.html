@@ -1302,9 +1302,15 @@ function handleLineCallback() {
   }
 
   $('loginCallbackMsg').style.display = 'block';
-  if (state !== localStorage.getItem('line_state')) {
+  const savedState = localStorage.getItem('line_state');
+  if (savedState && state !== savedState) {
+    // 這個瀏覽器情境本來就存過 line_state，但兩者對不上，才是真的可疑（例如網址被重放）
     toast('❌ LINE 登入 state 不符，請重試'); return;
   }
+  // savedState 為 null：代表這個瀏覽器情境從沒存過 line_state，最常見的情況是手機上
+  // LINE App 接手完成驗證後改用「LINE 內建瀏覽器」帶著 code/state 回來——它跟原本發起
+  // 登入的 Safari 分頁是兩個不共用 localStorage 的獨立環境，本來就不會存在對得上的值。
+  // 這種情況直接放行，把 code 交給後端跟 LINE 換 token，不要在前端這層攔下來。
   localStorage.removeItem('line_state');
 
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
