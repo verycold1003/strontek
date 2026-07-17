@@ -1260,12 +1260,16 @@ async function startLineLogin() {
     }
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = LINE_BTN_SVG; }
-
   if (!cfg?.channelId) {
+    // 唯一會留在這個頁面、需要讓使用者重新操作的分支，才恢復按鈕
+    if (btn) { btn.disabled = false; btn.innerHTML = LINE_BTN_SVG; }
     toast('❌ ' + (gasErr ? 'GAS 連線失敗：' + gasErr : 'LINE_CHANNEL_ID 未設定'));
     return;
   }
+
+  // 按鈕從這裡開始到真正導頁離開前，全程保持 disable + loading，
+  // 避免導頁前的空窗期被使用者連點產生第二組 state 蓋掉 localStorage
+  if (btn) { btn.innerHTML = '<div class="spin"></div> 導向 LINE 登入頁...'; }
 
   const state = crypto.randomUUID();
   localStorage.setItem('line_state', state);
@@ -1278,15 +1282,29 @@ async function startLineLogin() {
 }
 
 function handleLineCallback() {
-  const qs    = new URLSearchParams(window.location.search);
-  const code  = qs.get('code');
-  const state = qs.get('state');
+  const qs          = new URLSearchParams(window.location.search);
+  const code        = qs.get('code');
+  const state       = qs.get('state');
+  const isLiffOwned = qs.has('liffClientId') || qs.has('liffRedirectUri');
   if (!code) return;
+
+  // 不論後續驗證成不成功，先把網址參數清乾淨。
+  // 這組 code/state 只能用一次，網址若不清掉，LINE App 背景喚醒時
+  // 用它記住的原始網址重新載入分頁，會拿同一組失效參數再跑一次同樣會失敗
+  // 的流程，一直卡在迴圈裡，直到使用者手動重新登入產生新的 state 才脫困。
+  window.history.replaceState({}, '', window.location.pathname);
+
+  if (isLiffOwned) {
+    // liffClientId/liffRedirectUri 是 LIFF SDK 自己內部 OAuth 流程回跳帶的參數，
+    // 不是這裡的自訂登入流程產生的，交給 initLiffAuth() 內的 liff.init() 處理即可，
+    // 不要拿去跟 localStorage.line_state 比對（一定對不上，會顯示錯誤誤導使用者）
+    return;
+  }
+
   $('loginCallbackMsg').style.display = 'block';
   if (state !== localStorage.getItem('line_state')) {
     toast('❌ LINE 登入 state 不符，請重試'); return;
   }
-  window.history.replaceState({}, '', window.location.pathname);
   localStorage.removeItem('line_state');
 
   // ── 驗證中：disable 登入按鈕，timeout 後自動恢復 ──
