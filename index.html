@@ -5345,9 +5345,12 @@ async function restoreTask(id) {
 // ════════════════════════════════════════════════════════════
 // 專案管理 (專案 tab) — 業主端 / 廠商端 / 預收款 / 專案費用
 // ════════════════════════════════════════════════════════════
-const pjBlankPeriod = () => ({
+const pjBlankClientPeriod = () => ({
   label:'', amount:0, prepayDeduct:0,
   accepted:false, invoiced:false, invoiceDate:'', paid:false, payDate:'',
+});
+const pjBlankVendorPeriod = () => ({
+  label:'', amount:0,
   invAccepted:false, invReceived:false, invReceivedDate:'', vendorPaid:false, vendorPayDate:'',
 });
 
@@ -6332,7 +6335,8 @@ function pgRenderPeriods() {
 function pgAddPeriod() {
   const arr = pgTargetArray();
   if (!arr) return;
-  arr.push(pjBlankPeriod());
+  const isClient = ($('pg-target-select')?.value || 'client') === 'client';
+  arr.push(isClient ? pjBlankClientPeriod() : pjBlankVendorPeriod());
   pgRenderPeriods();
 }
 function pgRemovePeriod(j) {
