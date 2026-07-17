@@ -2277,7 +2277,7 @@ function renderDriveFiles() {
              onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🖼️',style:'font-size:18px'}))">`
       : `<span style="font-size:18px">${isPdf ? '📄' : '🖼️'}</span>`;
     return `<tr ${isNew ? 'style="background:rgba(21,128,61,.05)"' : ''}>
-      <td style="width:36px"><div class="chkbox on" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
+      <td style="width:36px"><div class="chkbox ${f.recognized ? '' : 'on'}" id="dc-${i}" onclick="toggleDriveChk(${i})"></div></td>
       <td style="width:44px"><div class="file-thumb">${thumbHtml}</div></td>
       <td style="font-size:14px">${f.name}${newTag}${recognizedTag}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${f.date || ''}</td>
@@ -2290,8 +2290,10 @@ function renderDriveFiles() {
     ? emptyRow(5, `已辨識 ${hiddenCnt} 筆已隱藏，勾選「顯示已辨識」查看`)
     : emptyRow(5, '此月份無憑證紀錄'));
 
-  // 清單預設全選：有資料就整批打勾（含表頭全選鈕），並啟用辨識按鈕
-  $('chkAll')?.classList.toggle('on', sorted.length > 0);
+  // 清單預設全選：未辨識過的檔案整批打勾；已辨識過的檔案（顯示已辨識時）預設不勾選，
+  // 表頭全選鈕僅在「所有列都勾選」時才顯示打勾，並啟用辨識按鈕
+  const allChecked = sorted.length > 0 && sorted.every(f => !f.recognized);
+  $('chkAll')?.classList.toggle('on', allChecked);
   $('btnSendOCR').disabled = sorted.length === 0;
 
   // 若有新上傳檔案，自動啟用辨識按鈕
@@ -2494,6 +2496,7 @@ async function runOCR() {
             rec._tempKey        = item.key || '';
             rec._duplicateOwner = item.duplicateOwner || '';
             rec._duplicateOwnerIsSelf = item.duplicateOwnerIsSelf !== false;
+            rec._sameFile       = item.sameFile || false;
           }
           S.receipts.push(rec);
         }
@@ -2581,6 +2584,7 @@ function mkReceipt(id, qf, item, idx, isNew) {
     _tempKey:        item.isDuplicate ? (item.key || '') : '',
     _duplicateOwner: item.duplicateOwner || '',
     _duplicateOwnerIsSelf: item.duplicateOwnerIsSelf !== false,
+    _sameFile:       item.sameFile || false,
   };
 }
 
@@ -2951,8 +2955,16 @@ function renderFuelTab(fuelReceipts) {
   }).join('');
 
   // ── 申請專案（月定額上，里程/部門/其他下）───────────────
-  const quotaList  = window._fuelProjList.filter(fp => fp.type === 'quota');
-  const mileList   = window._fuelProjList.filter(fp => fp.type !== 'quota');
+  // 「顯示已匯出」比照上方油資發票的篩選邏輯，套用到月定額與外勤紀錄：
+  // 未勾選時，已匯出的月定額整筆隱藏；外勤紀錄依單筆匯出狀態隱藏，
+  // 若某筆歸屬底下所有外勤紀錄都已匯出，該筆歸屬也一併隱藏
+  const quotaListAll = window._fuelProjList.filter(fp => fp.type === 'quota');
+  const mileListAll  = window._fuelProjList.filter(fp => fp.type !== 'quota');
+  const quotaList = S._showExported ? quotaListAll : quotaListAll.filter(fp => !fp.exported);
+  const mileList  = S._showExported ? mileListAll : mileListAll.filter(fp => {
+    const frList = fp.fieldRows || [];
+    return !frList.length || frList.some(fr => !fr.exported);
+  });
   const applyTotal = calcFuelApplyTotal();
   const diff       = invoiceTotal - applyTotal;
   const diffOk     = diff >= 0;
@@ -3205,8 +3217,12 @@ function fuelMileRowHTML(fp, idx) {
     ? `<span style="color:var(--gold);font-weight:800">核算 $${mileAmt.toLocaleString()}</span><span style="color:var(--muted);font-size:12px">（${rate} 元/km）</span>`
     : `<span style="color:var(--muted);font-size:12px">填入終點後自動計算（${rate} 元/km）</span>`;
 
-  // 外勤列
-  const frRows = frList.map((fr, fi) => fuelFRRowHTML(idx, fi, fr)).join('');
+  // 外勤列：未勾選「顯示已匯出」時，隱藏已匯出的單筆紀錄；索引 fi 一律取自原始 fieldRows，
+  // 確保編輯/刪除等操作仍對應到正確的資料位置
+  const visibleFr = S._showExported
+    ? frList.map((fr, fi) => [fr, fi])
+    : frList.map((fr, fi) => [fr, fi]).filter(([fr]) => !fr.exported);
+  const frRows = visibleFr.map(([fr, fi]) => fuelFRRowHTML(idx, fi, fr)).join('');
 
   return `<div id="fuel-mile-row-${idx}"
     style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
@@ -4479,6 +4495,43 @@ function renderDupModal(r) {
   const isOtherPerson = r._duplicateOwnerIsSelf === false;
   const noOverwrite = isCrossMonth || isOtherPerson;
 
+  const btnOverwrite = $('btnDupOverwrite');
+  const btnKeep       = $('btnDupKeep');
+
+  if (r._sameFile) {
+    // 同一份檔案（Drive ID 相同）重複辨識：Sheet 端本來就沒有新資料需要處理，
+    // 這裡純粹是提醒使用者「這份檔案已經辨識過了」，不提供覆蓋/流水號選項
+    $('dupModalBody').innerHTML = `
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div class="info-row">
+          <span style="color:var(--muted)">廠商</span>
+          <span style="font-weight:700">${r.vendor}</span>
+        </div>
+        <div class="info-row">
+          <span style="color:var(--muted)">金額</span>
+          <span class="mono" style="color:var(--gold);font-weight:700">$${r.amount.toLocaleString()}</span>
+        </div>
+        <div class="info-row" style="border-bottom:none">
+          <span style="color:var(--muted)">發票號碼</span>
+          <span class="mono" style="color:var(--amber);font-weight:700">${r._duplicateOfKey || '—'}</span>
+        </div>
+      </div>
+      <div style="background:rgba(21,128,61,.08);border:1px solid rgba(21,128,61,.2);border-radius:8px;padding:12px;font-size:13px;line-height:1.8">
+        <div style="color:var(--green);font-weight:700;margin-bottom:4px">ℹ️ 這份檔案先前已經辨識過</div>
+        <div style="color:var(--muted)">系統偵測到這是同一份檔案（Drive 檔案 ID 相同）重複送出辨識，紀錄已經存在，不會重複新增。</div>
+      </div>`;
+    if (btnOverwrite) btnOverwrite.style.display = 'none';
+    if (btnKeep) {
+      btnKeep.style.display = '';
+      btnKeep.innerHTML = '👍 知道了，略過本次<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">不會重複新增資料</span>';
+    }
+    $('dupRemaining').textContent =
+      remaining > 0 ? `還有 ${remaining} 筆待確認` : '這是最後一筆';
+    return;
+  }
+  if (btnOverwrite) btnOverwrite.style.display = '';
+  if (btnKeep) btnKeep.innerHTML = '🆕 新增流水號<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">視為誤植，改用年月流水號</span>';
+
   $('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
@@ -4518,7 +4571,6 @@ function renderDupModal(r) {
     }`;
 
   // 跨月或非同一申請人時禁用覆蓋按鈕
-  const btnOverwrite = $('btnDupOverwrite');
   if (btnOverwrite) {
     btnOverwrite.disabled = noOverwrite;
     btnOverwrite.style.opacity = noOverwrite ? '0.35' : '1';
@@ -4532,6 +4584,16 @@ function renderDupModal(r) {
 async function resolveDup(action) {
   if (!_dupCurrent) return;
   const r = _dupCurrent;
+
+  // 同一份檔案重複辨識：Sheet 端沒有新資料需要處理，直接移除本地端因重新辨識
+  // 而多疊加的這筆幽靈項目即可，不需要呼叫後端 resolveDuplicate
+  if (r._sameFile) {
+    S.receipts = S.receipts.filter(x => x.id !== r.id);
+    renderOCRResults();
+    updateStats();
+    nextDup();
+    return;
+  }
 
   // 鎖定按鈕
   ['btnDupOverwrite','btnDupKeep'].forEach(id => {
