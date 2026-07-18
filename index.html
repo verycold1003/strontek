@@ -273,11 +273,28 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="font-size:52px;margin-bottom:14px">📋</div>
     <div style="font-family:'Noto Sans TC',sans-serif;font-size:26px;font-weight:900;color:var(--brand-orange);margin-bottom:6px">專案管理</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Project Management Platform</div>
-    <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
-      使用 LINE 帳號登入
-    </button>
-    <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
+    <div id="loginButtonArea">
+      <button class="line-btn" id="btnLineLogin" onclick="startLineLogin()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg>
+        使用 LINE 帳號登入
+      </button>
+      <div id="loginCallbackMsg" style="display:none;margin-top:16px;font-size:13px;color:var(--green)">✅ 驗證中，請稍候...</div>
+    </div>
+    <div id="loginAutoWrap" style="display:none">
+      <div class="spin" style="width:26px;height:26px;border-width:3px;margin:0 auto 12px"></div>
+      <div style="font-size:13px;color:var(--muted)">LINE 登入中，請稍候...</div>
+    </div>
+    <script>
+      // 同步執行（不等 DOMContentLoaded）：LINE 內建瀏覽器的 UA 一律帶「Line/」，
+      // 偵測到就先隱藏登入按鈕、顯示自動登入中的畫面，避免按鈕先閃一下才被
+      // initLiffAuth() 的自動登入蓋掉。initLiffAuth() 最後如果發現其實不在
+      // LINE App 內（isInClient() 為 false，代表這次判斷是誤判），會負責把
+      // 按鈕改回來，所以這裡誤判也不會卡住使用者。
+      if (/\bLine\//i.test(navigator.userAgent)) {
+        document.getElementById('loginButtonArea').style.display = 'none';
+        document.getElementById('loginAutoWrap').style.display = 'block';
+      }
+    </script>
     <div id="bindNameSection" style="display:none;margin-top:20px;text-align:left">
       <div style="background:rgba(232,119,34,.07);border:1px solid rgba(232,119,34,.20);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-size:12px;font-weight:700;color:var(--brand-orange);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">🔗 首次綁定</div>
@@ -1197,11 +1214,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 // LIFF 初始化（只在 Line App 內有作用）
 // ════════════════════════════════════════════════════════════
 async function initLiffAuth() {
-  if (typeof liff === 'undefined') return false;
+  // 還原成「顯示登入按鈕」畫面：UA 偵測誤判、liff 初始化失敗、或自動登入失敗時使用，
+  // 避免使用者卡在只有 spinner、沒有任何可操作按鈕的畫面
+  const restoreLoginButton = () => {
+    const area = $('loginButtonArea'), auto = $('loginAutoWrap');
+    if (area) area.style.display = '';
+    if (auto) auto.style.display = 'none';
+  };
+
+  if (typeof liff === 'undefined') { restoreLoginButton(); return false; }
 
   const liffId = _lineConfig?.liffId || '';
   if (!liffId) {
     console.warn('LIFF_ID 未設定，跳過 LIFF 初始化');
+    restoreLoginButton();
     return false;
   }
 
@@ -1209,15 +1235,13 @@ async function initLiffAuth() {
     await liff.init({ liffId });
   } catch (e) {
     console.warn('LIFF init failed, fallback to LINE OAuth:', e);
+    restoreLoginButton();
     return false;
   }
 
-  if (!liff.isInClient()) return false;
+  if (!liff.isInClient()) { restoreLoginButton(); return false; }
 
-  // ── 在 Line App 內開啟 ──
-  const msgEl = $('loginCallbackMsg');
-  if (msgEl) { msgEl.style.display = 'block'; msgEl.textContent = '✅ LINE 身份驗證中，請稍候...'; }
-
+  // ── 在 Line App 內開啟：維持 loginAutoWrap 顯示，不用按鈕 ──
   try {
     const profile    = await liff.getProfile();
     const lineUserId = profile.userId;
@@ -1230,14 +1254,14 @@ async function initLiffAuth() {
       finishLogin({ ...res.person, avatar });
     } else if (res.needName) {
       S._pendingBind = { lineId: lineUserId, lineName, avatar };
-      if (msgEl) msgEl.style.display = 'none';
+      restoreLoginButton();
       showBindNameUI();
     } else {
-      if (msgEl) msgEl.style.display = 'none';
+      restoreLoginButton();
       toast('❌ ' + (res.error || 'LIFF 驗證失敗，請聯繫管理員'));
     }
   } catch (e) {
-    if (msgEl) msgEl.style.display = 'none';
+    restoreLoginButton();
     console.error('LIFF auth error:', e);
     toast('❌ LIFF 驗證失敗：' + e.message);
   }
