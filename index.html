@@ -1163,13 +1163,10 @@ function getMileageRate(yearMonth) {
 // ════════════════════════════════════════════════════════════
 let _lineConfig = null; // { channelId, redirectUri, liffId }
 
-// LINE 圖文選單深連結：網址帶 ?tab=expense（或 project/todo）時，登入完成後直接導向該分頁。
-// 用 localStorage 暫存，讓參數撐過整個登入流程（一般瀏覽器 OAuth 會整頁導轉到 LINE 登入頁再導回，
-// 網址參數在那個過程會不見；LIFF 在 LINE App 內開啟則參數本來就會保留，這裡當保險一起處理）。
-(function () {
-  const qTab = new URLSearchParams(window.location.search).get('tab');
-  if (qTab) localStorage.setItem('_deepLinkTab', qTab);
-})();
+// 深層連結：?tab=expense 之類的參數，在網址被登入流程清掉之前先記下來，
+// 供 finishLogin() 決定登入後要切到哪個分頁（支援值見 VALID_TAB_SECTIONS）
+const VALID_TAB_SECTIONS = ['project','expense','todo','proj-settings','schedule','finance','sysadmin'];
+let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
 
 const LINE_BTN_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
 
@@ -1214,13 +1211,6 @@ async function initLiffAuth() {
     console.warn('LIFF init failed, fallback to LINE OAuth:', e);
     return false;
   }
-
-  // LIFF 網址深連結參數：LIFF 進站有兩段 redirect，第一段網址只會帶 liff.state
-  // （我們自訂的 ?tab=xxx 這時候是被 URL encode 包在 liff.state 裡面，不在網址列上，
-  // 讀 window.location.search 會抓不到），liff.init() resolve 之後才會完成第二段 redirect
-  // 把 ?tab=xxx 還原回網址列，所以要在這裡（resolve 之後）才讀，不能在最上面頁面一載入就讀。
-  const qTab = new URLSearchParams(window.location.search).get('tab');
-  if (qTab) localStorage.setItem('_deepLinkTab', qTab);
 
   if (!liff.isInClient()) return false;
 
@@ -1286,7 +1276,23 @@ async function startLineLogin() {
   // 避免導頁前的空窗期被使用者連點產生第二組 state 蓋掉 localStorage
   if (btn) { btn.innerHTML = '<div class="spin"></div> 導向 LINE 登入頁...'; }
 
-  const state = crypto.randomUUID();
+  // 手機瀏覽器（Safari／Chrome 等，非 LINE App 內建瀏覽器）：直接導去 LIFF URL，
+  // 交給 LINE 官方的 LIFF 機制處理登入。這是已經驗證過穩定的路徑（跟圖文選單連結
+  // 走的是同一條)；避免自己再跑一次 access.line.me 那套 OAuth——手機上 LINE App
+  // 若已安裝，會把驗證這一步轉手給 LINE App、再用 LINE 內建瀏覽器帶 code 回來，
+  // 這個過程橫跨兩個不共用 localStorage 的瀏覽器情境，很容易出現各種邊界案例。
+  // 桌機瀏覽器沒有這個轉手問題，維持原本的自訂 OAuth 流程。
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  let alreadyInLineApp = false;
+  try { alreadyInLineApp = typeof liff !== 'undefined' && liff.isInClient(); } catch (_) {}
+  if (isMobile && cfg.liffId && !alreadyInLineApp) {
+    const liffUrl = `https://liff.line.me/${cfg.liffId}` +
+      (VALID_TAB_SECTIONS.includes(_pendingTab) ? `?tab=${_pendingTab}` : '');
+    window.location.href = liffUrl;
+    return;
+  }
+
+  const state = crypto.randomUUID() + (VALID_TAB_SECTIONS.includes(_pendingTab) ? ('.tab_' + _pendingTab) : '');
   localStorage.setItem('line_state', state);
   const redirectUri = cfg.redirectUri || window.location.href.split('?')[0];
   const params = new URLSearchParams({
@@ -1302,6 +1308,11 @@ function handleLineCallback() {
   const state       = qs.get('state');
   const isLiffOwned = qs.has('liffClientId') || qs.has('liffRedirectUri');
   if (!code) return;
+
+  // 把編碼在 state 裡的深層連結 tab 參數取回來（網址本身的 ?tab= 在導去
+  // access.line.me 時就已經遺失，只有靠 state 這個會原封不動往返的欄位帶回來）
+  const tabInState = state?.match(/\.tab_([\w-]+)$/)?.[1];
+  if (tabInState) _pendingTab = tabInState;
 
   // 不論後續驗證成不成功，先把網址參數清乾淨。
   // 這組 code/state 只能用一次，網址若不清掉，LINE App 背景喚醒時
@@ -1380,11 +1391,8 @@ function finishLogin(person) {
   renderUserBar();
   // 懶載入：登入只拉 config（使用者資訊、部門清單等基本資料），
   // 專案/待辦/費用等各分頁資料留到使用者實際切換進去時才載入（見 switchSection 內的 _loaded 判斷）
-  // 若網址帶了深連結分頁參數（例如 LINE 圖文選單 ?tab=expense），登入完成後直接導向該分頁
-  const deepTab = localStorage.getItem('_deepLinkTab') || '';
-  localStorage.removeItem('_deepLinkTab');
-  const validTabs = ['project', 'expense', 'todo'];
-  switchSection(validTabs.includes(deepTab) ? deepTab : 'project');
+  // 深層連結：?tab=expense 之類的參數優先，沒有才維持原本預設「專案」分頁
+  switchSection(VALID_TAB_SECTIONS.includes(_pendingTab) ? _pendingTab : 'project');
   loadConfig();
 }
 
