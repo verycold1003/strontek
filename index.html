@@ -1215,6 +1215,13 @@ async function initLiffAuth() {
     return false;
   }
 
+  // LIFF 網址深連結參數：LIFF 進站有兩段 redirect，第一段網址只會帶 liff.state
+  // （我們自訂的 ?tab=xxx 這時候是被 URL encode 包在 liff.state 裡面，不在網址列上，
+  // 讀 window.location.search 會抓不到），liff.init() resolve 之後才會完成第二段 redirect
+  // 把 ?tab=xxx 還原回網址列，所以要在這裡（resolve 之後）才讀，不能在最上面頁面一載入就讀。
+  const qTab = new URLSearchParams(window.location.search).get('tab');
+  if (qTab) localStorage.setItem('_deepLinkTab', qTab);
+
   if (!liff.isInClient()) return false;
 
   // ── 在 Line App 內開啟 ──
