@@ -531,7 +531,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
               <th style="white-space:nowrap">專案代號</th>
               <th style="min-width:220px">名稱</th>
               <th style="white-space:nowrap">部門</th>
-              <th style="white-space:nowrap">類型</th>
+              <th style="white-space:nowrap">補助類型</th>
               <th style="white-space:nowrap">核定補助</th>
               <th style="white-space:nowrap">生效日</th>
               <th style="white-space:nowrap">結案日</th>
@@ -748,7 +748,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </div>
     <div class="fg2" style="margin-bottom:14px">
       <div>
-        <label class="lbl">採月定額</label>
+        <label class="lbl">補助類型</label>
         <div class="tgl" style="width:180px" id="tgl-np-quota">
           <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
           <button class="tgl-btn"    onclick="setNpQuota(false)">🛣 里程實報</button>
@@ -957,7 +957,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <div id="uDeptPopup" style="font-size:12px;color:var(--muted);margin-top:1px">—</div>
         </div>
       </div>
-      <div style="padding:8px">
+      <div style="padding:8px" id="logoutBtnWrap">
         <button onclick="logout()" class="btn btn-ghost" style="width:100%;text-align:center;font-size:13px">登出</button>
       </div>
     </div>
@@ -1183,6 +1183,8 @@ let _lineConfig = null; // { channelId, redirectUri, liffId }
 // 深層連結：?tab=expense 之類的參數，在網址被登入流程清掉之前先記下來，
 // 供 finishLogin() 決定登入後要切到哪個分頁（支援值見 VALID_TAB_SECTIONS）
 const VALID_TAB_SECTIONS = ['project','expense','todo','proj-settings','schedule','finance','sysadmin'];
+// 會計科目：私車補助類（category==='私車補助'）一律自動歸「燃料費」；其餘六個由 Gemini 分類，AI 判斷不出來保底「其他」
+const ACCT_TYPES = ['停車費','燃料費','車輛保養費','耗材費','零件材料費','維修工具','其他'];
 let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
 
 const LINE_BTN_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.89c.5 0 .907.41.907.91 0 .5-.407.91-.907.91h-2.44v1.55h2.44c.5 0 .907.41.907.91 0 .5-.407.91-.907.91H16.02a.91.91 0 01-.907-.91V9.89c0-.5.406-.91.907-.91zm-10.8 0c.5 0 .906.41.906.91v3.37h2.44c.5 0 .907.41.907.91 0 .5-.406.91-.907.91H8.565a.91.91 0 01-.907-.91V10.8c0-.5.407-.91.907-.91zm5.4 0c.5 0 .906.41.906.91v4.28c0 .5-.406.91-.906.91-.5 0-.907-.41-.907-.91V10.8c0-.5.407-.91.907-.91zm-8.14 0c.5 0 .906.41.906.91v2.44l1.89-2.96c.17-.26.46-.39.74-.35.5.07.84.5.84 1.01v4.28c0 .5-.407.91-.907.91-.5 0-.907-.41-.907-.91v-2.44l-1.89 2.96c-.17.26-.46.4-.74.35-.5-.07-.84-.5-.84-1.01V10.8c0-.5.407-.91.907-.91zM12 2C6.477 2 2 6.155 2 11.267c0 4.537 3.563 8.327 8.379 9.093.325.056.77.172.882.396.1.2.066.515.033.718l-.143.86c-.044.254-.202 1.003.878.547 1.08-.456 5.83-3.435 7.95-5.88C21.438 15.062 22 13.235 22 11.267 22 6.155 17.523 2 12 2z"/></svg> 使用 LINE 帳號登入';
@@ -1413,6 +1415,12 @@ function finishLogin(person) {
   document.body.classList.add('has-mainnav');
   $('mainNav').style.display = 'flex';
   renderUserBar();
+  // LIFF（LINE App 內）環境下，initLiffAuth() 每次載入都會用 LIFF session
+  // 靜默重新登入，登出按鈕在這裡沒有實際作用，直接隱藏避免誤導
+  let inLineApp = false;
+  try { inLineApp = typeof liff !== 'undefined' && liff.isInClient(); } catch (_) {}
+  const logoutWrap = $('logoutBtnWrap');
+  if (logoutWrap) logoutWrap.style.display = inLineApp ? 'none' : '';
   // 懶載入：登入只拉 config（使用者資訊、部門清單等基本資料），
   // 專案/待辦/費用等各分頁資料留到使用者實際切換進去時才載入（見 switchSection 內的 _loaded 判斷）
   // 深層連結：?tab=expense 之類的參數優先，沒有才維持原本預設「專案」分頁
@@ -1524,6 +1532,10 @@ function logout() {
   _personsCache = [];
   $('appShell').style.display  = 'none';
   $('loginWrap').style.display = 'flex';
+  // 保險：確保登入按鈕是可見的，不會卡在自動登入的轉圈圈畫面沒有任何按鈕可點
+  const area = $('loginButtonArea'), auto = $('loginAutoWrap');
+  if (area) area.style.display = '';
+  if (auto) auto.style.display = 'none';
 }
 
 // ── 系統管理 ──────────────────────────────────────────────────
@@ -2051,17 +2063,17 @@ async function loadOcrResults(auto = false) {
   rows.forEach(row => {
     if (existKeys.has(row.key)) return;
     existKeys.add(row.key);
-    const cat = /fuel|油資/i.test(row.category) ? 'fuel' : 'other';
+    const cat = row.category === '私車補助' ? '私車補助' : '費用';
     // Sheet 回傳：supplement 欄存油資外勤 JSON / 其他說明
     const rawSupp    = row.supplement || '';
-    const otherAttr  = cat !== 'fuel'  ? (row.attributionTarget || '') : '';
-    const projectId  = cat === 'fuel'  ? (row.attributionTarget || '') : '';
+    const otherAttr  = cat !== '私車補助'  ? (row.attributionTarget || '') : '';
+    const projectId  = cat === '私車補助'  ? (row.attributionTarget || '') : '';
     const dept       = S.config.userDeptCode || S.user?.dept || '';
     const frParsed   = (() => {
-      if (cat !== 'fuel') return [];
+      if (cat !== '私車補助') return [];
       try { return JSON.parse(rawSupp || '[]'); } catch(_) { return []; }
     })();
-    const supplement = cat !== 'fuel' ? rawSupp : '';
+    const supplement = cat !== '私車補助' ? rawSupp : '';
     S.receipts.push({
       id:         'sheet_' + row.key,
       source:     row.fileName || '（Sheet）',
@@ -2081,6 +2093,7 @@ async function loadOcrResults(auto = false) {
       fieldRows:  frParsed,
       exported:   !!row.exported,
       exportedAt: row.exportedAt || '',
+      acctType:   ACCT_TYPES.includes(row.acctType) ? row.acctType : '其他',
       _isNew:     false,
       _isDuplicate: false, _duplicateOfKey: '', _tempKey: '',
     });
@@ -2594,7 +2607,7 @@ async function runOCR() {
         } else {
           S.receipts.push({
             id: qf.id+'_err', source: qf.name, status:'error',
-            error: res.error || '辨識失敗', category:'other',
+            error: res.error || '辨識失敗', category:'費用',
             attribution, projectId: attribution==='project'?attributionTarget:'',
             dept: attribution==='dept'?attributionTarget:(S.user?.dept||''),
             vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
@@ -2605,7 +2618,7 @@ async function runOCR() {
       qf.status='error';
       S.receipts.push({
         id: qf.id+'_err', source: qf.name, status:'error',
-        error: e.message, category:'other',
+        error: e.message, category:'費用',
         attribution:'project', projectId:'', dept: S.user?.dept||'',
         vendor:'辨識失敗', amount:0, date:'', invoiceNo:'', notes:'', editData:{}
       });
@@ -2639,10 +2652,12 @@ async function runOCR() {
 }
 
 function mkReceipt(id, qf, item, idx, isNew) {
+  const cat = detectCat(item);
   return {
     id, source: qf.name, idx,
     status:    'done',
-    category:  detectCat(item),
+    category:  cat,
+    acctType:  cat === '私車補助' ? '燃料費' : (ACCT_TYPES.includes(item.acctType) ? item.acctType : '其他'),
     projectId: '', dept: S.config.userDeptCode || S.user?.dept || '',
     vendor:    item.vendor || item.merchant || '（未辨識）',
     amount:    parseFloat(item.amount || item.total || 0),
@@ -2672,14 +2687,14 @@ function getUserDeptDefaultExpense() {
 
 function detectCat(item) {
   const raw = (item.category || '').toLowerCase().trim();
-  if (raw === 'parking' || raw === '停車') return 'other';
+  if (raw === 'parking' || raw === '停車') return '費用';
   // 8-2: 部門「費用類型」為預設費用 → 全部歸 other
-  if (getUserDeptDefaultExpense()) return 'other';
-  if (raw === 'fuel' || raw === '油資') return 'fuel';
-  if (raw === 'other' || raw === '其他') return 'other';
+  if (getUserDeptDefaultExpense()) return '費用';
+  if (raw === 'fuel' || raw === '油資' || raw === '私車補助') return '私車補助';
+  if (raw === 'other' || raw === '其他' || raw === '費用') return '費用';
   const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
-  if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i.test(s)) return 'fuel';
-  return 'other';
+  if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i.test(s)) return '私車補助';
+  return '費用';
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2708,8 +2723,8 @@ function renderOCRResults() {
   const visible = S._showExported ? sorted : sorted.filter(r => !r.exported);
   const hiddenExportedCnt = sorted.length - visible.length;
   const tabs = {
-    fuel:  visible.filter(r => r.category === 'fuel'),
-    other: visible.filter(r => r.category !== 'fuel'),
+    fuel:  visible.filter(r => r.category === '私車補助'),
+    other: visible.filter(r => r.category !== '私車補助'),
   };
 
   if (!tabs[_ocrTab]?.length && !(_ocrTab === 'fuel' && hasFuelProj)) {
@@ -2825,7 +2840,7 @@ function renderOtherTab(otherReceipts) {
         <div style="flex:1;min-width:120px;cursor:pointer" onclick="toggleOtherRow('${r.id}')">
           <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${exportedTag}</div>
           <div style="font-size:12px;color:var(--muted)">${r.source||r.date||''} · ${r.invoiceNo||'—'}</div>
-          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}</div>
+          <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${attrBadge}<span class="badge bd-muted">${r.acctType||'其他'}</span></div>
         </div>
         <div class="mono" id="rc-amt-${r.id}" style="font-size:16px;font-weight:800;color:var(--gold)">
           $${r.amount.toLocaleString()}
@@ -2860,9 +2875,15 @@ function renderOtherTab(otherReceipts) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px">
-            <button class="tgl-btn on" onclick="setCat('${r.id}','other')">📄 費用</button>
-            <button class="tgl-btn" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','費用')">📄 費用</button>
+            <button class="tgl-btn" onclick="setCat('${r.id}','私車補助')">🚗 私車補助</button>
           </div>
+        </div>
+        <div style="margin-top:10px">
+          <label class="lbl">會計科目</label>
+          <select class="inp" onchange="upR('${r.id}','acctType',this.value);stashSingle('${r.id}')">
+            ${ACCT_TYPES.map(t => `<option value="${t}" ${r.acctType===t?'selected':''}>${t}</option>`).join('')}
+          </select>
         </div>
       </div>
     </div>`;
@@ -2916,7 +2937,7 @@ function initOtherAttrDropdown() {
 function updateOtherApplyBtn() {
   const btn = $('btn-other-apply');
   if (!btn) return;
-  const hasChecked = S.receipts.filter(r => r.category !== 'fuel')
+  const hasChecked = S.receipts.filter(r => r.category !== '私車補助')
     .some(r => $('rck-'+r.id)?.classList.contains('on'));
   const inp = document.querySelector('#fd-other-attr .fd-input');
   const hasInput = !!(_otherSelectedItem || (inp?.value || '').trim());
@@ -2949,7 +2970,7 @@ async function applyOtherAttr() {
   // 套用歸屬到所有已勾選的其他費用，並等待每筆儲存結果，
   // 確保畫面顯示的「已套用」狀態跟後端 Sheet 真正一致
   const targets = S.receipts
-    .filter(r => r.category !== 'fuel' && $('rck-'+r.id)?.classList.contains('on'));
+    .filter(r => r.category !== '私車補助' && $('rck-'+r.id)?.classList.contains('on'));
   targets.forEach(r => upR(r.id, 'otherAttr', item.id));
   // 顯示 loading：避免使用者在多筆儲存進行中重複點擊，也讓畫面有明確的處理中提示
   if (btn) { btn.disabled = true; btn.style.opacity = '1'; btn.innerHTML = '<div class="spin"></div> 套用中...'; }
@@ -2968,7 +2989,7 @@ async function applyOtherAttr() {
   if (btn) { btn.style.opacity = ''; btn.innerHTML = btnOriginalHtml; btn.disabled = true; }
 
   // ── 套用後全部取消勾選，讓使用者重新決定下一批操作範圍 ──
-  const otherList = S.receipts.filter(r => r.category !== 'fuel' && r.status !== 'error');
+  const otherList = S.receipts.filter(r => r.category !== '私車補助' && r.status !== 'error');
   otherList.forEach(r => { r._checked = false; });
 
   renderOCRResults();
@@ -3021,7 +3042,7 @@ function renderFuelTab(fuelReceipts) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px">
-            <button class="tgl-btn on" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn on" onclick="setCat('${r.id}','私車補助')">🚗 私車補助</button>
             <button class="tgl-btn"    onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
@@ -3156,7 +3177,7 @@ function calcFuelApplyTotal() {
 }
 
 function updateFuelDiff() {
-  const invoiceTotal = S.receipts.filter(r => r.category === 'fuel').reduce((s, r) => s + r.amount, 0);
+  const invoiceTotal = S.receipts.filter(r => r.category === '私車補助').reduce((s, r) => s + r.amount, 0);
   const applyTotal   = calcFuelApplyTotal();
   const diff         = invoiceTotal - applyTotal;
   const diffOk       = diff >= 0;
@@ -3179,10 +3200,11 @@ function updateFuelDiff() {
   const applyEl = $('fuel-apply-total');
   if (applyEl) applyEl.textContent = `申請總額 $${applyTotal.toLocaleString()}`;
 
-  // 更新月定額 badge 列
+  // 更新月定額 badge 列（跟下方「申請專案」清單一樣，套用「顯示已匯出」篩選）
   const badgeEl = $('fuel-quota-badges');
   if (badgeEl) {
-    const quotaList = window._fuelProjList.filter(fp => fp.type === 'quota');
+    const quotaListAll = window._fuelProjList.filter(fp => fp.type === 'quota');
+    const quotaList = S._showExported ? quotaListAll : quotaListAll.filter(fp => !fp.exported);
     badgeEl.innerHTML = quotaList.map(fp => {
       const proj = S.config.projects.find(p => p.id === fp.projId);
       if (!proj) return '';
@@ -3809,8 +3831,8 @@ function rcHTML(r) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="err-tgl-cat-${r.id}">
-            <button class="tgl-btn ${r.category==='fuel'?'on':''}" onclick="setErrCat('${r.id}','fuel')">🚗 私車補助</button>
-            <button class="tgl-btn ${r.category!=='fuel'?'on':''}" onclick="setErrCat('${r.id}','other')">📄 費用</button>
+            <button class="tgl-btn ${r.category==='私車補助'?'on':''}" onclick="setErrCat('${r.id}','私車補助')">🚗 私車補助</button>
+            <button class="tgl-btn ${r.category!=='私車補助'?'on':''}" onclick="setErrCat('${r.id}','費用')">📄 費用</button>
           </div>
         </div>
         <div>
@@ -3832,7 +3854,7 @@ function rcHTML(r) {
     ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:4px">新產生</span>`
     : '';
 
-  const catBadge = r.category === 'fuel'
+  const catBadge = r.category === '私車補助'
     ? `<span class="badge bd-blue">🚗 私車補助</span>`
     : `<span class="badge bd-muted">📄 費用</span>`;
   const dupBadge = r._isDuplicate
@@ -3844,7 +3866,7 @@ function rcHTML(r) {
   const allProjects     = getProjList('all');
   const recentIds = (S._recentProjIds || []).slice(0, 3);
 
-  const isFuel  = r.category === 'fuel';
+  const isFuel  = r.category === '私車補助';
   const isOther = !isFuel;
 
   // ── 展開外必填區塊（其他）
@@ -3918,7 +3940,7 @@ function rcHTML(r) {
         <div style="margin-bottom:12px">
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="tgl-cat-${r.id}">
-            <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','fuel')">🚗 私車補助</button>
+            <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','私車補助')">🚗 私車補助</button>
             <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
@@ -4155,19 +4177,19 @@ async function stashSingle(id) {
   const r = S.receipts.find(x => x.id === id);
   if (!r) return;
   // 油資：projId 優先從 _fuelProjList 取（新版 UI 不一定存在 r.projectId）
-  const fuelFp = r.category === 'fuel'
+  const fuelFp = r.category === '私車補助'
     ? (window._fuelProjList.find(fp => fp.projId === r.projectId) || null)
     : null;
   // attribution：其他費用統一用 'other'，GAS exportAll 從 otherAttr 取真正歸屬
   // 油資歸屬只存 FuelProjects sheet → 傳空字串
-  const attribution = r.category === 'fuel' ? '' : 'other';
-  const attributionTarget = r.category === 'fuel' ? '' : (r.otherAttr || r.parkAttr || r.dept || '');
+  const attribution = r.category === '私車補助' ? '' : 'other';
+  const attributionTarget = r.category === '私車補助' ? '' : (r.otherAttr || r.parkAttr || r.dept || '');
   // 補充欄：油資存外勤JSON，停車/其他存文字補充
-  const fieldRows  = r.category === 'fuel'
+  const fieldRows  = r.category === '私車補助'
     ? (fuelFp?.fieldRows?.length ? JSON.stringify(fuelFp.fieldRows)
        : r.fieldRows?.length ? JSON.stringify(r.fieldRows) : '')
     : undefined;
-  const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
+  const supplement = r.category !== '私車補助' ? (r.supplement || '') : undefined;
   const _stashKey = (r.ocrKey || '').trim() || (r.invoiceNo || '').trim() || '';
   if (!_stashKey) {
     // 無有效 key：本筆收據無法定位到 Sheet 對應列，提醒使用者而非靜默跳過，
@@ -4181,7 +4203,7 @@ async function stashSingle(id) {
       attribution, attributionTarget,
       vendor: r.vendor, amount: r.amount, date: r.date,
       invoiceNo: r.invoiceNo, category: r.category,
-      notes: r.notes,
+      notes: r.notes, acctType: r.acctType,
       ...(fieldRows  !== undefined ? { fieldRows }  : {}),
       ...(supplement !== undefined ? { supplement } : {}),
     }]});
@@ -4490,14 +4512,14 @@ function updateStats() {
   };
 
   // 油資：張數與發票總額只計勾選中的；申請總額不受勾選影響
-  const fuelAll     = all.filter(r => r.category === 'fuel');
+  const fuelAll     = all.filter(r => r.category === '私車補助');
   const fuelChecked = fuelAll.filter(isChecked);
   const fuelCnt     = fuelChecked.length;
   const fuelInvAmt  = fuelChecked.reduce((s, r) => s + r.amount, 0);
   const fuelAmt     = calcFuelApplyTotal();
 
   // 其他（含原停車費）：全部顯示
-  const otherAll = all.filter(r => r.category !== 'fuel');
+  const otherAll = all.filter(r => r.category !== '私車補助');
   const otherCnt = otherAll.length;
   const otherAmt = otherAll.reduce((s, r) => s + r.amount, 0);
 
@@ -4779,7 +4801,7 @@ async function _doExport(skipStash = false) {
   // 油資 receipts 全部帶（不管勾選，申請單需要完整油資發票清單），
   // 但已匯出且目前被「顯示已匯出」篩選隱藏的收據不應該再被匯出——畫面上看不到的資料不匯出
   const isExportVisible = r => S._showExported || !r.exported;
-  const fuelReceipts = S.receipts.filter(r => r.category === 'fuel' && isExportVisible(r));
+  const fuelReceipts = S.receipts.filter(r => r.category === '私車補助' && isExportVisible(r));
   const fuelProjData = (window._fuelProjList || [])
     .filter(fp => fp.type !== 'quota' || fp._checked !== false) // 月定額未勾選就不納入本次匯出
     .map(fp => {
@@ -4822,7 +4844,7 @@ async function _doExport(skipStash = false) {
   //    已匯出且被「顯示已匯出」篩選隱藏的收據排除在外——畫面上看不到的資料不匯出 ──
   const _userDeptCode = S.config?.userDeptCode || S.user?.dept || '其他';
   const otherReceipts = S.receipts
-    .filter(r => r.category !== 'fuel' && r._checked !== false && isExportVisible(r))
+    .filter(r => r.category !== '私車補助' && r._checked !== false && isExportVisible(r))
     .map(r => ({
       ...r,
       supplement: r.supplement || r.notes || '',
@@ -6554,16 +6576,16 @@ async function doStashAll(silent = false) {
   const updates = S.receipts.map(r => {
     const key = r.ocrKey || (r.invoiceNo && r.invoiceNo.trim() ? r.invoiceNo.trim() : r.id);
     if (!key) return null;
-    const fuelFp = r.category === 'fuel' ? fuelProjForReceipt(r) : null;
+    const fuelFp = r.category === '私車補助' ? fuelProjForReceipt(r) : null;
     // 其他費用統一 attribution = 'other'
-    const attribution = r.category === 'fuel' ? 'project' : 'other';
-    const attributionTarget = r.category === 'fuel'
+    const attribution = r.category === '私車補助' ? 'project' : 'other';
+    const attributionTarget = r.category === '私車補助'
       ? (fuelFp?.projId || r.projectId || '')
       : (r.otherAttr || r.parkAttr || r.dept || '');
-    const fieldRows  = r.category === 'fuel'
+    const fieldRows  = r.category === '私車補助'
       ? (fuelFp?.fieldRows?.length ? JSON.stringify(fuelFp.fieldRows) : '')
       : undefined;
-    const supplement = r.category !== 'fuel' ? (r.supplement || '') : undefined;
+    const supplement = r.category !== '私車補助' ? (r.supplement || '') : undefined;
 
     return {
       key,
@@ -6573,8 +6595,9 @@ async function doStashAll(silent = false) {
       amount:     r.amount    ?? '',
       date:       r.date      || '',
       invoiceNo:  r.invoiceNo || '',
-      category:   r.category  || 'other',
+      category:   r.category  || '費用',
       notes:      r.notes     || '',
+      acctType:   r.acctType  || '其他',
       ...(fieldRows  !== undefined ? { fieldRows }  : {}),
       ...(supplement !== undefined ? { supplement } : {}),
     };
@@ -6818,7 +6841,7 @@ function setErrCat(rcId, cat) {
   const tgl = $('err-tgl-cat-' + rcId);
   if (tgl) {
     tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
-      b.classList.toggle('on', (cat === 'fuel') === (i === 0)));
+      b.classList.toggle('on', (cat === '私車補助') === (i === 0)));
   }
 }
 
@@ -6832,7 +6855,7 @@ function confirmEditError(rcId) {
   r.date     = $('err-date-'   + rcId)?.value || '';
   r.invoiceNo = $('err-invoiceno-' + rcId)?.value || '';
   r.supplement = $('err-notes-' + rcId)?.value || '';
-  r.category = r.category === 'fuel' ? 'fuel' : 'other';
+  r.category = r.category === '私車補助' ? '私車補助' : '費用';
   r._checked = true;
   stashSingle(rcId);
   renderOCRResults();
