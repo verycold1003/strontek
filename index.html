@@ -63,6 +63,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .navmenu-sep{height:1px;background:var(--border);margin:2px 0 4px}
 body.has-mainnav .shell{height:calc(100vh - 52px);margin-top:52px}
 .app-section{display:none;height:calc(100vh - 52px);margin-top:52px;overflow-y:auto;padding:18px}
+.app-section > *{max-width:1100px;margin-left:auto;margin-right:auto}
 .app-section.active{display:block}
 .app-section .pg-title{margin-bottom:14px}
 .topbar{grid-column:1/-1;background:var(--surface);border-bottom:2px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -311,14 +312,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
-<div class="shell" id="appShell" style="display:none">
-  <div class="topbar">
-    <button id="menuToggle" class="btn btn-ghost btn-icon" onclick="toggleMenu()" style="font-size:18px;line-height:1;display:none">☰</button>
-    <div class="pg-title" style="margin:0">💲 費用管理</div>
-  </div>
-  <div class="main-area" id="mainArea"></div>
-</div><!-- /appShell -->
-
 <!-- ═══════════ SECTION: 費用-上傳憑證 ═══════════ -->
 <div class="app-section" id="sec-expense-upload">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -523,6 +516,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <input type="checkbox" id="projShowClosed" onchange="renderProjectList(S._projListRaw||[])"> 顯示已結案
         </label>
         <button class="btn btn-primary btn-sm" onclick="openProjectModal(null)">➕ 新增專案</button>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" class="inp" id="projSearchInput" placeholder="🔍 搜尋專案代號／名稱／部門"
+          oninput="renderProjectList(S._projListRaw||[])" style="max-width:320px">
       </div>
       <div style="overflow-x:auto">
         <table class="tbl">
@@ -741,12 +738,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div class="fg2" style="margin-bottom:14px">
       <div>
         <label class="lbl">隸屬部門 <span style="color:var(--danger)">*</span></label>
-        <select class="inp" id="np-dept">
+        <select class="inp" id="np-dept" onchange="onNpDeptChange()">
           <option value="">— 選擇部門 —</option>
         </select>
       </div>
     </div>
-    <div class="fg2" style="margin-bottom:14px">
+    <div class="fg2" style="margin-bottom:14px" id="np-subsidy-row">
       <div>
         <label class="lbl">補助類型</label>
         <div class="tgl" style="width:180px" id="tgl-np-quota">
@@ -1530,7 +1527,6 @@ function logout() {
   S._pjBoard    = null;
   _deptsCache   = [];
   _personsCache = [];
-  $('appShell').style.display  = 'none';
   $('loginWrap').style.display = 'flex';
   // 保險：確保登入按鈕是可見的，不會卡在自動登入的轉圈圈畫面沒有任何按鈕可點
   const area = $('loginButtonArea'), auto = $('loginAutoWrap');
@@ -1914,7 +1910,7 @@ async function loadConfig() {
 }
 
 function populateSelects() {
-  if ($('page-project')?.classList.contains('active')) populateNpDept();
+  if ($('sec-project')?.classList.contains('active')) populateNpDept();
 }
 
 // 切換「代辦申請」對象：等同換了一個人的費用資料視角，
@@ -2040,11 +2036,10 @@ async function restoreFuelProjList(rows) {
 // ════════════════════════════════════════════════════════════
 async function loadOcrResults(auto = false) {
   const month   = curMonth();
-  const btnOcr  = $('btnLoadOcr'), loadBar = $('ocrSheetLoadBar'), loadMsg = $('ocrSheetLoadMsg');
+  const loadBar = $('ocrSheetLoadBar'), loadMsg = $('ocrSheetLoadMsg');
   if (loadBar) loadBar.style.display = 'flex';
   if (loadMsg) loadMsg.textContent = '載入中...';
-  if (btnOcr)  { btnOcr.disabled = true; btnOcr.innerHTML = '<div class="spin"></div>'; }
-  const hideLoading = () => { if(loadBar) loadBar.style.display='none'; if(btnOcr){btnOcr.disabled=false;btnOcr.innerHTML='🔄';} };
+  const hideLoading = () => { if(loadBar) loadBar.style.display='none'; };
 
   let timedOut = false;
   const timer = setTimeout(() => { timedOut=true; hideLoading(); if(!auto) toast('⚠️ 載入逾時，請按 🔄 重試'); }, 20000);
@@ -3042,8 +3037,8 @@ function renderFuelTab(fuelReceipts) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px">
+            <button class="tgl-btn"    onclick="setCat('${r.id}','費用')">📄 費用</button>
             <button class="tgl-btn on" onclick="setCat('${r.id}','私車補助')">🚗 私車補助</button>
-            <button class="tgl-btn"    onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
       </div>
@@ -3831,8 +3826,8 @@ function rcHTML(r) {
         <div>
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="err-tgl-cat-${r.id}">
-            <button class="tgl-btn ${r.category==='私車補助'?'on':''}" onclick="setErrCat('${r.id}','私車補助')">🚗 私車補助</button>
             <button class="tgl-btn ${r.category!=='私車補助'?'on':''}" onclick="setErrCat('${r.id}','費用')">📄 費用</button>
+            <button class="tgl-btn ${r.category==='私車補助'?'on':''}" onclick="setErrCat('${r.id}','私車補助')">🚗 私車補助</button>
           </div>
         </div>
         <div>
@@ -3940,8 +3935,8 @@ function rcHTML(r) {
         <div style="margin-bottom:12px">
           <label class="lbl">費用類別</label>
           <div class="tgl" style="width:200px" id="tgl-cat-${r.id}">
+            <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','費用')">📄 費用</button>
             <button class="tgl-btn ${isFuel?'on':''}" onclick="setCat('${r.id}','私車補助')">🚗 私車補助</button>
-            <button class="tgl-btn ${isOther?'on':''}" onclick="setCat('${r.id}','other')">📄 費用</button>
           </div>
         </div>
 
@@ -4912,11 +4907,7 @@ function switchSection(name) {
   const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
-  const backBtn = $('navMenuProjBack');
-  if (backBtn) backBtn.style.display = 'none';
 
-  // 費用：完全靠 sec-expense-* sections，appShell 隱藏
-  $('appShell').style.display = 'none';
   ['project','todo','proj-settings','schedule','finance','sysadmin',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
     const el = $('sec-'+s);
@@ -4948,7 +4939,6 @@ function switchSection(name) {
   }
   if (name === 'proj-settings') {
     populateNpDept();
-    renderSettingsUserBar();
     if (!S._loaded.projSettings) {
       S._loaded.projSettings = true;
       loadProjectList(false);
@@ -4986,21 +4976,6 @@ function switchSection(name) {
       loadExportHistory(false);
     }
   }
-}
-
-// 專案設定頁使用者資訊列
-function renderSettingsUserBar() {
-  const u = S.user;
-  if (!u) return;
-  const av = $('ps-uAvatar');
-  const nm = $('ps-uName');
-  const dt = $('ps-uDeptTitle');
-  if (av) {
-    if (u.pictureUrl) { av.innerHTML = `<img src="${u.pictureUrl}" style="width:100%;height:100%;object-fit:cover">`; }
-    else { av.textContent = (u.name||'?')[0]; }
-  }
-  if (nm) nm.textContent = u.name || '—';
-  if (dt) dt.textContent = [S.config?.userDept, u.title].filter(Boolean).join('・') || '—';
 }
 
 // 漢堡選單：專案設定在「專案」nav-btn active 狀態下顯示
@@ -5073,6 +5048,24 @@ function populateNpDept() {
     depts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
 
+// 部門下拉選單變更時：純費用類部門（defaultExpense===false）隱藏補助類型整塊、清空成空白；
+// 費用/私車補助類部門顯示，預設月定額（不覆蓋既有已選值，見 openProjectModal 呼叫順序）
+function onNpDeptChange() {
+  const deptCode = $('np-dept')?.value;
+  const dept = (S.config.departments || []).find(d => d.code === deptCode);
+  const show = !deptCode || !!dept?.defaultExpense;
+  const row = $('np-subsidy-row');
+  if (row) row.style.display = show ? '' : 'none';
+  if (!show) {
+    $('np-quota').value = '';
+    $('np-subsidy').value = '';
+    const tgl = $('tgl-np-quota');
+    if (tgl) tgl.querySelectorAll('.tgl-btn').forEach(b => b.classList.remove('on'));
+  } else if ($('np-quota').value === '') {
+    setNpQuota(true);
+  }
+}
+
 // 月定額 toggle
 function setNpQuota(isQuota) {
   $('np-quota').value = isQuota ? 'true' : 'false';
@@ -5124,6 +5117,7 @@ function openProjectModal(i) {
   const quota = isNew ? true : !!p.quota;
   setNpQuota(quota);
   $('np-subsidy').value = (!isNew && quota && p.subsidy) ? p.subsidy : '';
+  onNpDeptChange(); // 依部門類型決定補助類型區塊顯示/隱藏（純費用類部門會覆蓋成空白）
 
   const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
   setNpPrepay(!!prepay.enabled);
@@ -5244,12 +5238,19 @@ function renderProjectList(rawRows) {
   if (!tbody) return;
   const showClosed = $('projShowClosed')?.checked;
   const today = todayStr();
-  const rows = showClosed
+  let rows = showClosed
     ? rawRows
     : rawRows.filter(p => !p.closeDate || p.closeDate >= today);
+  const kw = ($('projSearchInput')?.value || '').trim().toLowerCase();
+  if (kw) {
+    rows = rows.filter(p => {
+      const deptName = findDept(p.deptCode)?.name || p.deptCode || '';
+      return [p.code, p.id, p.name, deptName].some(v => String(v||'').toLowerCase().includes(kw));
+    });
+  }
   if (cntEl) cntEl.textContent = rows.length + ' 筆';
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">尚無專案</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">${kw ? '找不到符合搜尋條件的專案' : '尚無專案'}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((p, i) => {
@@ -6841,7 +6842,7 @@ function setErrCat(rcId, cat) {
   const tgl = $('err-tgl-cat-' + rcId);
   if (tgl) {
     tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
-      b.classList.toggle('on', (cat === '私車補助') === (i === 0)));
+      b.classList.toggle('on', (cat === '私車補助') === (i === 1)));
   }
 }
 
