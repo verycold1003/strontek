@@ -6844,4 +6844,18 @@ function confirmEditError(rcId) {
   stashSingle(rcId);
   renderOCRResults();
   updateStats();
-  toast('✅ 已手動填寫完成，請
+  toast('✅ 已手動填寫完成，請記得勾選後匯出');
+}
+
+// 移除失敗項目
+function removeErrorReceipt(rcId) {
+  S.receipts = S.receipts.filter(x => x.id !== rcId);
+  renderOCRResults();
+  updateStats();
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function now()   { return new Date().toLocaleTimeString('zh-TW'); }
+</script>
+</body>
+</html>
