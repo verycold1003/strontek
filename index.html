@@ -774,7 +774,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </div>
     <!-- 預收款：簡化成單一金額輸入框，金額不為 0 就視為有啟用預收款 -->
     <div style="margin-bottom:14px">
-      <label class="lbl">預收金額（0 表示不啟用）</label>
+      <label class="lbl">預收金額</label>
       <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
     </div>
     <input type="hidden" id="np-prepay-deductpct" value="10">
@@ -2673,8 +2673,11 @@ function getUserDeptDefaultExpense() {
 function detectCat(item) {
   const raw = (item.category || '').toLowerCase().trim();
   if (raw === 'parking' || raw === '停車') return '費用';
-  // 8-2: 部門「費用類型」為預設費用 → 全部歸 other
-  if (getUserDeptDefaultExpense()) return '費用';
+  // 8-2: 部門「費用類型」為費用（defaultExpense===false）→ 全部歸 other，
+  // 私車補助型部門（defaultExpense===true）才繼續往下用 FUEL_RE／category 判斷。
+  // 修正：原本這裡條件寫反了（defaultExpense===true 時反而直接回費用，
+  // 導致私車補助型部門的憑證永遠進不了 FUEL_RE 判斷，全部誤歸費用）。
+  if (!getUserDeptDefaultExpense()) return '費用';
   if (raw === 'fuel' || raw === '油資' || raw === '私車補助') return '私車補助';
   if (raw === 'other' || raw === '其他' || raw === '費用') return '費用';
   const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
@@ -6076,7 +6079,7 @@ async function exportProjectFinanceReport() {
       lineId: S.user?.lineId || '',
     }, 60000);
     if (res.success) {
-      toast('✅ 報表已產生');
+      toast('✅ 報表已產生' + (res.sharingNote ? ' ' + res.sharingNote : ''));
       // 與其他匯出流程一致：直接開啟 Drive 下載連結
       window.open(res.downloadUrl || res.url, '_blank');
     } else {
@@ -6841,18 +6844,4 @@ function confirmEditError(rcId) {
   stashSingle(rcId);
   renderOCRResults();
   updateStats();
-  toast('✅ 已手動填寫完成，請記得勾選後匯出');
-}
-
-// 移除失敗項目
-function removeErrorReceipt(rcId) {
-  S.receipts = S.receipts.filter(x => x.id !== rcId);
-  renderOCRResults();
-  updateStats();
-}
-
-function todayStr() { return new Date().toISOString().slice(0,10); }
-function now()   { return new Date().toLocaleTimeString('zh-TW'); }
-</script>
-</body>
-</html>
+  toast('✅ 已手動填寫完成，請
