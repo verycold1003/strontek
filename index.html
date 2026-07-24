@@ -772,22 +772,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </div>
       </div>
     </div>
-    <!-- 預收款 -->
-    <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px">
-      <div class="tgl" style="width:140px;margin-bottom:10px" id="tgl-np-prepay">
-        <button class="tgl-btn on" onclick="setNpPrepay(false)">不啟用</button>
-        <button class="tgl-btn" onclick="setNpPrepay(true)">預收款</button>
-      </div>
-      <input type="hidden" id="np-prepay-enabled" value="false">
-      <div id="np-prepay-fields" style="display:none">
-        <div>
-          <label class="lbl">預收金額</label>
-          <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
-        </div>
-      </div>
-      <!-- 每期扣回比例已移至「進度設定」頁，此處不重複設定 -->
-      <input type="hidden" id="np-prepay-deductpct" value="10">
+    <!-- 預收款：簡化成單一金額輸入框，金額不為 0 就視為有啟用預收款 -->
+    <div style="margin-bottom:14px">
+      <label class="lbl">預收金額（0 表示不啟用）</label>
+      <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
     </div>
+    <input type="hidden" id="np-prepay-deductpct" value="10">
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
       <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
       <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
@@ -5062,7 +5052,7 @@ function onNpDeptChange() {
     const tgl = $('tgl-np-quota');
     if (tgl) tgl.querySelectorAll('.tgl-btn').forEach(b => b.classList.remove('on'));
   } else if ($('np-quota').value === '') {
-    setNpQuota(true);
+    setNpQuota(false);
   }
 }
 
@@ -5083,15 +5073,6 @@ function setNpQuota(isQuota) {
 }
 
 // 預收款 toggle
-function setNpPrepay(enabled) {
-  $('np-prepay-enabled').value = enabled ? 'true' : 'false';
-  const tgl = $('tgl-np-prepay');
-  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
-    b.classList.toggle('on', i === (enabled ? 1 : 0)));
-  const fields = $('np-prepay-fields');
-  if (fields) fields.style.display = enabled ? 'block' : 'none';
-}
-
 // 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
 function openProjectModal(i) {
   populateNpDept();
@@ -5120,7 +5101,6 @@ function openProjectModal(i) {
   onNpDeptChange(); // 依部門類型決定補助類型區塊顯示/隱藏（純費用類部門會覆蓋成空白）
 
   const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
-  setNpPrepay(!!prepay.enabled);
   $('np-prepay-amount').value     = prepay.amount || '';
   $('np-prepay-deductpct').value  = prepay.deductPct || 10;
 
@@ -5154,8 +5134,8 @@ async function saveProjectModal() {
   const subsidy  = parseFloat($('np-subsidy')?.value) || 0;
   const effect   = $('np-effect')?.value;
   const close    = $('np-close')?.value;
-  const prepayEnabled = $('np-prepay-enabled')?.value === 'true';
   const prepayAmount  = parseFloat($('np-prepay-amount')?.value) || 0;
+  const prepayEnabled = prepayAmount !== 0;
   const prepayPct     = parseFloat($('np-prepay-deductpct')?.value) || 0;
   const msg      = $('npMsg');
 
