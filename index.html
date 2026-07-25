@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>專案管理</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -613,7 +614,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <thead><tr>
             <th style="white-space:nowrap">姓名</th><th style="white-space:nowrap">部門</th><th style="white-space:nowrap">職稱</th>
             <th style="white-space:nowrap">可顯示部門</th><th style="white-space:nowrap">最後登入</th><th style="white-space:nowrap">權限</th>
-            <th style="white-space:nowrap;min-width:48px">離職</th><th style="white-space:nowrap">操作</th>
+            <th style="white-space:nowrap;min-width:48px">離職</th>
+            <th style="white-space:nowrap;display:none" id="th-persons-salary">月工資總額</th>
+            <th style="white-space:nowrap">操作</th>
           </tr></thead>
           <tbody id="sysadmin-persons-tbody">
             <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
@@ -676,6 +679,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <input type="checkbox" id="pm-perm-acting" style="width:16px;height:16px"> 代申請
         </label>
       </div>
+    </div>
+    <div style="margin-bottom:18px;display:none" id="pm-monthly-salary-wrap">
+      <label class="lbl">月工資總額（元）</label>
+      <input class="inp" type="number" id="pm-monthly-salary" step="1" min="0" placeholder="例：36000">
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。</div>
     </div>
     <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px">
       <label class="lbl" style="margin:0">離職註記</label>
@@ -743,8 +751,8 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </select>
       </div>
     </div>
-    <div class="fg2" style="margin-bottom:14px" id="np-subsidy-row">
-      <div>
+    <div style="margin-bottom:14px" id="np-subsidy-row">
+      <div style="margin-bottom:10px">
         <label class="lbl">補助類型</label>
         <div class="tgl" style="width:180px" id="tgl-np-quota">
           <button class="tgl-btn on" onclick="setNpQuota(true)">✅ 月定額</button>
@@ -752,10 +760,19 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </div>
         <input type="hidden" id="np-quota" value="true">
       </div>
-      <div>
-        <label class="lbl">核定補助</label>
-        <input type="number" class="inp" id="np-subsidy" placeholder="0"
-          min="0" step="100">
+      <div id="np-subsidy-amount-wrap">
+        <!-- 沒有「員工表」權限：只能設定自己的金額 -->
+        <div id="np-subsidy-self">
+          <label class="lbl">核定補助（我的金額）</label>
+          <input type="number" class="inp" id="np-subsidy" placeholder="0" min="0" step="100">
+        </div>
+        <!-- 有「員工表」權限：可依人員分別設定不同金額 -->
+        <div id="np-subsidy-perperson" style="display:none">
+          <label class="lbl">核定補助（依人員）</label>
+          <div id="np-subsidy-rows" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px"
+            onclick="addNpSubsidyRow()">➕ 新增員工金額</button>
+        </div>
       </div>
     </div>
     <div class="fg2" style="margin-bottom:14px">
@@ -782,6 +799,36 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
       <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
       <button class="btn btn-primary" id="btnAddProj" onclick="saveProjectModal()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 私車補助 tab：異動補助類型 Modal（點月定額/里程實報 badge 觸發） -->
+<div class="modal-wrap" id="fuelTypeModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="ftModal-title">異動補助類型</div>
+    <div style="margin-bottom:14px">
+      <label class="lbl">補助類型</label>
+      <div class="tgl" style="width:180px" id="tgl-ft-quota">
+        <button class="tgl-btn on" onclick="setFtQuota(true)">✅ 月定額</button>
+        <button class="tgl-btn"    onclick="setFtQuota(false)">🛣 里程實報</button>
+      </div>
+      <input type="hidden" id="ft-quota" value="true">
+    </div>
+    <div id="ft-amount-wrap" style="margin-bottom:14px">
+      <label class="lbl">核定補助金額</label>
+      <div class="fg2">
+        <input type="number" class="inp" id="ft-amount" placeholder="0" min="0" step="100">
+        <div>
+          <span id="ft-person-fixed" style="display:inline-flex;align-items:center;height:38px;color:var(--muted);font-size:13px"></span>
+          <select class="inp" id="ft-person-select" style="display:none"></select>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="ftMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('fuelTypeModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveFuelTypeModal()">💾 儲存</button>
     </div>
   </div>
 </div>
@@ -850,6 +897,93 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 </div>
 
+<!-- ═══════════ SECTION: 出勤統計（財務專區底下） ═══════════ -->
+<div class="app-section" id="sec-attendance" style="overflow-x:auto">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div class="pg-title" style="margin:0">🕒 出勤統計</div>
+  </div>
+
+  <!-- 匯入打卡紀錄 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd">📥 匯入打卡紀錄</div>
+    <div style="padding-top:12px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。
+      </div>
+      <input type="file" id="att-import-file" accept=".xlsx,.xls" style="display:none" onchange="onAttendanceFileSelected(event)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="att-import-btn" onclick="$('att-import-file').click()">📤 匯入 Excel 檔</button>
+        <span id="att-import-filename" style="font-size:13px;color:var(--muted)"></span>
+      </div>
+      <div id="att-import-status" style="margin-top:12px;font-size:13px"></div>
+      <div id="att-import-result" style="margin-top:10px;display:none">
+        <button class="btn btn-secondary btn-sm" id="att-import-download-btn" onclick="downloadAttendanceResult()">⬇️ 下載匯出結果</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 出勤設定 -->
+  <div class="card">
+    <div class="card-hd">⚙️ 出勤設定</div>
+    <div style="padding-top:12px">
+      <div style="font-size:14px;font-weight:700;margin:14px 0 8px">餐費</div>
+      <div class="fg2">
+        <div><label class="lbl">餐費核發門檻（小時）</label>
+          <input class="inp" type="number" id="att-meal-threshold" step="0.01" min="0" placeholder="例：6"></div>
+        <div><label class="lbl">每日餐費（元）</label>
+          <input class="inp" type="number" id="att-meal-amount" step="1" min="0" placeholder="例：100"></div>
+      </div>
+
+      <div style="font-size:14px;font-weight:700;margin:18px 0 8px">平日加班</div>
+      <div class="fg2">
+        <div><label class="lbl">平日加班起算時間</label>
+          <input class="inp" type="time" id="att-weekday-ot-start" placeholder="例：18:00"></div>
+        <div></div>
+      </div>
+      <div class="fg2" style="margin-top:12px">
+        <div><label class="lbl">1-2 小時倍率</label>
+          <input class="inp" type="number" id="att-weekday-rate-1-2" step="0.01" min="0" placeholder="例：1.34"></div>
+        <div><label class="lbl">3-4 小時倍率</label>
+          <input class="inp" type="number" id="att-weekday-rate-3-4" step="0.01" min="0" placeholder="例：1.67"></div>
+      </div>
+
+      <div style="font-size:14px;font-weight:700;margin:18px 0 8px">休假日（國定假日）加班</div>
+      <div class="fg3">
+        <div><label class="lbl">1-8 小時倍率</label>
+          <input class="inp" type="number" id="att-holiday-rate-1-8" step="0.01" min="0" placeholder="例：1"></div>
+        <div><label class="lbl">9-10 小時倍率</label>
+          <input class="inp" type="number" id="att-holiday-rate-9-10" step="0.01" min="0" placeholder="例：1.34"></div>
+        <div><label class="lbl">11-12 小時倍率</label>
+          <input class="inp" type="number" id="att-holiday-rate-11-12" step="0.01" min="0" placeholder="例：1.67"></div>
+      </div>
+
+      <div style="font-size:14px;font-weight:700;margin:18px 0 8px">例假日加班</div>
+      <div class="fg3">
+        <div><label class="lbl">1-8 小時倍率</label>
+          <input class="inp" type="number" id="att-mrest-rate-1-8" step="0.01" min="0" placeholder="例：1"></div>
+        <div><label class="lbl">9-10 小時倍率</label>
+          <input class="inp" type="number" id="att-mrest-rate-9-10" step="0.01" min="0" placeholder="例：1.34"></div>
+        <div><label class="lbl">11-12 小時倍率</label>
+          <input class="inp" type="number" id="att-mrest-rate-11-12" step="0.01" min="0" placeholder="例：1.67"></div>
+      </div>
+
+      <div style="font-size:14px;font-weight:700;margin:18px 0 8px">休息日加班</div>
+      <div class="fg3">
+        <div><label class="lbl">1-8 小時倍率</label>
+          <input class="inp" type="number" id="att-restday-rate-1-8" step="0.01" min="0" placeholder="例：1.34"></div>
+        <div><label class="lbl">9-10 小時倍率</label>
+          <input class="inp" type="number" id="att-restday-rate-9-10" step="0.01" min="0" placeholder="例：1.67"></div>
+        <div><label class="lbl">11-12 小時倍率</label>
+          <input class="inp" type="number" id="att-restday-rate-11-12" step="0.01" min="0" placeholder="例：2.67"></div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" id="att-settings-save-btn" onclick="saveAttendanceSettings()">💾 儲存設定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="mainnav" id="mainNav" style="display:none">
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--brand-orange);width:100%;height:100%;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">☰</button>
@@ -864,6 +998,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
+      <button class="navmenu-item" id="navAttendanceBtn" onclick="switchSection('attendance');closeNavMenu()" style="display:none">🕒 出勤統計</button>
       <div class="navmenu-sep" id="navSecSepAdmin"></div>
       <div class="nav-sec" id="navSecAdmin">管理</div>
       <button class="navmenu-item" id="navSysadminBtn" onclick="switchSection('sysadmin');closeNavMenu()" style="display:none">🛠 系統管理</button>
@@ -1002,6 +1137,7 @@ const S = {
     projSettings:  false,  // 專案設定
     schedule:      false,  // 進度管理
     finance:       false,  // 財務專區
+    attendance:    false,  // 財務專區 > 出勤統計
   },
 };
 
@@ -1093,6 +1229,21 @@ function hasPermission(name) {
 // 費用模組實際申請人：有代辦對象時用被代辦人，否則用登入者本人
 function effectivePerson() {
   return S.actingAs?.name || S.user?.name || '';
+}
+// 依姓名查 lineId（核定補助 JSON 以 lineId 為 key）；找不到就退回登入者自己
+function lineIdByName(name) {
+  if (!name) return S.user?.lineId || '';
+  const p = (S.config?.persons || []).find(p => p.name === name);
+  return p?.lineId || (name === S.user?.name ? (S.user?.lineId || '') : '');
+}
+// 核定補助（依人員金額）：取指定 lineId 在專案的核定金額
+function getProjSubsidy(proj, lineId) {
+  if (!proj || !lineId) return 0;
+  return Number(proj.subsidyMap?.[lineId]) || 0;
+}
+// 目前申請對象（effectivePerson，含代辦）在該專案的核定補助金額
+function mySubsidyFor(proj) {
+  return getProjSubsidy(proj, lineIdByName(effectivePerson()));
 }
 // 費用模組實際操作者（代辦時才有值）：供後端記錄「代辦人」稽核欄位用
 function actingByFor(person) {
@@ -1480,6 +1631,8 @@ function renderUserBar() {
   const isFinance = hasPermission('財務專區');
   const finBtn = $('navFinanceBtn');
   if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
+  const attBtn = $('navAttendanceBtn');
+  if (attBtn) attBtn.style.display = isFinance ? 'block' : 'none';
 
   // 系統管理入口：僅 Sheet persons 權限欄位含「員工表」者可見
   const sysBtn = $('navSysadminBtn');
@@ -1532,6 +1685,9 @@ function renderSysAdminUserBar() {
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
   if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
+  // 月工資總額欄：員工表權限只看得到列表本身，還要財務專區權限才看得到這一欄
+  const salaryTh = $('th-persons-salary');
+  if (salaryTh) salaryTh.style.display = hasPermission('財務專區') ? '' : 'none';
 }
 
 function toggleDeptsSection() {
@@ -1576,9 +1732,9 @@ function renderDeptsTable() {
     <td style="white-space:nowrap">${esc(d.name)}</td>
     <td style="text-align:center;white-space:nowrap;min-width:110px">
       <span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;
-        background:${d.defaultExpense ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.12)'};
-        color:${d.defaultExpense ? '#b91c1c' : '#065f46'}">
-        ${d.defaultExpense ? '費用/私車補助' : '費用'}
+        background:${d.isFuelType ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.12)'};
+        color:${d.isFuelType ? '#b91c1c' : '#065f46'}">
+        ${d.isFuelType ? '費用/私車補助' : '費用'}
       </span>
     </td>
     <td style="white-space:nowrap">
@@ -1595,8 +1751,8 @@ function openDeptModal(idx) {
   const d = isNew ? {} : (_deptsCache[idx] || {});
   $('dm-rowIndex').value = isNew ? '' : String(idx);
   $('dm-name').value     = d.name || '';
-  $('dm-type-fuel').checked  = !!d.defaultExpense;
-  $('dm-type-other').checked = !d.defaultExpense;
+  $('dm-type-fuel').checked  = !!d.isFuelType;
+  $('dm-type-other').checked = !d.isFuelType;
 
   // 部門代碼：新增可輸入，編輯僅顯示（不可異動，避免下游資料斷連）
   const codeInp = $('dm-code');
@@ -1626,12 +1782,12 @@ async function saveDeptAdmin() {
     const dupCode = _deptsCache.some(d => !isDeleted(d) && d.code === code);
     if (dupCode) { toast('❌ 部門代碼已存在：' + code); return; }
   }
-  const defaultExpense = $('dm-type-fuel').checked;
+  const isFuelType = $('dm-type-fuel').checked;
   await submitModalAction({
     btnSelector: '#deptModal .btn-primary',
     modalId: 'deptModal',
     payload: { action:'saveDeptAdmin', lineId: S.user?.lineId ?? '', isNew,
-      rowIndex: isNew ? null : myIdx, code, name, defaultExpense },
+      rowIndex: isNew ? null : myIdx, code, name, isFuelType },
     onSuccess: async () => {
       await loadDeptsAdmin(true);
       if ($('sysadmin-depts-body')?.style.display === 'none') toggleDeptsSection();
@@ -1652,10 +1808,10 @@ async function softDeleteDept(idx) {
 
 async function saveDeptExpenseType(idx, type) {
   const d = _deptsCache[idx]; if (!d) return;
-  const defaultExpense = (type === 'fuel');
-  const res = await callGAS({ action:'saveDeptExpenseType', lineId: S.user?.lineId ?? '', code: d.code, defaultExpense });
+  const isFuelType = (type === 'fuel');
+  const res = await callGAS({ action:'saveDeptExpenseType', lineId: S.user?.lineId ?? '', code: d.code, isFuelType });
   if (!res.success) { toast('❌ 儲存失敗：' + (res.error||'')); await loadDeptsAdmin(true); return; }
-  _deptsCache[idx].defaultExpense = defaultExpense;
+  _deptsCache[idx].isFuelType = isFuelType;
   toast('✅ 已儲存');
 }
 
@@ -1675,11 +1831,12 @@ async function loadPersonsAdmin(forceReload) {
   if (!_deptsCache.length) await loadDeptsAdmin(); // 確保已刪除部門快取先就位，避免員工列表顯示原始代碼
   // E類優化：bootstrap 已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_personsCache.length && !forceReload) { renderPersonsTable(); return; }
+  const colspan = hasPermission('財務專區') ? 9 : 8;
   const tbody = $('sysadmin-persons-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>';
+  if (tbody) tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>`;
   const res = await callGAS({ action:'getPersonsAdmin', lineId: S.user?.lineId ?? '' });
   if (!res.success) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;color:var(--danger);padding:24px">❌ ${res.error||'載入失敗'}</td></tr>`;
     return;
   }
   _personsCache = res.persons ?? [];
@@ -1688,8 +1845,9 @@ async function loadPersonsAdmin(forceReload) {
 
 function renderPersonsTable() {
   const tbody = $('sysadmin-persons-tbody'); if (!tbody) return;
+  const canSeeSalary = hasPermission('財務專區');
   if (!_personsCache.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${canSeeSalary?9:8}" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>`;
     return;
   }
   const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
@@ -1704,6 +1862,9 @@ function renderPersonsTable() {
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
     const deptsDisplay = (p.depts||[]).map(deptLabel).join(', ');
+    const salaryTd = canSeeSalary
+      ? `<td style="white-space:nowrap;font-family:monospace">${p.monthlySalary || p.monthlySalary === 0 ? Number(p.monthlySalary).toLocaleString() : '—'}</td>`
+      : '';
     return `<tr style="${dim}">
       <td style="font-weight:600;white-space:nowrap">${esc(p.name)}</td>
       <td style="white-space:nowrap">${deptLabel(p.dept)}</td>
@@ -1712,6 +1873,7 @@ function renderPersonsTable() {
       <td style="white-space:nowrap;font-size:12px">${esc(p.lastLogin)}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>
       <td style="text-align:center;min-width:48px;white-space:nowrap">${p.resigned ? '✅' : ''}</td>
+      ${salaryTd}
       <td><button class="btn btn-ghost btn-sm" onclick="openPersonModal(${i})">✏️</button></td>
     </tr>`;
   }).join('');
@@ -1727,6 +1889,12 @@ async function openPersonModal(idx) {
   $('pm-lineId').value     = p.lineId     || '';
   $('pm-title').value      = p.title      || '';
   $('pm-resigned').checked = !!p.resigned;
+
+  // 月工資總額：僅財務專區權限可見/可改（員工表權限本身看不到這欄）
+  const canSeeSalary = hasPermission('財務專區');
+  const salaryWrap = $('pm-monthly-salary-wrap');
+  if (salaryWrap) salaryWrap.style.display = canSeeSalary ? 'block' : 'none';
+  if (canSeeSalary) $('pm-monthly-salary').value = (p.monthlySalary ?? '') === '' ? '' : p.monthlySalary;
 
   // 部門下拉：僅列出未刪除部門；若員工目前部門對應到已刪除部門，額外注入該筆 fallback 選項
   if (!_deptsCache.length) await loadDeptsAdmin();
@@ -1803,6 +1971,20 @@ async function savePersonAdmin() {
     $('pm-perm-finance').checked ? '財務專區' : '',
     $('pm-perm-acting').checked  ? '代申請'   : '',
   ].filter(Boolean).join(',');
+
+  // 月工資總額：僅財務專區權限者才送出此欄，避免無此權限的操作者意外覆蓋既有值
+  const salaryPayload = {};
+  if (hasPermission('財務專區')) {
+    const salaryRaw = $('pm-monthly-salary').value.trim();
+    if (salaryRaw !== '') {
+      const n = Number(salaryRaw);
+      if (!isFinite(n) || n < 0) { toast('❌ 月工資總額需為正數'); return; }
+      salaryPayload.monthlySalary = n;
+    } else {
+      salaryPayload.monthlySalary = '';
+    }
+  }
+
   await submitModalAction({
     btnSelector: '#personModal .btn-primary',
     modalId: 'personModal',
@@ -1817,6 +1999,7 @@ async function savePersonAdmin() {
       depts:        depts.join(','),
       permission,
       resigned:     $('pm-resigned').checked,
+      ...salaryPayload,
     },
     onSuccess: async () => {
       // 若編輯的是目前登入者本人，立即重拉 config 讓漢堡按鈕即時生效
@@ -2667,15 +2850,15 @@ function getUserDeptDefaultExpense() {
   const userDeptCode = S.config?.userDeptCode || S.user?.dept || '';
   if (!userDeptCode) return false;
   const dept = findDept(userDeptCode);
-  return dept?.defaultExpense ?? false;
+  return dept?.isFuelType ?? false;
 }
 
 function detectCat(item) {
   const raw = (item.category || '').toLowerCase().trim();
   if (raw === 'parking' || raw === '停車') return '費用';
-  // 8-2: 部門「費用類型」為費用（defaultExpense===false）→ 全部歸 other，
-  // 私車補助型部門（defaultExpense===true）才繼續往下用 FUEL_RE／category 判斷。
-  // 修正：原本這裡條件寫反了（defaultExpense===true 時反而直接回費用，
+  // 8-2: 部門「費用類型」為費用（isFuelType===false）→ 全部歸 other，
+  // 私車補助型部門（isFuelType===true）才繼續往下用 FUEL_RE／category 判斷。
+  // 修正：原本這裡條件寫反了（isFuelType===true 時反而直接回費用，
   // 導致私車補助型部門的憑證永遠進不了 FUEL_RE 判斷，全部誤歸費用）。
   if (!getUserDeptDefaultExpense()) return '費用';
   if (raw === 'fuel' || raw === '油資' || raw === '私車補助') return '私車補助';
@@ -3101,24 +3284,7 @@ function renderFuelTab(fuelReceipts) {
         <div style="font-size:13px;font-weight:800;letter-spacing:.5px;color:var(--muted);
           margin-bottom:10px">月定額</div>
         <div id="fuel-quota-badges" style="display:flex;flex-wrap:wrap;gap:6px;min-height:20px">
-          ${quotaList.map((fp) => {
-            const proj = S.config.projects.find(p => p.id === fp.projId);
-            if (!proj) return '';
-            const idx = window._fuelProjList.indexOf(fp);
-            const expLabel = fp._isExpired ? '（已結案）' : '';
-            const exportedTag = fp.exported
-              ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
-            return `<span style="display:inline-flex;align-items:center;gap:6px;
-              background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
-              padding:4px 12px;font-size:13px;font-weight:700">
-              <div class="chkbox ${fp._checked!==false?'on':''}" title="匯出時是否包含此專案"
-                onclick="toggleFuelQuotaChecked(${idx})"
-                style="width:15px;height:15px;flex-shrink:0"></div>
-              ${proj.id} ${proj.name}${expLabel} $${(proj.subsidy||0).toLocaleString()}/月${exportedTag}
-              <span onclick="removeFuelProj(${idx})"
-                style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
-            </span>`;
-          }).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
+          ${quotaList.map(fp => quotaBadgeHTML(fp)).join('') || `<span style="font-size:13px;color:var(--muted)">尚未選擇</span>`}
         </div>
       </div>
       <!-- 里程實報 / 部門 -->
@@ -3153,7 +3319,7 @@ function calcFuelApplyTotal() {
   return window._fuelProjList.reduce((sum, fp) => {
     if (fp.type === 'quota') {
       const proj = S.config.projects.find(p => p.id === fp.projId);
-      return sum + (proj?.subsidy || 0);
+      return sum + (proj ? mySubsidyFor(proj) : 0);
     }
     // 里程實報 / 部門 / 其他
     const frList = fp.fieldRows || [];
@@ -3193,26 +3359,112 @@ function updateFuelDiff() {
   if (badgeEl) {
     const quotaListAll = window._fuelProjList.filter(fp => fp.type === 'quota');
     const quotaList = S._showExported ? quotaListAll : quotaListAll.filter(fp => !fp.exported);
-    badgeEl.innerHTML = quotaList.map(fp => {
-      const proj = S.config.projects.find(p => p.id === fp.projId);
-      if (!proj) return '';
-      const idx = window._fuelProjList.indexOf(fp);
-      const exportedTag = fp.exported
-        ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
-      return `<span style="display:inline-flex;align-items:center;gap:6px;
-        background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
-        padding:4px 12px;font-size:13px;font-weight:700">
-        <div class="chkbox ${fp._checked!==false?'on':''}" title="匯出時是否包含此專案"
-          onclick="toggleFuelQuotaChecked(${idx})"
-          style="width:15px;height:15px;flex-shrink:0"></div>
-        ${proj.id} ${proj.name}
-        <span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
-          核定 $${(proj.subsidy||0).toLocaleString()}/月</span>${exportedTag}
-        <span onclick="removeFuelProj(${idx})"
-          style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
-      </span>`;
-    }).join('');
+    badgeEl.innerHTML = quotaList.map(fp => quotaBadgeHTML(fp)).join('');
   }
+}
+
+// 共用：月定額 badge（申請專案初始渲染 / updateFuelDiff 重繪皆使用）
+// 只有專案隸屬部門為私車補助類（isFuelType===true）才可點擊異動補助類型
+function quotaBadgeHTML(fp) {
+  const proj = S.config.projects.find(p => p.id === fp.projId);
+  if (!proj) return '';
+  const idx = window._fuelProjList.indexOf(fp);
+  const expLabel = fp._isExpired ? '（已結案）' : '';
+  const exportedTag = fp.exported
+    ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
+  const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+  const amtPill = `<span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
+    核定 $${mySubsidyFor(proj).toLocaleString()}/月</span>`;
+  const inner = `${esc(proj.id)} ${esc(proj.name)}${expLabel} ${amtPill}`;
+  const labelHtml = canEditType
+    ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${inner}</span>`
+    : inner;
+  return `<span style="display:inline-flex;align-items:center;gap:6px;
+    background:rgba(124,58,237,.12);color:#5b21b6;border-radius:99px;
+    padding:4px 12px;font-size:13px;font-weight:700">
+    <div class="chkbox ${fp._checked!==false?'on':''}" title="匯出時是否包含此專案"
+      onclick="toggleFuelQuotaChecked(${idx})"
+      style="width:15px;height:15px;flex-shrink:0"></div>
+    ${labelHtml}${exportedTag}
+    <span onclick="removeFuelProj(${idx})"
+      style="cursor:pointer;font-size:14px;color:var(--brand-blue);margin-left:2px">✕</span>
+  </span>`;
+}
+
+// ── 私車補助 tab：點 badge 異動補助類型（月定額⇄里程實報） ──────
+// 只有專案隸屬部門為私車補助類（isFuelType===true）才會開啟；純費用專案不彈窗（呼叫端已判斷，這裡再防呆一次）
+let _ftState = null; // { idx, proj }
+function openFuelTypeModal(idx) {
+  const fp = window._fuelProjList[idx];
+  if (!fp) return;
+  const proj = S.config.projects.find(p => p.id === fp.projId);
+  if (!proj) return;
+  if (!findDept(proj.deptCode)?.isFuelType) return; // 純費用專案：不彈窗
+
+  _ftState = { idx, proj };
+  $('ftModal-title').textContent = `異動補助類型：${esc(proj.id)} ${esc(proj.name)}`;
+  $('ftMsg').textContent = '';
+
+  const isQuota = fp.type === 'quota';
+  setFtQuota(isQuota);
+
+  const perPerm = hasPermission('員工表');
+  const targetLineId = lineIdByName(effectivePerson());
+  $('ft-person-fixed').style.display = perPerm ? 'none' : '';
+  $('ft-person-fixed').textContent   = effectivePerson();
+  $('ft-person-select').style.display = perPerm ? '' : 'none';
+  if (perPerm) $('ft-person-select').innerHTML = npSubsidyPersonOptions(targetLineId);
+  $('ft-amount').value = getProjSubsidy(proj, targetLineId) || '';
+
+  openModal('fuelTypeModal');
+}
+
+function setFtQuota(isQuota) {
+  $('ft-quota').value = isQuota ? 'true' : 'false';
+  const tgl = $('tgl-ft-quota');
+  if (tgl) tgl.querySelectorAll('.tgl-btn').forEach((b, i) => b.classList.toggle('on', i === (isQuota ? 0 : 1)));
+  const wrap = $('ft-amount-wrap');
+  if (wrap) wrap.style.display = isQuota ? '' : 'none';
+}
+
+// 儲存：切換 fp.type（quota⇄mile），月定額金額直接合併寫回專案的核定補助 JSON
+// （與專案設定共用同一份資料，讓使用者在申請費用當下就能立即影響專案設定）
+async function saveFuelTypeModal() {
+  const state = _ftState;
+  if (!state) return;
+  const { idx, proj } = state;
+  const fp = window._fuelProjList[idx];
+  const msg = $('ftMsg');
+  if (!fp) { closeModal('fuelTypeModal'); return; }
+
+  const isQuota = $('ft-quota').value === 'true';
+  const perPerm = hasPermission('員工表');
+  const targetLineId = perPerm ? ($('ft-person-select')?.value || '') : lineIdByName(effectivePerson());
+
+  if (isQuota) {
+    if (!targetLineId) { if (msg) { msg.textContent = '⚠️ 請選擇員工'; msg.style.color = 'var(--red)'; } return; }
+    const amt = parseFloat($('ft-amount')?.value) || 0;
+    const mergedMap = { ...(proj.subsidyMap || {}), [targetLineId]: amt };
+    try {
+      const res = await callGAS({ action: 'updateProject', id: proj.id, subsidy: mergedMap });
+      if (!res.success) {
+        if (msg) { msg.textContent = '❌ ' + (res.error || '更新失敗'); msg.style.color = 'var(--red)'; }
+        return;
+      }
+    } catch (e) {
+      if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
+      return;
+    }
+    proj.subsidyMap = mergedMap; // 本地同步，畫面立即反映
+  }
+
+  fp.type = isQuota ? 'quota' : 'mile';
+  if (!isQuota) fp.attrType = 'project';
+
+  closeModal('fuelTypeModal');
+  syncFuelProjToSheet(idx);
+  renderOCRResults();
+  toast('✅ 已更新補助類型');
 }
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
@@ -3288,7 +3540,14 @@ function fuelMileRowHTML(fp, idx) {
 
   // 顯示標籤（labelHtml 用於畫面，isSelected 判斷是否已綁定歸屬，與 dept 是否已刪除無關）
   let isSelected = false, labelHtml = '（未選）';
-  if (proj)      { isSelected = true; labelHtml = esc(`${proj.id} ${proj.name}`); }
+  if (proj) {
+    isSelected = true;
+    const text = esc(`${proj.id} ${proj.name}`);
+    const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+    labelHtml = canEditType
+      ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${text}</span>`
+      : text;
+  }
   else if (dept) { isSelected = true; labelHtml = deptDisplayHTML(dept); }
   else if (isOther) { isSelected = true; labelHtml = '其他'; }
 
@@ -3422,7 +3681,7 @@ function toggleApplyProjInfo() {
       const items = window._fuelProjList.map(fp => {
         if (fp.type === 'quota') {
           const p = S.config.projects.find(x => x.id === fp.projId);
-          return p ? `・${p.id} ${p.name}（月定額 $${(p.subsidy||0).toLocaleString()}）` : '';
+          return p ? `・${p.id} ${p.name}（月定額 $${mySubsidyFor(p).toLocaleString()}）` : '';
         }
         const p = S.config.projects.find(x => x.id === fp.projId);
         const d = !p && fp.deptId ? (S.config.departments||[]).find(x=>x.code===fp.deptId) : null;
@@ -3684,7 +3943,7 @@ async function _syncFuelProjToSheet(idx) {
   let amount = 0;
   if (fp.type === 'quota') {
     const proj = S.config.projects.find(p => p.id === fp.projId);
-    amount = proj?.subsidy || 0;
+    amount = proj ? mySubsidyFor(proj) : 0;
   } else {
     amount = (fp.fieldRows || []).reduce((s, fr) => {
       const km = parseFloat(fr.km) || 0;
@@ -4224,7 +4483,7 @@ function onFuelProjSelect(id, proj) {
   const extra = $(`fp-extra-${id}`);
   if (extra) {
     if (proj.quota) {
-      extra.innerHTML = `<div style="font-size:13px;color:var(--green);margin-top:4px">核定補助 <strong>$${(proj.subsidy||0).toLocaleString()}</strong>/月</div>`;
+      extra.innerHTML = `<div style="font-size:13px;color:var(--green);margin-top:4px">核定補助 <strong>$${mySubsidyFor(proj).toLocaleString()}</strong>/月</div>`;
     } else {
       extra.innerHTML = `<div style="font-size:13px;color:var(--accent);margin-top:4px">里程實報制</div>`;
     }
@@ -4872,7 +5131,7 @@ async function _doExport(skipStash = false) {
       fuelProjData,
       otherReceipts,
       fuelReceipts,
-      projects: S.config.projects,
+      projects: (S.config.projects || []).map(p => ({ ...p, subsidy: mySubsidyFor(p) })),
       mileageRate: mRate,
     });
     if (res.success) {
@@ -4901,7 +5160,7 @@ function switchSection(name) {
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
 
-  ['project','todo','proj-settings','schedule','finance','sysadmin',
+  ['project','todo','proj-settings','schedule','finance','attendance','sysadmin',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
     const el = $('sec-'+s);
     if (el) el.classList.remove('active');
@@ -4950,6 +5209,13 @@ function switchSection(name) {
     S._loaded.finance = true;
     loadFinance();
   }
+  if (name === 'attendance') {
+    if (!hasPermission('財務專區')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
+    if (!S._loaded.attendance) {
+      S._loaded.attendance = true;
+      loadAttendanceSettings();
+    }
+  }
   if (name === 'sysadmin') {
     if (!hasPermission('員工表')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
     renderSysAdminUserBar();
@@ -4973,7 +5239,7 @@ function switchSection(name) {
 
 // 漢堡選單：專案設定在「專案」nav-btn active 狀態下顯示
 function isProjectRelated(name) {
-  return name === 'project' || name === 'proj-settings' || name === 'schedule' || name === 'finance' || name === 'sysadmin';
+  return name === 'project' || name === 'proj-settings' || name === 'schedule' || name === 'finance' || name === 'attendance' || name === 'sysadmin';
 }function switchExpensePage(page) {
   _currentExpensePage = page;
   closeNavMenu();
@@ -5041,21 +5307,23 @@ function populateNpDept() {
     depts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
 
-// 部門下拉選單變更時：純費用類部門（defaultExpense===false）隱藏補助類型整塊、清空成空白；
+// 部門下拉選單變更時：純費用類部門（isFuelType===false）隱藏補助類型整塊、清空成空白；
 // 費用/私車補助類部門顯示，預設月定額（不覆蓋既有已選值，見 openProjectModal 呼叫順序）
 function onNpDeptChange() {
   const deptCode = $('np-dept')?.value;
   const dept = (S.config.departments || []).find(d => d.code === deptCode);
-  const show = !deptCode || !!dept?.defaultExpense;
+  const show = !deptCode || !!dept?.isFuelType;
   const row = $('np-subsidy-row');
   if (row) row.style.display = show ? '' : 'none';
   if (!show) {
     $('np-quota').value = '';
-    $('np-subsidy').value = '';
     const tgl = $('tgl-np-quota');
     if (tgl) tgl.querySelectorAll('.tgl-btn').forEach(b => b.classList.remove('on'));
-  } else if ($('np-quota').value === '') {
-    setNpQuota(false);
+    const wrap = $('np-subsidy-amount-wrap');
+    if (wrap) wrap.style.display = 'none';
+  } else {
+    if ($('np-quota').value === '') setNpQuota(false);
+    renderNpSubsidyUI();
   }
 }
 
@@ -5067,12 +5335,80 @@ function setNpQuota(isQuota) {
     tgl.querySelectorAll('.tgl-btn').forEach((b, i) =>
       b.classList.toggle('on', i === (isQuota ? 0 : 1)));
   }
-  // 里程實報時核定補助 disable
-  const sub = $('np-subsidy');
-  if (sub) {
-    sub.disabled = !isQuota;
-    if (!isQuota) sub.value = '';
+  renderNpSubsidyUI();
+}
+
+// ── 核定補助（依人員金額）：編輯中的清單狀態 ──────────────────
+let _npSubsidyRows = [];       // 有「員工表」權限時使用：[{lineId, amount}]
+let _npSubsidyExistingMap = {}; // 開啟 modal 當下讀到的既有 JSON，供無權限使用者儲存時合併，避免蓋掉別人的設定
+
+function npSubsidyPersonOptions(selectedLineId) {
+  const persons = (S.config.persons || []).slice()
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh-Hant'));
+  return '<option value="">— 選員工 —</option>' +
+    persons.map(p => `<option value="${esc(p.lineId)}" ${p.lineId === selectedLineId ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+}
+
+function renderNpSubsidyRows() {
+  const box = $('np-subsidy-rows');
+  if (!box) return;
+  box.innerHTML = _npSubsidyRows.map((row, idx) => `
+    <div class="fg2" style="align-items:center">
+      <select class="inp" onchange="_npSubsidyRows[${idx}].lineId=this.value">
+        ${npSubsidyPersonOptions(row.lineId)}
+      </select>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" class="inp" placeholder="0" min="0" step="100" value="${row.amount ?? ''}"
+          oninput="_npSubsidyRows[${idx}].amount=this.value">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeNpSubsidyRow(${idx})">✕</button>
+      </div>
+    </div>`).join('') ||
+    `<div style="font-size:13px;color:var(--muted)">尚無設定，請新增</div>`;
+}
+function addNpSubsidyRow(lineId, amount) {
+  _npSubsidyRows.push({ lineId: lineId || '', amount: amount ?? '' });
+  renderNpSubsidyRows();
+}
+function removeNpSubsidyRow(idx) {
+  _npSubsidyRows.splice(idx, 1);
+  renderNpSubsidyRows();
+}
+
+// 依「補助類型」+ 是否有員工表權限，決定核定補助區塊顯示內容
+function renderNpSubsidyUI() {
+  const quota = $('np-quota')?.value === 'true';
+  const wrap = $('np-subsidy-amount-wrap');
+  if (wrap) wrap.style.display = quota ? '' : 'none';
+  if (!quota) return;
+
+  const perPerm = hasPermission('員工表');
+  const selfBox = $('np-subsidy-self'), perBox = $('np-subsidy-perperson');
+  if (selfBox) selfBox.style.display = perPerm ? 'none' : '';
+  if (perBox)  perBox.style.display  = perPerm ? '' : 'none';
+
+  if (perPerm) {
+    renderNpSubsidyRows();
+  } else {
+    const sub = $('np-subsidy');
+    if (sub) sub.value = _npSubsidyExistingMap[S.user?.lineId || ''] || '';
   }
+}
+
+// 收集目前 modal 上的核定補助設定，組成要送出的 { lineId: amount } JSON
+function collectNpSubsidyMap() {
+  if (hasPermission('員工表')) {
+    const map = {};
+    _npSubsidyRows.forEach(row => {
+      if (!row.lineId) return;
+      map[row.lineId] = parseFloat(row.amount) || 0;
+    });
+    return map;
+  }
+  // 沒有員工表權限：只能改自己那一筆，其餘人既有的設定原樣保留（合併，不覆蓋）
+  const myId = S.user?.lineId || '';
+  const map = { ..._npSubsidyExistingMap };
+  if (myId) map[myId] = parseFloat($('np-subsidy')?.value) || 0;
+  return map;
 }
 
 // 預收款 toggle
@@ -5098,9 +5434,12 @@ function openProjectModal(i) {
   $('np-close').value    = isNew ? '' : (p.closeDate || '');
   npRefreshCloseClearBtn();
 
+  // 核定補助（依人員）：還原既有 JSON，再依權限展開清單或帶入自己的金額
+  _npSubsidyExistingMap = (!isNew && p.subsidyMap) ? { ...p.subsidyMap } : {};
+  _npSubsidyRows = Object.entries(_npSubsidyExistingMap).map(([lineId, amount]) => ({ lineId, amount }));
+
   const quota = isNew ? true : !!p.quota;
-  setNpQuota(quota);
-  $('np-subsidy').value = (!isNew && quota && p.subsidy) ? p.subsidy : '';
+  setNpQuota(quota); // 內部會呼叫 renderNpSubsidyUI()
   onNpDeptChange(); // 依部門類型決定補助類型區塊顯示/隱藏（純費用類部門會覆蓋成空白）
 
   const prepay = (!isNew && p.prepay) ? p.prepay : { enabled:false, amount:0, deductPct:10 };
@@ -5134,7 +5473,7 @@ async function saveProjectModal() {
   const name     = $('np-name')?.value.trim();
   const deptCode = $('np-dept')?.value;
   const quota    = $('np-quota')?.value === 'true';
-  const subsidy  = parseFloat($('np-subsidy')?.value) || 0;
+  const subsidy  = collectNpSubsidyMap();
   const effect   = $('np-effect')?.value;
   const close    = $('np-close')?.value;
   const prepayAmount  = parseFloat($('np-prepay-amount')?.value) || 0;
@@ -5213,6 +5552,22 @@ async function loadProjectList(showToast, _isRetry) {
   if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
+// 專案列表「核定補助」欄：有員工表權限顯示全部人名:金額（換行），否則只顯示自己的金額
+function subsidyCellHTML(p) {
+  if (!p.quota) return '—';
+  const map = p.subsidyMap || {};
+  if (hasPermission('員工表')) {
+    const entries = Object.entries(map);
+    if (!entries.length) return '—';
+    return entries.map(([lineId, amt]) => {
+      const nm = (S.config.persons || []).find(pp => pp.lineId === lineId)?.name || lineId;
+      return `${esc(nm)}: $${(Number(amt) || 0).toLocaleString()}`;
+    }).join('<br>');
+  }
+  const mine = Number(map[S.user?.lineId || '']) || 0;
+  return mine ? '$' + mine.toLocaleString() : '—';
+}
+
 // 渲染專案列表（newest first，已由 GAS 排序）
 // 預設僅顯示「未結案」（!closeDate || closeDate >= today），勾選「顯示已結案」才顯示全部
 function renderProjectList(rawRows) {
@@ -5250,7 +5605,7 @@ function renderProjectList(rawRows) {
       <td style="font-weight:700">${p.name}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${deptText}</td>
       <td style="white-space:nowrap">${quoteBadge}</td>
-      <td class="mono" style="color:var(--gold)">${p.quota && p.subsidy ? '$'+p.subsidy.toLocaleString() : '—'}</td>
+      <td class="mono" style="color:var(--gold)">${subsidyCellHTML(p)}</td>
       <td style="font-size:13px;color:var(--muted)">${p.effectDate||'—'}</td>
       <td style="font-size:13px;color:var(--muted)">${p.closeDate||'—'}</td>
       <td>
@@ -6212,6 +6567,163 @@ function renderFinancePayment() {
   }).join('');
 }
 
+// ════════════════════════════════════════════════════════════
+// 財務專區 — 出勤統計（匯入打卡紀錄 xlsx → 計算加班費／餐費 → 匯出 xlsx）
+// ════════════════════════════════════════════════════════════
+// SystemSettings 欄位對應表：key 需與後端 getAttendanceSettings/saveAttendanceSettings 契約一致
+const ATT_SETTINGS_FIELDS = [
+  { key:'ATT_MEAL_THRESHOLD_HOURS',         id:'att-meal-threshold',     type:'dec2', label:'餐費核發門檻' },
+  { key:'ATT_MEAL_DAILY_AMOUNT',            id:'att-meal-amount',        type:'int',  label:'每日餐費' },
+  { key:'ATT_WEEKDAY_OT_START_TIME',        id:'att-weekday-ot-start',   type:'time', label:'平日加班起算時間' },
+  { key:'ATT_WEEKDAY_OT_RATE_1_2',          id:'att-weekday-rate-1-2',   type:'dec2', label:'平日加班費 1-2小時倍率' },
+  { key:'ATT_WEEKDAY_OT_RATE_3_4',          id:'att-weekday-rate-3-4',   type:'dec2', label:'平日加班費 3-4小時倍率' },
+  { key:'ATT_HOLIDAY_OT_RATE_1_8',          id:'att-holiday-rate-1-8',   type:'dec2', label:'休假日 1-8小時倍率' },
+  { key:'ATT_HOLIDAY_OT_RATE_9_10',         id:'att-holiday-rate-9-10',  type:'dec2', label:'休假日 9-10小時倍率' },
+  { key:'ATT_HOLIDAY_OT_RATE_11_12',        id:'att-holiday-rate-11-12', type:'dec2', label:'休假日 11-12小時倍率' },
+  { key:'ATT_MANDATORY_REST_OT_RATE_1_8',   id:'att-mrest-rate-1-8',     type:'dec2', label:'例假日 1-8小時倍率' },
+  { key:'ATT_MANDATORY_REST_OT_RATE_9_10',  id:'att-mrest-rate-9-10',    type:'dec2', label:'例假日 9-10小時倍率' },
+  { key:'ATT_MANDATORY_REST_OT_RATE_11_12', id:'att-mrest-rate-11-12',   type:'dec2', label:'例假日 11-12小時倍率' },
+  { key:'ATT_RESTDAY_OT_RATE_1_8',          id:'att-restday-rate-1-8',   type:'dec2', label:'休息日 1-8小時倍率' },
+  { key:'ATT_RESTDAY_OT_RATE_9_10',         id:'att-restday-rate-9-10',  type:'dec2', label:'休息日 9-10小時倍率' },
+  { key:'ATT_RESTDAY_OT_RATE_11_12',        id:'att-restday-rate-11-12', type:'dec2', label:'休息日 11-12小時倍率' },
+];
+
+async function loadAttendanceSettings() {
+  const saveBtn = $('att-settings-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
+  const res = await callGAS({ action:'getAttendanceSettings', lineId: S.user?.lineId ?? '' });
+  if (saveBtn) saveBtn.disabled = false;
+  if (!res.success) { toast('❌ ' + (res.error || '出勤設定載入失敗')); return; }
+  const settings = res.settings || {};
+  ATT_SETTINGS_FIELDS.forEach(f => {
+    const el = $(f.id); if (!el) return;
+    const v = settings[f.key];
+    el.value = (v === undefined || v === null || v === '') ? '' : v;
+  });
+}
+
+// 依欄位型別驗證：time＝HH:mm、int＝正整數（每日餐費）、dec2＝正數且最多兩位小數（門檻小時數／各項倍率）
+function collectAttendanceSettings() {
+  const settings = {};
+  for (const f of ATT_SETTINGS_FIELDS) {
+    const el  = $(f.id);
+    const raw = el ? String(el.value).trim() : '';
+    if (!raw) { toast(`❌ 請填寫「${f.label}」`); return null; }
+    if (f.type === 'time') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(raw)) { toast(`❌「${f.label}」時間格式需為 HH:mm`); return null; }
+      settings[f.key] = raw;
+      continue;
+    }
+    const n = Number(raw);
+    if (!isFinite(n) || n < 0) { toast(`❌「${f.label}」需為正數`); return null; }
+    if (f.type === 'int' && !Number.isInteger(n)) { toast(`❌「${f.label}」需為正整數`); return null; }
+    if (f.type === 'dec2' && Math.round(n * 100) !== n * 100) { toast(`❌「${f.label}」最多至小數點後兩位`); return null; }
+    settings[f.key] = f.type === 'dec2' ? Math.round(n * 100) / 100 : n;
+  }
+  return settings;
+}
+
+async function saveAttendanceSettings() {
+  const settings = collectAttendanceSettings();
+  if (!settings) return;
+  const btn  = $('att-settings-save-btn');
+  const orig = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
+  const res = await callGAS({ action:'saveAttendanceSettings', lineId: S.user?.lineId ?? '', settings });
+  if (btn) { btn.disabled = false; btn.textContent = orig ?? '💾 儲存設定'; }
+  if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return; }
+  toast('✅ 出勤設定已儲存');
+}
+
+// ── 匯入打卡紀錄 xlsx（前端用 SheetJS 解析，不把二進位送後端）──────
+// 欄位對應（來源第二分頁「打卡紀錄」，0-indexed）：
+//   B(1)姓名 D(3)打卡日期 E(4)日期類別 M(12)上班打卡時間 O(14)下班打卡時間
+//   Q(16)出勤異常 Z(25)請假時間 AA(26)請假時數 AB(27)假別
+//   AC(28)加班時間 AD(29)加班時數（來源系統自算，僅供參考、不採用其金額） K(10)打卡工時
+const ATT_COL = {
+  name:1, date:3, category:4, clockIn:12, clockOut:14, abnormal:16,
+  leaveTime:25, leaveHours:26, leaveType:27, srcOtTime:28, srcOtHours:29, workHours:10,
+};
+
+let _attLastResult = null; // { downloadUrl, fileName }
+
+function onAttendanceFileSelected(evt) {
+  const file = evt.target.files?.[0];
+  evt.target.value = ''; // 允許重選同一檔案
+  if (!file) return;
+  $('att-import-filename').textContent = file.name;
+  importAttendanceExcel(file);
+}
+
+async function importAttendanceExcel(file) {
+  if (typeof XLSX === 'undefined') { toast('❌ Excel 解析套件未載入，請重新整理頁面'); return; }
+  const statusEl = $('att-import-status');
+  const btn = $('att-import-btn');
+  $('att-import-result').style.display = 'none';
+  _attLastResult = null;
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.innerHTML = '⏳ 解析 Excel 中...';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, { type:'array' });
+    if (wb.SheetNames.length < 2) throw new Error('Excel 檔案不足兩個分頁，找不到「打卡紀錄」分頁');
+    const sheetTabName = wb.SheetNames[1];
+    const ws   = wb.Sheets[sheetTabName];
+    const grid = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:false });
+    if (grid.length < 2) throw new Error('打卡紀錄分頁沒有資料');
+
+    // 分頁名稱通常是「【2026.06.01-2026.06.30_打卡紀錄】」，取出日期區間供匯出檔名使用
+    const m = sheetTabName.match(/(\d{4})\.(\d{2})\.(\d{2})\D+(\d{4})\.(\d{2})\.(\d{2})/);
+    const dateRangeLabel = m ? `${m[1]}${m[2]}${m[3]}-${m[4]}${m[5]}${m[6]}` : '';
+
+    const rows = [];
+    for (let i = 1; i < grid.length; i++) {
+      const r = grid[i];
+      const name = String(r[ATT_COL.name] ?? '').trim();
+      if (!name) continue; // 跳過空白列
+      rows.push({
+        name,
+        date:       String(r[ATT_COL.date]       ?? '').trim(),
+        category:   String(r[ATT_COL.category]   ?? '').trim(),
+        clockIn:    String(r[ATT_COL.clockIn]    ?? '').trim(),
+        clockOut:   String(r[ATT_COL.clockOut]   ?? '').trim(),
+        abnormal:   String(r[ATT_COL.abnormal]   ?? '').trim(),
+        leaveTime:  String(r[ATT_COL.leaveTime]  ?? '').trim(),
+        leaveHours: String(r[ATT_COL.leaveHours] ?? '').trim(),
+        leaveType:  String(r[ATT_COL.leaveType]  ?? '').trim(),
+        srcOtTime:  String(r[ATT_COL.srcOtTime]  ?? '').trim(),
+        srcOtHours: String(r[ATT_COL.srcOtHours] ?? '').trim(),
+        workHours:  String(r[ATT_COL.workHours]  ?? '').trim(),
+      });
+    }
+    if (!rows.length) throw new Error('打卡紀錄分頁沒有可用資料列');
+
+    if (statusEl) statusEl.innerHTML = `⏳ 已解析 ${rows.length} 筆紀錄，計算加班費/餐費並產生報表中...`;
+    const res = await callGAS({
+      action: 'importAttendanceExcel',
+      lineId: S.user?.lineId || '',
+      sheetTabName, dateRangeLabel, rows,
+    }, 110000);
+
+    if (!res.success) throw new Error(res.error || '匯入失敗');
+    _attLastResult = { downloadUrl: res.downloadUrl || res.url, fileName: res.fileName || '' };
+    if (statusEl) statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}`;
+    $('att-import-result').style.display = 'block';
+    toast('✅ 出勤統計已產生');
+    window.open(_attLastResult.downloadUrl, '_blank');
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `❌ ${esc(e.message)}`;
+    toast('❌ ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function downloadAttendanceResult() {
+  if (!_attLastResult?.downloadUrl) { toast('❌ 尚無可下載的匯出結果'); return; }
+  window.open(_attLastResult.downloadUrl, '_blank');
+}
+
 // ── 財務：更新開票日期 → invoiced=true ──────────────────────
 async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
   const p = ProjectStore.find(projectId);
@@ -6641,7 +7153,7 @@ async function loadExportHistory(showToast) {
 // 繼續執行完成（OCR 寫入 OcrResults／PDF 寫入 Drive），但畫面已顯示失敗，
 // 造成「資料其實有，畫面卻說失敗」的不一致。因此這些動作延長逾時時間，
 // 讓 client 端的判定盡量貼近 GAS 端的實際執行時間。
-const GAS_ACTION_TIMEOUT_MS = { ocrReceipt:110000, exportAll:110000 };
+const GAS_ACTION_TIMEOUT_MS = { ocrReceipt:110000, exportAll:110000, importAttendanceExcel:110000 };
 
 // callGAS 永遠不會 reject（內部已將所有失敗轉成 {success:false}），
 // 呼叫端務必明確檢查 res.success，不可只靠 try/catch 或 res.rows||[]
