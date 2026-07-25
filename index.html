@@ -2846,7 +2846,7 @@ function mkReceipt(id, qf, item, idx, isNew) {
   };
 }
 
-function getUserDeptDefaultExpense() {
+function getUserDeptIsFuelType() {
   const userDeptCode = S.config?.userDeptCode || S.user?.dept || '';
   if (!userDeptCode) return false;
   const dept = findDept(userDeptCode);
@@ -2860,9 +2860,12 @@ function detectCat(item) {
   // 私車補助型部門（isFuelType===true）才繼續往下用 FUEL_RE／category 判斷。
   // 修正：原本這裡條件寫反了（isFuelType===true 時反而直接回費用，
   // 導致私車補助型部門的憑證永遠進不了 FUEL_RE 判斷，全部誤歸費用）。
-  if (!getUserDeptDefaultExpense()) return '費用';
+  if (!getUserDeptIsFuelType()) return '費用';
   if (raw === 'fuel' || raw === '油資' || raw === '私車補助') return '私車補助';
-  if (raw === 'other' || raw === '其他' || raw === '費用') return '費用';
+  // 注意：raw==='other'/其他/費用 不能在這裡提早 return '費用'。
+  // Gemini OCR prompt 規定「加油站消費才填fuel，其他一律填other」，
+  // ETC過路費/遠通電收這類單據一定是 other，必須靠下面廠商關鍵字 regex 才能抓出來，
+  // 提早短路會讓 ETC 過路費永遠進不了 regex 判斷、被誤歸成費用。
   const s = (item.vendor || '') + ' ' + (item.notes || '') + ' ' + (item.merchant || '');
   if (/中油|台塑油|全國加油|速邁樂|cpc|fuel|加油|油資|汽油|柴油|台灣中油|鑫澤|佳吉|車用油|協榮|優力|加油站|油站|95無鉛|95Plus|95P\s*Plus|98無鉛|超柴|台亞|全國油|中國石油|油品|汽車保養|保養廠|機油|輪胎|ETC|遠通電收|通行費|高速公路/i.test(s)) return '私車補助';
   return '費用';
