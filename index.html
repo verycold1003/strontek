@@ -683,12 +683,11 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="margin-bottom:18px;display:none" id="pm-monthly-salary-wrap">
       <label class="lbl">月工資總額（元）</label>
       <input class="inp" type="number" id="pm-monthly-salary" step="1" min="0" placeholder="例：36000">
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。</div>
     </div>
     <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px">
       <label class="lbl" style="margin:0">離職註記</label>
       <input type="checkbox" id="pm-resigned" style="width:18px;height:18px">
-      <span style="font-size:13px;color:var(--muted)">勾選後標記為離職</span>
+      <span style="font-size:13px;color:var(--muted)">已離職</span>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('personModal')">取消</button>
@@ -840,6 +839,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <button class="btn btn-secondary btn-sm" style="margin-left:auto" id="fin-export-report-btn"
       onclick="exportProjectFinanceReport()">📊 匯出專案報表</button>
   </div>
+  <div id="fin-export-report-result" style="margin-bottom:16px"></div>
 
   <!-- 待開票列表 -->
   <div class="card" style="margin-bottom:16px">
@@ -906,7 +906,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <!-- 匯入打卡紀錄 -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd">📥 匯入打卡紀錄</div>
-    <div style="padding-top:12px">
+    <div class="card-bd">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
         月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。
       </div>
@@ -916,16 +916,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <span id="att-import-filename" style="font-size:13px;color:var(--muted)"></span>
       </div>
       <div id="att-import-status" style="margin-top:12px;font-size:13px"></div>
-      <div id="att-import-result" style="margin-top:10px;display:none">
-        <button class="btn btn-secondary btn-sm" id="att-import-download-btn" onclick="downloadAttendanceResult()">⬇️ 下載匯出結果</button>
-      </div>
+      <div id="att-import-result" style="margin-top:10px;display:none"></div>
     </div>
   </div>
 
   <!-- 出勤設定 -->
   <div class="card">
     <div class="card-hd">⚙️ 出勤設定</div>
-    <div style="padding-top:12px">
+    <div class="card-bd">
       <div style="font-size:14px;font-weight:700;margin:14px 0 8px">餐費</div>
       <div class="fg2">
         <div><label class="lbl">餐費核發門檻（小時）</label>
@@ -935,12 +933,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
 
       <div style="font-size:14px;font-weight:700;margin:18px 0 8px">平日加班</div>
-      <div class="fg2">
+      <div class="fg3">
         <div><label class="lbl">平日加班起算時間</label>
           <input class="inp" type="time" id="att-weekday-ot-start" placeholder="例：18:00"></div>
-        <div></div>
-      </div>
-      <div class="fg2" style="margin-top:12px">
         <div><label class="lbl">1-2 小時倍率</label>
           <input class="inp" type="number" id="att-weekday-rate-1-2" step="0.01" min="0" placeholder="例：1.34"></div>
         <div><label class="lbl">3-4 小時倍率</label>
@@ -3375,9 +3370,7 @@ function quotaBadgeHTML(fp) {
   const expLabel = fp._isExpired ? '（已結案）' : '';
   const exportedTag = fp.exported
     ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
-  const canEditType = !!findDept(proj.deptCode)?.isFuelType;
-  const amtPill = `<span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
-    核定 $${mySubsidyFor(proj).toLocaleString()}/月</span>`;
+  const canEditType = getUserDeptIsFuelType();
   const inner = `${esc(proj.id)} ${esc(proj.name)}${expLabel} ${amtPill}`;
   const labelHtml = canEditType
     ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${inner}</span>`
@@ -3402,7 +3395,7 @@ function openFuelTypeModal(idx) {
   if (!fp) return;
   const proj = S.config.projects.find(p => p.id === fp.projId);
   if (!proj) return;
-  if (!findDept(proj.deptCode)?.isFuelType) return; // 純費用專案：不彈窗
+  if (!getUserDeptIsFuelType()) return; // 登入者部門為純費用類：不彈窗
 
   _ftState = { idx, proj };
   $('ftModal-title').textContent = `異動補助類型：${esc(proj.id)} ${esc(proj.name)}`;
@@ -3546,7 +3539,7 @@ function fuelMileRowHTML(fp, idx) {
   if (proj) {
     isSelected = true;
     const text = esc(`${proj.id} ${proj.name}`);
-    const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+    const canEditType = getUserDeptIsFuelType();
     labelHtml = canEditType
       ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${text}</span>`
       : text;
@@ -6426,6 +6419,38 @@ function ieRefreshClearBtn(fieldId) {
 // ════════════════════════════════════════════════════════════
 // 財務專區 — 匯出專案 Excel 報表（所有專案/部門/其他彙整）
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// renderFileLinkCard — 顯示單一檔案下載連結卡片（比照 renderPdfResultList 樣式）
+// 供財務報表／出勤統計匯出等「產生單一檔案、點擊連結開啟」的場景共用
+// ════════════════════════════════════════════════════════════
+function renderFileLinkCard(containerId, url, label, sharingNote) {
+  const box = $(containerId);
+  if (!box) return;
+  if (!url) { box.innerHTML = ''; return; }
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:800;color:var(--green);margin-bottom:8px';
+  title.textContent = `✅ 已產生 1 份檔案，點擊連結開啟${sharingNote ? '（' + sharingNote + '）' : ''}`;
+
+  const row = document.createElement('a');
+  row.href = url;
+  row.target = '_blank';
+  row.rel = 'noopener noreferrer';
+  row.style.cssText = `
+    display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    color:var(--accent);font-size:14px;font-weight:700;text-decoration:none;
+    transition:background .15s;
+  `;
+  row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${esc(label)}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
+  row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
+  row.onmouseout  = () => row.style.background = 'var(--surface)';
+
+  box.innerHTML = '';
+  box.appendChild(title);
+  box.appendChild(row);
+}
+
 async function exportProjectFinanceReport() {
   const btn = $('fin-export-report-btn');
   const orig = btn ? btn.textContent : '';
@@ -6437,9 +6462,8 @@ async function exportProjectFinanceReport() {
       lineId: S.user?.lineId || '',
     }, 60000);
     if (res.success) {
-      toast('✅ 報表已產生' + (res.sharingNote ? ' ' + res.sharingNote : ''));
-      // 與其他匯出流程一致：直接開啟 Drive 下載連結
-      window.open(res.downloadUrl || res.url, '_blank');
+      toast('✅ 報表已產生');
+      renderFileLinkCard('fin-export-report-result', res.downloadUrl || res.url, res.fileName || '專案財務報表.xlsx', res.sharingNote);
     } else {
       toast('❌ ' + (res.error || '匯出失敗'));
     }
@@ -6648,8 +6672,6 @@ const ATT_COL = {
   leaveTime:25, leaveHours:26, leaveType:27, srcOtTime:28, srcOtHours:29, workHours:10,
 };
 
-let _attLastResult = null; // { downloadUrl, fileName }
-
 function onAttendanceFileSelected(evt) {
   const file = evt.target.files?.[0];
   evt.target.value = ''; // 允許重選同一檔案
@@ -6663,7 +6685,6 @@ async function importAttendanceExcel(file) {
   const statusEl = $('att-import-status');
   const btn = $('att-import-btn');
   $('att-import-result').style.display = 'none';
-  _attLastResult = null;
   if (btn) btn.disabled = true;
   if (statusEl) statusEl.innerHTML = '⏳ 解析 Excel 中...';
   try {
@@ -6709,22 +6730,16 @@ async function importAttendanceExcel(file) {
     }, 110000);
 
     if (!res.success) throw new Error(res.error || '匯入失敗');
-    _attLastResult = { downloadUrl: res.downloadUrl || res.url, fileName: res.fileName || '' };
     if (statusEl) statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}`;
     $('att-import-result').style.display = 'block';
     toast('✅ 出勤統計已產生');
-    window.open(_attLastResult.downloadUrl, '_blank');
+    renderFileLinkCard('att-import-result', res.downloadUrl || res.url, res.fileName || '出勤統計匯出表.xlsx', res.sharingNote);
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `❌ ${esc(e.message)}`;
     toast('❌ ' + e.message);
   } finally {
     if (btn) btn.disabled = false;
   }
-}
-
-function downloadAttendanceResult() {
-  if (!_attLastResult?.downloadUrl) { toast('❌ 尚無可下載的匯出結果'); return; }
-  window.open(_attLastResult.downloadUrl, '_blank');
 }
 
 // ── 財務：更新開票日期 → invoiced=true ──────────────────────
