@@ -266,17 +266,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   to{transform:translateY(0);opacity:1}
 }
 
-/* ── 摘要頁籤：日期滑動列 / 已讀卡片淡化 ── */
-.summary-date-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;scroll-behavior:smooth}
-.summary-date-pill{flex:0 0 auto;min-width:52px;text-align:center;background:var(--surface2);
-  border-radius:12px;padding:9px 6px;cursor:pointer;color:var(--text);position:relative;transition:background .15s,color .15s}
-.summary-date-pill .wk{font-size:11px;color:var(--muted)}
-.summary-date-pill .num{font-size:17px;font-weight:700}
-.summary-date-pill.selected{background:var(--accent);color:#fff}
-.summary-date-pill.selected .wk{color:rgba(255,255,255,.85)}
-.summary-date-pill .today-dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
-  width:4px;height:4px;border-radius:50%;background:var(--accent)}
-.summary-date-pill.selected .today-dot{background:#fff}
+/* ── 摘要頁籤：日期分組標題 / 已讀卡片淡化 ── */
+.summary-day-group{margin-bottom:6px}
+.summary-day-label{font-size:13px;font-weight:700;color:var(--muted);margin:18px 0 8px;padding-left:2px}
+.summary-day-group:first-child .summary-day-label{margin-top:0}
 .summary-card{margin-bottom:14px;transition:opacity .2s ease}
 .summary-card.is-read{opacity:.55}
 .summary-card-top{display:flex;align-items:center;gap:10px}
@@ -496,9 +489,13 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <span class="badge bd-orange" id="summaryUnreadPill">0 則未讀</span>
   </div>
 
-  <div class="summary-date-strip" id="summaryDateStrip"></div>
+  <div style="position:relative;margin-bottom:14px">
+    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋群組關鍵字" style="padding-left:14px" oninput="filterSummaryCards()">
+  </div>
 
   <div id="summaryCardList"></div>
+  <div id="summaryLoadingMore" style="text-align:center;color:var(--muted);font-size:13px;padding:14px 0;display:none">載入中...</div>
+  <div id="summaryEndMsg" style="text-align:center;color:var(--muted);font-size:13px;padding:14px 0;display:none">已經到最早的紀錄了</div>
 </div>
 
 <div class="app-section" id="sec-todo">
@@ -644,13 +641,14 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <table class="tbl" id="sysadmin-persons-tbl">
           <thead><tr>
             <th style="white-space:nowrap">姓名</th><th style="white-space:nowrap">部門</th><th style="white-space:nowrap">職稱</th>
-            <th style="white-space:nowrap">可顯示部門</th><th style="white-space:nowrap">最後登入</th><th style="white-space:nowrap">權限</th>
+            <th style="white-space:nowrap">可顯示部門</th><th style="white-space:nowrap">最後登入</th>
+            <th style="white-space:nowrap;display:none" id="th-persons-perm">權限</th>
             <th style="white-space:nowrap;min-width:48px">離職</th>
             <th style="white-space:nowrap;display:none" id="th-persons-salary">月工資總額</th>
             <th style="white-space:nowrap">操作</th>
           </tr></thead>
           <tbody id="sysadmin-persons-tbody">
-            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -697,9 +695,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <label class="lbl">可顯示部門（可多選）</label>
       <div id="pm-depts" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid var(--border);border-radius:8px"></div>
     </div>
-    <div style="margin-bottom:18px">
+    <div style="margin-bottom:18px" id="pm-perm-block">
       <label class="lbl">權限</label>
-      <div style="display:flex;gap:16px;padding:8px 2px">
+      <div style="display:flex;gap:16px;padding:8px 2px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
           <input type="checkbox" id="pm-perm-persons" style="width:16px;height:16px"> 員工表
         </label>
@@ -708,6 +706,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
           <input type="checkbox" id="pm-perm-acting" style="width:16px;height:16px"> 代申請
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px">
+          <input type="checkbox" id="pm-perm-admin" style="width:16px;height:16px"> 管理員
         </label>
       </div>
     </div>
@@ -1665,9 +1666,9 @@ function renderUserBar() {
   const attBtn = $('navAttendanceBtn');
   if (attBtn) attBtn.style.display = isFinance ? 'block' : 'none';
 
-  // 系統管理入口：僅 Sheet persons 權限欄位含「員工表」者可見
+  // 系統管理入口：員工表／財務專區／管理員 任一權限都看得到（財務專區要看月工資總額、管理員要異動權限，都得先進得了這頁）
   const sysBtn = $('navSysadminBtn');
-  const canSysadmin = hasPermission('員工表');
+  const canSysadmin = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
   if (sysBtn) sysBtn.style.display = canSysadmin ? 'block' : 'none';
   // 「管理」區塊目前僅含系統管理一個項目，無權限時整個區塊標題與分隔線一併隱藏
   const secAdmin = $('navSecAdmin'), sepAdmin = $('navSecSepAdmin');
@@ -1711,10 +1712,11 @@ function logout() {
 // ── 系統管理 ──────────────────────────────────────────────────
 function renderSysAdminUserBar() {
   const u = S.user; if (!u) return;
-  const hasPerm = hasPermission('員工表');
+  const canSeePersons = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
+  const hasPerm = hasPermission('員工表'); // 部門設定維持僅員工表權限管理
   const persCard  = $('sysadmin-persons-card');
   const deptsCard = $('sysadmin-depts-card');
-  if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
+  if (persCard)  persCard.style.display  = canSeePersons ? 'block' : 'none';
   if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
   // 月工資總額欄的顯示/隱藏改由 renderPersonsTable 依「這次後端實際回傳的資料」決定，
   // 這裡不再用 hasPermission('財務專區') 判斷，避免跟前端權限快取的新舊狀態脫鉤。
@@ -1857,11 +1859,11 @@ function togglePersonsSection() {
 let _personsCache = [];
 
 async function loadPersonsAdmin(forceReload) {
-  if (!hasPermission('員工表')) return;
+  if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員'))) return;
   if (!_deptsCache.length) await loadDeptsAdmin(); // 確保已刪除部門快取先就位，避免員工列表顯示原始代碼
   // E類優化：bootstrap 已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_personsCache.length && !forceReload) { renderPersonsTable(); return; }
-  const colspan = hasPermission('財務專區') ? 9 : 8;
+  const colspan = 7 + (hasPermission('財務專區')?1:0) + (hasPermission('管理員')?1:0);
   const tbody = $('sysadmin-persons-tbody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>`;
   const res = await callGAS({ action:'getPersonsAdmin', lineId: S.user?.lineId ?? '' });
@@ -1875,14 +1877,18 @@ async function loadPersonsAdmin(forceReload) {
 
 function renderPersonsTable() {
   const tbody = $('sysadmin-persons-tbody'); if (!tbody) return;
-  // 用「這次後端實際有沒有回傳月工資總額欄位」當依據，而不是前端快取的 hasPermission('財務專區')。
-  // 後端 handleGetPersonsAdmin 已經會依權限過濾這個欄位，這裡跟著實際資料走，
+  // 用「這次後端實際有沒有回傳月工資總額／權限欄位」當依據，而不是前端快取的 hasPermission(...)。
+  // 後端已經會依權限過濾這兩個欄位，這裡跟著實際資料走，
   // 避免權限剛被移除、前端 session 還沒重新整理導致標題/欄位顯示狀態不一致。
   const canSeeSalary = _personsCache.some(p => p.monthlySalary !== undefined);
+  const canSeePerm   = _personsCache.some(p => p.permission !== undefined);
   const salaryTh = $('th-persons-salary');
   if (salaryTh) salaryTh.style.display = canSeeSalary ? '' : 'none';
+  const permTh = $('th-persons-perm');
+  if (permTh) permTh.style.display = canSeePerm ? '' : 'none';
+  const colCount = 7 + (canSeePerm?1:0) + (canSeeSalary?1:0);
   if (!_personsCache.length) {
-    tbody.innerHTML = `<tr><td colspan="${canSeeSalary?9:8}" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>`;
     return;
   }
   const allDepts = _deptsCache.length ? _deptsCache : (S.config.departments || []);
@@ -1897,6 +1903,7 @@ function renderPersonsTable() {
   tbody.innerHTML = _personsCache.map((p, i) => {
     const dim = p.resigned ? 'color:var(--muted);text-decoration:line-through' : '';
     const deptsDisplay = (p.depts||[]).map(deptLabel).join(', ');
+    const permTd = canSeePerm ? `<td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>` : '';
     const salaryTd = canSeeSalary
       ? `<td style="white-space:nowrap;font-family:monospace">${p.monthlySalary || p.monthlySalary === 0 ? Number(p.monthlySalary).toLocaleString() : '—'}</td>`
       : '';
@@ -1906,7 +1913,7 @@ function renderPersonsTable() {
       <td style="white-space:nowrap">${esc(p.title)}</td>
       <td style="white-space:nowrap">${deptsDisplay}</td>
       <td style="white-space:nowrap;font-size:12px">${esc(p.lastLogin)}</td>
-      <td style="white-space:nowrap;font-size:12px">${esc(p.permission)}</td>
+      ${permTd}
       <td style="text-align:center;min-width:48px;white-space:nowrap">${p.resigned ? '✅' : ''}</td>
       ${salaryTd}
       <td><button class="btn btn-ghost btn-sm" onclick="openPersonModal(${i})">✏️</button></td>
@@ -1975,11 +1982,11 @@ async function openPersonModal(idx) {
   $('pm-perm-persons').checked = perms.includes('員工表');
   $('pm-perm-finance').checked = perms.includes('財務專區');
   $('pm-perm-acting').checked  = perms.includes('代申請');
+  $('pm-perm-admin').checked   = perms.includes('管理員');
 
-  // 不能授予自己沒有的權限（跟後端一致）：沒有的權限這裡直接鎖住不給勾
-  $('pm-perm-persons').disabled = !hasPermission('員工表');
-  $('pm-perm-finance').disabled = !hasPermission('財務專區');
-  $('pm-perm-acting').disabled  = !hasPermission('代申請');
+  // 權限區塊：只有「管理員」才看得到、才能異動任何人的權限；其他人（員工表/財務專區/代申請）完全看不到這塊
+  const permBlock = $('pm-perm-block');
+  if (permBlock) permBlock.style.display = hasPermission('管理員') ? 'block' : 'none';
 
   openModal('personModal');
 }
@@ -2010,6 +2017,7 @@ async function savePersonAdmin() {
     $('pm-perm-persons').checked ? '員工表'   : '',
     $('pm-perm-finance').checked ? '財務專區' : '',
     $('pm-perm-acting').checked  ? '代申請'   : '',
+    $('pm-perm-admin').checked   ? '管理員'   : '',
   ].filter(Boolean).join(',');
 
   // 月工資總額：僅財務專區權限者才送出此欄，避免無此權限的操作者意外覆蓋既有值
@@ -5276,7 +5284,7 @@ function switchSection(name) {
     loadSummaryDates();
   }
   if (name === 'sysadmin') {
-    if (!hasPermission('員工表')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
+    if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員'))) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
     renderSysAdminUserBar();
     // 員工表 accordion 預設收合，只在已展開時才載入；收合狀態下展開時由 togglePersonsSection 觸發
     if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
@@ -5683,19 +5691,35 @@ function renderProjectList(rawRows) {
 // 待辦事項 (Tasks)
 // ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
-// 摘要（Summary）頁籤
+// 摘要（Summary）頁籤 — 關鍵字搜尋 + 依日期往前捲動載入（每次7天）
 // ════════════════════════════════════════════════════════════
-S._summary = { dates: [], selectedDate: null };
+S._summary = { nextEndDate: null, hasMore: true, loading: false, scrollBound: false };
 
 async function loadSummaryDates() {
-  const res = await callGAS({ action: 'getSummaryDates' });
-  if (!res.success) { toast('⚠️ 摘要日期載入失敗：' + res.error); return; }
-  S._summary.dates = res.dates;
-  const yesterdayEntry = res.dates.length >= 2 ? res.dates[res.dates.length - 2] : res.dates[res.dates.length - 1];
-  S._summary.selectedDate = yesterdayEntry.dateStr; // 預設前一天（當天摘要要快下班17:30才會產生，預設今天會是空的）
-  renderSummaryDateStrip();
-  loadSummaryCards();
+  // 從「今天」開始往前抓第一批7天
+  S._summary.nextEndDate = formatDateYMD(new Date());
+  S._summary.hasMore = true;
+  $('summaryCardList').innerHTML = '';
+  $('summaryEndMsg').style.display = 'none';
+  await loadMoreSummaryDays();
   refreshSummaryUnreadPill();
+  bindSummaryScroll();
+}
+
+function formatDateYMD(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function bindSummaryScroll() {
+  if (S._summary.scrollBound) return;
+  const sec = $('sec-summary');
+  if (!sec) return;
+  sec.addEventListener('scroll', () => {
+    if (S._summary.loading || !S._summary.hasMore) return;
+    if (sec.scrollTop + sec.clientHeight >= sec.scrollHeight - 120) loadMoreSummaryDays();
+  });
+  S._summary.scrollBound = true;
 }
 
 async function refreshSummaryUnreadPill() {
@@ -5704,76 +5728,90 @@ async function refreshSummaryUnreadPill() {
   $('summaryUnreadPill').textContent = res.unreadCount + ' 則未讀';
 }
 
-function renderSummaryDateStrip() {
-  const strip = $('summaryDateStrip');
-  strip.innerHTML = '';
-  let selectedPill = null;
-  S._summary.dates.forEach(d => {
-    const pill = document.createElement('div');
-    pill.className = 'summary-date-pill' + (d.dateStr === S._summary.selectedDate ? ' selected' : '');
-    pill.innerHTML = `<div class="wk">${d.weekLabel}</div><div class="num">${d.label}</div>` +
-      (d.isToday ? '<div class="today-dot"></div>' : '');
-    pill.onclick = () => {
-      S._summary.selectedDate = d.dateStr;
-      renderSummaryDateStrip();
-      loadSummaryCards();
-      pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    };
-    if (d.dateStr === S._summary.selectedDate) selectedPill = pill;
-    strip.appendChild(pill);
+async function loadMoreSummaryDays() {
+  if (S._summary.loading || !S._summary.hasMore) return;
+  S._summary.loading = true;
+  $('summaryLoadingMore').style.display = 'block';
+  const res = await callGAS({
+    action: 'getSummaryCardsRange',
+    lineId: S.user?.lineId ?? '',
+    endDate: S._summary.nextEndDate,
+    days: 7,
   });
-  if (selectedPill) selectedPill.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+  $('summaryLoadingMore').style.display = 'none';
+  S._summary.loading = false;
+  if (!res.success) { toast('⚠️ 摘要載入失敗：' + res.error); return; }
+
+  appendSummaryDayGroups(res.days || []);
+  S._summary.hasMore = !!res.hasMore;
+  S._summary.nextEndDate = res.nextEndDate; // 後端算好的下一批 endDate（= 這批最早日期往前一天）
+
+  if (!S._summary.hasMore) $('summaryEndMsg').style.display = 'block';
+  filterSummaryCards(); // 讓新載入的內容也套用目前的搜尋關鍵字
 }
 
-async function loadSummaryCards() {
+function appendSummaryDayGroups(days) {
   const container = $('summaryCardList');
-  container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">載入中...</div>';
-  const res = await callGAS({ action: 'getSummaryCards', lineId: S.user?.lineId ?? '', date: S._summary.selectedDate });
-  if (!res.success) { container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:30px 0">載入失敗：${esc(res.error)}</div>`; return; }
-  renderSummaryCards(res.cards);
-}
-
-function renderSummaryCards(cards) {
-  const container = $('summaryCardList');
-  container.innerHTML = '';
-  if (!cards.length) {
-    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">這天沒有你有權限查看的群組摘要</div>';
-    return;
+  days.forEach(day => {
+    if (!day.cards.length) return; // 這天沒有任何有權限看的摘要，整天跳過不顯示
+    const dayWrap = document.createElement('div');
+    dayWrap.className = 'summary-day-group';
+    dayWrap.innerHTML = `<div class="summary-day-label">${esc(day.dateStr)}（${esc(day.weekLabel)}）</div>`;
+    day.cards.forEach(card => dayWrap.appendChild(buildSummaryCardEl(card, day.dateStr)));
+    container.appendChild(dayWrap);
+  });
+  if (!container.children.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">目前沒有你有權限查看的群組摘要</div>';
   }
-  cards.forEach(card => {
-    const el = document.createElement('div');
-    el.className = 'card summary-card' + (card.isRead ? ' is-read' : '');
-    el.innerHTML = `
-      <div class="card-bd">
-        <div class="summary-card-top">
-          <span class="badge" style="background:${card.badge.bg};color:${card.badge.fg}">${esc(card.badge.label)}</span>
-          <div style="font-size:16px;font-weight:700">${esc(card.groupName)}</div>
-        </div>
-        <ul class="summary-card-bullets"></ul>
-        <div class="summary-card-footer">
-          <button class="btn btn-sm ${card.isRead ? 'btn-ghost' : 'btn-gold'}">
-            ${card.isRead ? '✓ 已讀' : '標為已讀'}
-          </button>
-        </div>
-      </div>`;
+}
 
-    const ul = el.querySelector('.summary-card-bullets');
-    card.bullets.forEach(b => { const li = document.createElement('li'); li.textContent = b; ul.appendChild(li); });
+function buildSummaryCardEl(card, dateStr) {
+  const el = document.createElement('div');
+  el.className = 'card summary-card' + (card.isRead ? ' is-read' : '');
+  el.dataset.groupName = card.groupName;
+  el.innerHTML = `
+    <div class="card-bd">
+      <div class="summary-card-top">
+        <span class="badge" style="background:${card.badge.bg};color:${card.badge.fg}">${esc(card.badge.label)}</span>
+        <div style="font-size:16px;font-weight:700">${esc(card.groupName)}</div>
+      </div>
+      <ul class="summary-card-bullets"></ul>
+      <div class="summary-card-footer">
+        <button class="btn btn-sm ${card.isRead ? 'btn-ghost' : 'btn-gold'}">
+          ${card.isRead ? '✓ 已讀' : '標為已讀'}
+        </button>
+      </div>
+    </div>`;
 
-    const btn = el.querySelector('button');
-    btn.onclick = async () => {
-      btn.disabled = true;
-      const res = await callGAS({ action: 'toggleSummaryRead', lineId: S.user?.lineId ?? '', groupId: card.groupId, date: S._summary.selectedDate });
-      btn.disabled = false;
-      if (!res.success) { toast('⚠️ 切換失敗：' + res.error); return; }
-      card.isRead = res.isRead;
-      el.classList.toggle('is-read', card.isRead);
-      btn.className = 'btn btn-sm ' + (card.isRead ? 'btn-ghost' : 'btn-gold');
-      btn.textContent = card.isRead ? '✓ 已讀' : '標為已讀';
-      $('summaryUnreadPill').textContent = res.latestUnreadCount + ' 則未讀';
-    };
+  const ul = el.querySelector('.summary-card-bullets');
+  card.bullets.forEach(b => { const li = document.createElement('li'); li.textContent = b; ul.appendChild(li); });
 
-    container.appendChild(el);
+  const btn = el.querySelector('button');
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const res = await callGAS({ action: 'toggleSummaryRead', lineId: S.user?.lineId ?? '', groupId: card.groupId, date: dateStr });
+    btn.disabled = false;
+    if (!res.success) { toast('⚠️ 切換失敗：' + res.error); return; }
+    card.isRead = res.isRead;
+    el.classList.toggle('is-read', card.isRead);
+    btn.className = 'btn btn-sm ' + (card.isRead ? 'btn-ghost' : 'btn-gold');
+    btn.textContent = card.isRead ? '✓ 已讀' : '標為已讀';
+    $('summaryUnreadPill').textContent = res.latestUnreadCount + ' 則未讀';
+  };
+  return el;
+}
+
+// 關鍵字搜尋群組（比照 LINE 群組關鍵字搜尋：即時、依群組名稱比對，不分大小寫）
+function filterSummaryCards() {
+  const kw = ($('summarySearchInput')?.value || '').trim().toLowerCase();
+  document.querySelectorAll('#summaryCardList .summary-day-group').forEach(dayWrap => {
+    let anyVisible = false;
+    dayWrap.querySelectorAll('.summary-card').forEach(cardEl => {
+      const match = !kw || (cardEl.dataset.groupName || '').toLowerCase().includes(kw);
+      cardEl.style.display = match ? '' : 'none';
+      if (match) anyVisible = true;
+    });
+    dayWrap.style.display = anyVisible ? '' : 'none';
   });
 }
 
@@ -6870,7 +6908,6 @@ async function importAttendanceExcel(file) {
     const labels = ['出勤統計 Excel', ...(_attLastResult.mealPdfUrl ? ['餐費支出申請 PDF'] : [])];
     renderPdfResultList(urls, labels, 'att-import-result');
     toast('✅ 出勤統計已產生');
-    window.open(_attLastResult.downloadUrl, '_blank'); // 嘗試自動開啟；若被瀏覽器擋下，上面的連結列表還是點得到
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `❌ ${esc(e.message)}`;
     toast('❌ ' + e.message);
