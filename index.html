@@ -265,6 +265,26 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   from{transform:translateY(30px);opacity:0}
   to{transform:translateY(0);opacity:1}
 }
+
+/* ── 摘要頁籤：日期滑動列 / 已讀卡片淡化 ── */
+.summary-date-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;scroll-behavior:smooth}
+.summary-date-pill{flex:0 0 auto;min-width:52px;text-align:center;background:var(--surface2);
+  border-radius:12px;padding:9px 6px;cursor:pointer;color:var(--text);position:relative;transition:background .15s,color .15s}
+.summary-date-pill .wk{font-size:11px;color:var(--muted)}
+.summary-date-pill .num{font-size:17px;font-weight:700}
+.summary-date-pill.selected{background:var(--accent);color:#fff}
+.summary-date-pill.selected .wk{color:rgba(255,255,255,.85)}
+.summary-date-pill .today-dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.summary-date-pill.selected .today-dot{background:#fff}
+.summary-card{margin-bottom:14px;transition:opacity .2s ease}
+.summary-card.is-read{opacity:.55}
+.summary-card-top{display:flex;align-items:center;gap:10px}
+.summary-card-bullets{margin:12px 0 4px;padding-left:4px;list-style:none}
+.summary-card-bullets li{position:relative;padding-left:14px;font-size:14.5px;line-height:1.7;color:var(--text)}
+.summary-card-bullets li::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--accent)}
+.summary-card-footer{display:flex;justify-content:flex-end;margin-top:8px}
 </style>
 </head>
 <body>
@@ -470,6 +490,17 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 </div>
 
 <!-- ═══════════ SECTION: 待辦 ═══════════ -->
+<div class="app-section" id="sec-summary">
+  <div class="pg-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📋 工作摘要</span>
+    <span class="badge bd-orange" id="summaryUnreadPill">0 則未讀</span>
+  </div>
+
+  <div class="summary-date-strip" id="summaryDateStrip"></div>
+
+  <div id="summaryCardList"></div>
+</div>
+
 <div class="app-section" id="sec-todo">
   <div class="pg-title">✅ 待辦事項</div>
 
@@ -1055,6 +1086,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <button class="mainnav-btn active" data-section="expense" onclick="switchSection('expense')">
       <span class="nv-ico">💲</span><span>費用</span>
     </button>
+    <button class="mainnav-btn" data-section="summary" onclick="switchSection('summary')">
+      <span class="nv-ico">📋</span><span>摘要</span>
+    </button>
     <button class="mainnav-btn" data-section="todo" onclick="switchSection('todo')">
       <span class="nv-ico">✅</span><span>待辦</span>
     </button>
@@ -1137,6 +1171,7 @@ const S = {
     schedule:      false,  // 進度管理
     finance:       false,  // 財務專區
     attendance:    false,  // 財務專區 > 出勤統計
+    summary:       false,  // 摘要
   },
 };
 
@@ -1319,7 +1354,7 @@ let _lineConfig = null; // { channelId, redirectUri, liffId }
 
 // 深層連結：?tab=expense 之類的參數，在網址被登入流程清掉之前先記下來，
 // 供 finishLogin() 決定登入後要切到哪個分頁（支援值見 VALID_TAB_SECTIONS）
-const VALID_TAB_SECTIONS = ['project','expense','todo','proj-settings','schedule','finance','sysadmin'];
+const VALID_TAB_SECTIONS = ['project','expense','todo','summary','proj-settings','schedule','finance','sysadmin'];
 // 會計科目：私車補助類（category==='私車補助'）一律自動歸「燃料費」；其餘六個由 Gemini 分類，AI 判斷不出來保底「其他」
 const ACCT_TYPES = ['停車費','燃料費','車輛保養費','耗材費','零件材料費','維修工具','其他'];
 let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
@@ -5172,7 +5207,7 @@ function switchSection(name) {
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
 
-  ['project','todo','proj-settings','schedule','finance','attendance','sysadmin',
+  ['project','todo','summary','proj-settings','schedule','finance','attendance','sysadmin',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
     const el = $('sec-'+s);
     if (el) el.classList.remove('active');
@@ -5227,6 +5262,10 @@ function switchSection(name) {
       S._loaded.attendance = true;
       loadAttendanceSettings();
     }
+  }
+  if (name === 'summary' && !S._loaded.summary) {
+    S._loaded.summary = true;
+    loadSummaryDates();
   }
   if (name === 'sysadmin') {
     if (!hasPermission('員工表')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
@@ -5635,6 +5674,97 @@ function renderProjectList(rawRows) {
 // ════════════════════════════════════════════════════════════
 // 待辦事項 (Tasks)
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// 摘要（Summary）頁籤
+// ════════════════════════════════════════════════════════════
+S._summary = { dates: [], selectedDate: null };
+
+async function loadSummaryDates() {
+  const res = await callGAS({ action: 'getSummaryDates' });
+  if (!res.success) { toast('⚠️ 摘要日期載入失敗：' + res.error); return; }
+  S._summary.dates = res.dates;
+  S._summary.selectedDate = res.dates[res.dates.length - 1].dateStr; // 預設今日
+  renderSummaryDateStrip();
+  loadSummaryCards();
+  refreshSummaryUnreadPill();
+}
+
+async function refreshSummaryUnreadPill() {
+  const res = await callGAS({ action: 'getLatestSummaryUnread', lineId: S.user?.lineId ?? '' });
+  if (!res.success) return;
+  $('summaryUnreadPill').textContent = res.unreadCount + ' 則未讀';
+}
+
+function renderSummaryDateStrip() {
+  const strip = $('summaryDateStrip');
+  strip.innerHTML = '';
+  S._summary.dates.forEach(d => {
+    const pill = document.createElement('div');
+    pill.className = 'summary-date-pill' + (d.dateStr === S._summary.selectedDate ? ' selected' : '');
+    pill.innerHTML = `<div class="wk">${d.weekLabel}</div><div class="num">${d.label}</div>` +
+      (d.isToday ? '<div class="today-dot"></div>' : '');
+    pill.onclick = () => {
+      S._summary.selectedDate = d.dateStr;
+      renderSummaryDateStrip();
+      loadSummaryCards();
+      pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    };
+    strip.appendChild(pill);
+  });
+}
+
+async function loadSummaryCards() {
+  const container = $('summaryCardList');
+  container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">載入中...</div>';
+  const res = await callGAS({ action: 'getSummaryCards', lineId: S.user?.lineId ?? '', date: S._summary.selectedDate });
+  if (!res.success) { container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:30px 0">載入失敗：${esc(res.error)}</div>`; return; }
+  renderSummaryCards(res.cards);
+}
+
+function renderSummaryCards(cards) {
+  const container = $('summaryCardList');
+  container.innerHTML = '';
+  if (!cards.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">這天沒有你有權限查看的群組摘要</div>';
+    return;
+  }
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'card summary-card' + (card.isRead ? ' is-read' : '');
+    el.innerHTML = `
+      <div class="card-bd">
+        <div class="summary-card-top">
+          <span class="badge" style="background:${card.badge.bg};color:${card.badge.fg}">${esc(card.badge.label)}</span>
+          <div style="font-size:16px;font-weight:700">${esc(card.groupName)}</div>
+        </div>
+        <ul class="summary-card-bullets"></ul>
+        <div class="summary-card-footer">
+          <button class="btn btn-sm ${card.isRead ? 'btn-ghost' : 'btn-gold'}">
+            ${card.isRead ? '✓ 已讀' : '標為已讀'}
+          </button>
+        </div>
+      </div>`;
+
+    const ul = el.querySelector('.summary-card-bullets');
+    card.bullets.forEach(b => { const li = document.createElement('li'); li.textContent = b; ul.appendChild(li); });
+
+    const btn = el.querySelector('button');
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const res = await callGAS({ action: 'toggleSummaryRead', lineId: S.user?.lineId ?? '', groupId: card.groupId, date: S._summary.selectedDate });
+      btn.disabled = false;
+      if (!res.success) { toast('⚠️ 切換失敗：' + res.error); return; }
+      card.isRead = res.isRead;
+      el.classList.toggle('is-read', card.isRead);
+      btn.className = 'btn btn-sm ' + (card.isRead ? 'btn-ghost' : 'btn-gold');
+      btn.textContent = card.isRead ? '✓ 已讀' : '標為已讀';
+      $('summaryUnreadPill').textContent = res.latestUnreadCount + ' 則未讀';
+    };
+
+    container.appendChild(el);
+  });
+}
+
 async function loadTasks(_isRetry) {
   const list    = $('taskList');
   const sumList = $('taskSummaryList');
