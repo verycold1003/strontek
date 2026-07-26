@@ -36,14 +36,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
   border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.mainnav-inner{flex:1;display:flex;align-items:stretch;min-width:0}
-@media(min-width:1160px){
-  .mainnav-inner{max-width:1100px;margin:0 auto}
-}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
   font-size:20px;background:none;border:none;border-right:1px solid var(--border);
   cursor:pointer;color:var(--text);position:relative}
-.mainnav-tabs{flex:1;display:flex}
+.mainnav-tabs{flex:1;display:flex;max-width:1100px;margin:0 auto}
 .mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
   font-size:14px;font-weight:600;transition:color .15s}
@@ -687,11 +683,12 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="margin-bottom:18px;display:none" id="pm-monthly-salary-wrap">
       <label class="lbl">月工資總額（元）</label>
       <input class="inp" type="number" id="pm-monthly-salary" step="1" min="0" placeholder="例：36000">
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。</div>
     </div>
     <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px">
       <label class="lbl" style="margin:0">離職註記</label>
       <input type="checkbox" id="pm-resigned" style="width:18px;height:18px">
-      <span style="font-size:13px;color:var(--muted)">已離職</span>
+      <span style="font-size:13px;color:var(--muted)">勾選後標記為離職</span>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('personModal')">取消</button>
@@ -831,7 +828,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
       <span id="ftMsg" style="font-size:13px;margin-right:auto"></span>
       <button class="btn btn-ghost" onclick="closeModal('fuelTypeModal')">取消</button>
-      <button class="btn btn-primary" onclick="saveFuelTypeModal()">💾 儲存</button>
+      <button class="btn btn-primary" id="ft-save-btn" onclick="saveFuelTypeModal()">💾 儲存</button>
     </div>
   </div>
 </div>
@@ -843,7 +840,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <button class="btn btn-secondary btn-sm" style="margin-left:auto" id="fin-export-report-btn"
       onclick="exportProjectFinanceReport()">📊 匯出專案報表</button>
   </div>
-  <div id="fin-export-report-result" style="margin-bottom:16px"></div>
 
   <!-- 待開票列表 -->
   <div class="card" style="margin-bottom:16px">
@@ -910,7 +906,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   <!-- 匯入打卡紀錄 -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd">📥 匯入打卡紀錄</div>
-    <div class="card-bd">
+    <div style="padding-top:12px">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
         月薪給付總額相當於240小時者，即月薪總額除以30日再除以8小時核計。
       </div>
@@ -920,14 +916,17 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <span id="att-import-filename" style="font-size:13px;color:var(--muted)"></span>
       </div>
       <div id="att-import-status" style="margin-top:12px;font-size:13px"></div>
-      <div id="att-import-result" style="margin-top:10px;display:none"></div>
+      <div id="att-import-result" style="margin-top:10px;display:none">
+        <button class="btn btn-secondary btn-sm" id="att-import-download-btn" onclick="downloadAttendanceResult()">⬇️ 下載出勤統計 Excel</button>
+        <button class="btn btn-secondary btn-sm" id="att-meal-pdf-btn" style="display:none;margin-left:8px" onclick="downloadAttendanceMealPdf()">⬇️ 下載餐費支出申請 PDF</button>
+      </div>
     </div>
   </div>
 
   <!-- 出勤設定 -->
   <div class="card">
     <div class="card-hd">⚙️ 出勤設定</div>
-    <div class="card-bd">
+    <div style="padding-top:12px">
       <div style="font-size:14px;font-weight:700;margin:14px 0 8px">餐費</div>
       <div class="fg2">
         <div><label class="lbl">餐費核發門檻（小時）</label>
@@ -937,12 +936,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
 
       <div style="font-size:14px;font-weight:700;margin:18px 0 8px">平日加班</div>
-      <div class="fg2">
+      <div class="fg3">
         <div><label class="lbl">平日加班起算時間</label>
-          <input class="inp" type="time" id="att-weekday-ot-start" placeholder="例：18:00"></div>
-        <div></div>
-      </div>
-      <div class="fg2" style="margin-top:12px">
+          <input class="inp" type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5"
+            id="att-weekday-ot-start" placeholder="例：18:00"></div>
         <div><label class="lbl">1-2 小時倍率</label>
           <input class="inp" type="number" id="att-weekday-rate-1-2" step="0.01" min="0" placeholder="例：1.34"></div>
         <div><label class="lbl">3-4 小時倍率</label>
@@ -987,7 +984,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 </div>
 
 <div class="mainnav" id="mainNav" style="display:none">
-<div class="mainnav-inner">
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--brand-orange);width:100%;height:100%;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">☰</button>
     <div class="navmenu" id="navMenuProject">
@@ -1087,7 +1083,6 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
   </div>
-</div>
 </div>
 
 
@@ -1689,9 +1684,8 @@ function renderSysAdminUserBar() {
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = hasPerm ? 'block' : 'none';
   if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
-  // 月工資總額欄：員工表權限只看得到列表本身，還要財務專區權限才看得到這一欄
-  const salaryTh = $('th-persons-salary');
-  if (salaryTh) salaryTh.style.display = hasPermission('財務專區') ? '' : 'none';
+  // 月工資總額欄的顯示/隱藏改由 renderPersonsTable 依「這次後端實際回傳的資料」決定，
+  // 這裡不再用 hasPermission('財務專區') 判斷，避免跟前端權限快取的新舊狀態脫鉤。
 }
 
 function toggleDeptsSection() {
@@ -1849,9 +1843,12 @@ async function loadPersonsAdmin(forceReload) {
 
 function renderPersonsTable() {
   const tbody = $('sysadmin-persons-tbody'); if (!tbody) return;
-  const canSeeSalary = hasPermission('財務專區');
+  // 用「這次後端實際有沒有回傳月工資總額欄位」當依據，而不是前端快取的 hasPermission('財務專區')。
+  // 後端 handleGetPersonsAdmin 已經會依權限過濾這個欄位，這裡跟著實際資料走，
+  // 避免權限剛被移除、前端 session 還沒重新整理導致標題/欄位顯示狀態不一致。
+  const canSeeSalary = _personsCache.some(p => p.monthlySalary !== undefined);
   const salaryTh = $('th-persons-salary');
-  if (salaryTh) salaryTh.style.display = canSeeSalary ? '' : 'none'; // 跟內容欄同一次判斷，避免表頭跟資料狀態不同步
+  if (salaryTh) salaryTh.style.display = canSeeSalary ? '' : 'none';
   if (!_personsCache.length) {
     tbody.innerHTML = `<tr><td colspan="${canSeeSalary?9:8}" style="text-align:center;color:var(--muted);padding:24px">尚無員工資料</td></tr>`;
     return;
@@ -3381,9 +3378,9 @@ function quotaBadgeHTML(fp) {
   const expLabel = fp._isExpired ? '（已結案）' : '';
   const exportedTag = fp.exported
     ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
-  const canEditType = getUserDeptIsFuelType();
-  const amt = mySubsidyFor(proj);
-  const amtPill = amt ? `<span style="opacity:.75">$${amt.toLocaleString()}</span>` : '';
+  const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+  const amtPill = `<span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
+    核定 $${mySubsidyFor(proj).toLocaleString()}/月</span>`;
   const inner = `${esc(proj.id)} ${esc(proj.name)}${expLabel} ${amtPill}`;
   const labelHtml = canEditType
     ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${inner}</span>`
@@ -3408,7 +3405,7 @@ function openFuelTypeModal(idx) {
   if (!fp) return;
   const proj = S.config.projects.find(p => p.id === fp.projId);
   if (!proj) return;
-  if (!getUserDeptIsFuelType()) return; // 登入者部門為純費用類：不彈窗
+  if (!findDept(proj.deptCode)?.isFuelType) return; // 純費用專案：不彈窗
 
   _ftState = { idx, proj };
   $('ftModal-title').textContent = `異動補助類型：${esc(proj.id)} ${esc(proj.name)}`;
@@ -3450,37 +3447,36 @@ async function saveFuelTypeModal() {
   const perPerm = hasPermission('員工表');
   const targetLineId = perPerm ? ($('ft-person-select')?.value || '') : lineIdByName(effectivePerson());
 
-  const btn = document.querySelector('#fuelTypeModal .btn-primary');
-  const btnOrig = btn?.innerHTML;
-
-  if (isQuota) {
-    if (!targetLineId) { if (msg) { msg.textContent = '⚠️ 請選擇員工'; msg.style.color = 'var(--red)'; } return; }
-    const amt = parseFloat($('ft-amount')?.value) || 0;
-    const mergedMap = { ...(proj.subsidyMap || {}), [targetLineId]: amt };
-    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spin"></div> 儲存中...'; }
-    try {
-      const res = await callGAS({ action: 'updateProject', id: proj.id, subsidy: mergedMap });
-      if (!res.success) {
-        if (msg) { msg.textContent = '❌ ' + (res.error || '更新失敗'); msg.style.color = 'var(--red)'; }
-        if (btn) { btn.disabled = false; btn.innerHTML = btnOrig; }
+  const btn = $('ft-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中...'; }
+  try {
+    if (isQuota) {
+      if (!targetLineId) { if (msg) { msg.textContent = '⚠️ 請選擇員工'; msg.style.color = 'var(--red)'; } return; }
+      const amt = parseFloat($('ft-amount')?.value) || 0;
+      const mergedMap = { ...(proj.subsidyMap || {}), [targetLineId]: amt };
+      try {
+        const res = await callGAS({ action: 'updateProject', id: proj.id, subsidy: mergedMap });
+        if (!res.success) {
+          if (msg) { msg.textContent = '❌ ' + (res.error || '更新失敗'); msg.style.color = 'var(--red)'; }
+          return;
+        }
+      } catch (e) {
+        if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
         return;
       }
-    } catch (e) {
-      if (msg) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--red)'; }
-      if (btn) { btn.disabled = false; btn.innerHTML = btnOrig; }
-      return;
+      proj.subsidyMap = mergedMap; // 本地同步，畫面立即反映
     }
-    proj.subsidyMap = mergedMap; // 本地同步，畫面立即反映
-    if (btn) { btn.disabled = false; btn.innerHTML = btnOrig; }
+
+    fp.type = isQuota ? 'quota' : 'mile';
+    if (!isQuota) fp.attrType = 'project';
+
+    closeModal('fuelTypeModal');
+    syncFuelProjToSheet(idx);
+    renderOCRResults();
+    toast('✅ 已更新補助類型');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 儲存'; }
   }
-
-  fp.type = isQuota ? 'quota' : 'mile';
-  if (!isQuota) fp.attrType = 'project';
-
-  closeModal('fuelTypeModal');
-  syncFuelProjToSheet(idx);
-  renderOCRResults();
-  toast('✅ 已更新補助類型');
 }
 
 // ── 月定額：初始化輸入框 ─────────────────────────────────────
@@ -3559,7 +3555,7 @@ function fuelMileRowHTML(fp, idx) {
   if (proj) {
     isSelected = true;
     const text = esc(`${proj.id} ${proj.name}`);
-    const canEditType = getUserDeptIsFuelType();
+    const canEditType = !!findDept(proj.deptCode)?.isFuelType;
     labelHtml = canEditType
       ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${text}</span>`
       : text;
@@ -6439,38 +6435,6 @@ function ieRefreshClearBtn(fieldId) {
 // ════════════════════════════════════════════════════════════
 // 財務專區 — 匯出專案 Excel 報表（所有專案/部門/其他彙整）
 // ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// renderFileLinkCard — 顯示單一檔案下載連結卡片（比照 renderPdfResultList 樣式）
-// 供財務報表／出勤統計匯出等「產生單一檔案、點擊連結開啟」的場景共用
-// ════════════════════════════════════════════════════════════
-function renderFileLinkCard(containerId, url, label, sharingNote) {
-  const box = $(containerId);
-  if (!box) return;
-  if (!url) { box.innerHTML = ''; return; }
-
-  const title = document.createElement('div');
-  title.style.cssText = 'font-size:14px;font-weight:800;color:var(--green);margin-bottom:8px';
-  title.textContent = `✅ 已產生 1 份檔案，點擊連結開啟${sharingNote ? '（' + sharingNote + '）' : ''}`;
-
-  const row = document.createElement('a');
-  row.href = url;
-  row.target = '_blank';
-  row.rel = 'noopener noreferrer';
-  row.style.cssText = `
-    display:flex;align-items:center;gap:10px;padding:10px 14px;
-    background:var(--surface);border:1px solid var(--border);border-radius:8px;
-    color:var(--accent);font-size:14px;font-weight:700;text-decoration:none;
-    transition:background .15s;
-  `;
-  row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${esc(label)}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
-  row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
-  row.onmouseout  = () => row.style.background = 'var(--surface)';
-
-  box.innerHTML = '';
-  box.appendChild(title);
-  box.appendChild(row);
-}
-
 async function exportProjectFinanceReport() {
   const btn = $('fin-export-report-btn');
   const orig = btn ? btn.textContent : '';
@@ -6482,8 +6446,9 @@ async function exportProjectFinanceReport() {
       lineId: S.user?.lineId || '',
     }, 60000);
     if (res.success) {
-      toast('✅ 報表已產生');
-      renderFileLinkCard('fin-export-report-result', res.downloadUrl || res.url, res.fileName || '專案財務報表.xlsx', res.sharingNote);
+      toast('✅ 報表已產生' + (res.sharingNote ? ' ' + res.sharingNote : ''));
+      // 與其他匯出流程一致：直接開啟 Drive 下載連結
+      window.open(res.downloadUrl || res.url, '_blank');
     } else {
       toast('❌ ' + (res.error || '匯出失敗'));
     }
@@ -6692,6 +6657,8 @@ const ATT_COL = {
   leaveTime:25, leaveHours:26, leaveType:27, srcOtTime:28, srcOtHours:29, workHours:10,
 };
 
+let _attLastResult = null; // { downloadUrl, fileName }
+
 function onAttendanceFileSelected(evt) {
   const file = evt.target.files?.[0];
   evt.target.value = ''; // 允許重選同一檔案
@@ -6705,6 +6672,7 @@ async function importAttendanceExcel(file) {
   const statusEl = $('att-import-status');
   const btn = $('att-import-btn');
   $('att-import-result').style.display = 'none';
+  _attLastResult = null;
   if (btn) btn.disabled = true;
   if (statusEl) statusEl.innerHTML = '⏳ 解析 Excel 中...';
   try {
@@ -6750,16 +6718,31 @@ async function importAttendanceExcel(file) {
     }, 110000);
 
     if (!res.success) throw new Error(res.error || '匯入失敗');
-    if (statusEl) statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}`;
+    _attLastResult = { downloadUrl: res.downloadUrl || res.url, fileName: res.fileName || '', mealPdfUrl: res.mealPdfUrl || '' };
+    if (statusEl) {
+      statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}` +
+        (res.mealPdfError ? `<br>⚠️ ${esc(res.mealPdfError)}` : '');
+    }
     $('att-import-result').style.display = 'block';
+    $('att-meal-pdf-btn').style.display = _attLastResult.mealPdfUrl ? '' : 'none';
     toast('✅ 出勤統計已產生');
-    renderFileLinkCard('att-import-result', res.downloadUrl || res.url, res.fileName || '出勤統計匯出表.xlsx', res.sharingNote);
+    window.open(_attLastResult.downloadUrl, '_blank');
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `❌ ${esc(e.message)}`;
     toast('❌ ' + e.message);
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+function downloadAttendanceResult() {
+  if (!_attLastResult?.downloadUrl) { toast('❌ 尚無可下載的匯出結果'); return; }
+  window.open(_attLastResult.downloadUrl, '_blank');
+}
+
+function downloadAttendanceMealPdf() {
+  if (!_attLastResult?.mealPdfUrl) { toast('❌ 尚無可下載的餐費支出申請 PDF'); return; }
+  window.open(_attLastResult.mealPdfUrl, '_blank');
 }
 
 // ── 財務：更新開票日期 → invoiced=true ──────────────────────
