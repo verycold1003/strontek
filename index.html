@@ -871,6 +871,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <button class="btn btn-secondary btn-sm" style="margin-left:auto" id="fin-export-report-btn"
       onclick="exportProjectFinanceReport()">📊 匯出專案報表</button>
   </div>
+  <div id="fin-export-result" style="display:none;margin-bottom:14px"></div>
 
   <!-- 待開票列表 -->
   <div class="card" style="margin-bottom:16px">
@@ -947,10 +948,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         <span id="att-import-filename" style="font-size:13px;color:var(--muted)"></span>
       </div>
       <div id="att-import-status" style="margin-top:12px;font-size:13px"></div>
-      <div id="att-import-result" style="margin-top:10px;display:none">
-        <button class="btn btn-secondary btn-sm" id="att-import-download-btn" onclick="downloadAttendanceResult()">⬇️ 下載出勤統計 Excel</button>
-        <button class="btn btn-secondary btn-sm" id="att-meal-pdf-btn" style="display:none;margin-left:8px" onclick="downloadAttendanceMealPdf()">⬇️ 下載餐費支出申請 PDF</button>
-      </div>
+      <div id="att-import-result" style="margin-top:10px;display:none"></div>
     </div>
   </div>
 
@@ -5036,22 +5034,23 @@ async function resolveDup(action) {
 // ════════════════════════════════════════════════════════════
 // renderPdfResultList — 顯示匯出 PDF 連結清單
 // ════════════════════════════════════════════════════════════
-function renderPdfResultList(urls, labels) {
+function renderPdfResultList(urls, labels, containerId) {
   if (!urls || !urls.length) return;
-  // 移除舊的結果列表
-  $('pdfResultList')?.remove();
+  // 移除舊的結果列表（同一個容器內）
+  const wrapId = containerId ? `pdfResultList__${containerId}` : 'pdfResultList';
+  $(wrapId)?.remove();
 
   const wrap = document.createElement('div');
-  wrap.id = 'pdfResultList';
+  wrap.id = wrapId;
   wrap.style.cssText = 'margin-top:16px;display:flex;flex-direction:column;gap:8px;';
 
   const title = document.createElement('div');
   title.style.cssText = 'font-size:14px;font-weight:800;color:var(--green);margin-bottom:4px';
-  title.textContent = `✅ 已產生 ${urls.length} 份 PDF，點擊連結開啟`;
+  title.textContent = `✅ 已產生 ${urls.length} 份檔案，點擊連結開啟`;
   wrap.appendChild(title);
 
   urls.forEach((url, i) => {
-    const label = labels[i] || ('PDF ' + (i + 1));
+    const label = labels[i] || ('檔案 ' + (i + 1));
     const row = document.createElement('a');
     row.href = url;
     row.target = '_blank';
@@ -5068,7 +5067,12 @@ function renderPdfResultList(urls, labels) {
     wrap.appendChild(row);
   });
 
-  // 插入到 ocrDoneBar 後面
+  if (containerId) {
+    const el = $(containerId);
+    if (el) { el.style.display = ''; el.innerHTML = ''; el.appendChild(wrap); }
+    return;
+  }
+  // 沒指定 containerId 時維持原本行為：插入到 ocrDoneBar 後面（費用頁 OCR 結果）
   const doneBar = $('ocrDoneBar');
   if (doneBar && doneBar.parentNode) {
     doneBar.parentNode.insertBefore(wrap, doneBar.nextSibling);
@@ -5683,7 +5687,8 @@ async function loadSummaryDates() {
   const res = await callGAS({ action: 'getSummaryDates' });
   if (!res.success) { toast('⚠️ 摘要日期載入失敗：' + res.error); return; }
   S._summary.dates = res.dates;
-  S._summary.selectedDate = res.dates[res.dates.length - 1].dateStr; // 預設今日
+  const yesterdayEntry = res.dates.length >= 2 ? res.dates[res.dates.length - 2] : res.dates[res.dates.length - 1];
+  S._summary.selectedDate = yesterdayEntry.dateStr; // 預設前一天（當天摘要要快下班17:30才會產生，預設今天會是空的）
   renderSummaryDateStrip();
   loadSummaryCards();
   refreshSummaryUnreadPill();
@@ -5698,6 +5703,7 @@ async function refreshSummaryUnreadPill() {
 function renderSummaryDateStrip() {
   const strip = $('summaryDateStrip');
   strip.innerHTML = '';
+  let selectedPill = null;
   S._summary.dates.forEach(d => {
     const pill = document.createElement('div');
     pill.className = 'summary-date-pill' + (d.dateStr === S._summary.selectedDate ? ' selected' : '');
@@ -5709,8 +5715,10 @@ function renderSummaryDateStrip() {
       loadSummaryCards();
       pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     };
+    if (d.dateStr === S._summary.selectedDate) selectedPill = pill;
     strip.appendChild(pill);
   });
+  if (selectedPill) selectedPill.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
 }
 
 async function loadSummaryCards() {
@@ -6577,8 +6585,9 @@ async function exportProjectFinanceReport() {
     }, 60000);
     if (res.success) {
       toast('✅ 報表已產生' + (res.sharingNote ? ' ' + res.sharingNote : ''));
-      // 與其他匯出流程一致：直接開啟 Drive 下載連結
-      window.open(res.downloadUrl || res.url, '_blank');
+      const url = res.downloadUrl || res.url;
+      renderPdfResultList([url], ['專案財務報表'], 'fin-export-result');
+      window.open(url, '_blank'); // 嘗試自動開啟；若被瀏覽器擋下，上面的連結列表還是點得到
     } else {
       toast('❌ ' + (res.error || '匯出失敗'));
     }
@@ -6853,26 +6862,17 @@ async function importAttendanceExcel(file) {
       statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}` +
         (res.mealPdfError ? `<br>⚠️ ${esc(res.mealPdfError)}` : '');
     }
-    $('att-import-result').style.display = 'block';
-    $('att-meal-pdf-btn').style.display = _attLastResult.mealPdfUrl ? '' : 'none';
+    const urls   = [_attLastResult.downloadUrl, ...(_attLastResult.mealPdfUrl ? [_attLastResult.mealPdfUrl] : [])];
+    const labels = ['出勤統計 Excel', ...(_attLastResult.mealPdfUrl ? ['餐費支出申請 PDF'] : [])];
+    renderPdfResultList(urls, labels, 'att-import-result');
     toast('✅ 出勤統計已產生');
-    window.open(_attLastResult.downloadUrl, '_blank');
+    window.open(_attLastResult.downloadUrl, '_blank'); // 嘗試自動開啟；若被瀏覽器擋下，上面的連結列表還是點得到
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `❌ ${esc(e.message)}`;
     toast('❌ ' + e.message);
   } finally {
     if (btn) btn.disabled = false;
   }
-}
-
-function downloadAttendanceResult() {
-  if (!_attLastResult?.downloadUrl) { toast('❌ 尚無可下載的匯出結果'); return; }
-  window.open(_attLastResult.downloadUrl, '_blank');
-}
-
-function downloadAttendanceMealPdf() {
-  if (!_attLastResult?.mealPdfUrl) { toast('❌ 尚無可下載的餐費支出申請 PDF'); return; }
-  window.open(_attLastResult.mealPdfUrl, '_blank');
 }
 
 // ── 財務：更新開票日期 → invoiced=true ──────────────────────
