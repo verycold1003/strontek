@@ -300,12 +300,15 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div style="font-size:13px;color:var(--muted)">LINE 登入中，請稍候...</div>
     </div>
     <script>
-      // 同步執行（不等 DOMContentLoaded）：LINE 內建瀏覽器的 UA 一律帶「Line/」，
-      // 偵測到就先隱藏登入按鈕、顯示自動登入中的畫面，避免按鈕先閃一下才被
-      // initLiffAuth() 的自動登入蓋掉。initLiffAuth() 最後如果發現其實不在
-      // LINE App 內（isInClient() 為 false，代表這次判斷是誤判），會負責把
-      // 按鈕改回來，所以這裡誤判也不會卡住使用者。
-      if (/\bLine\//i.test(navigator.userAgent)) {
+      // 同步執行（不等 DOMContentLoaded）：
+      // 1) LINE 內建瀏覽器的 UA 一律帶「Line/」，偵測到就先隱藏登入按鈕、顯示自動登入中的畫面
+      // 2) 網址帶 ?code=（LINE OAuth 授權完成、跳轉回來）時也要立刻顯示 spinner——
+      //    否則要等 initLiffAuth() 裡 liff.init() 這個對 LINE 伺服器的非同步請求跑完，
+      //    才會換成「驗證中」畫面，這段空窗使用者只會看到平常的登入按鈕，
+      //    誤以為登入沒有成功、重複點擊登入
+      // initLiffAuth() 最後如果發現其實不在 LINE App 內或沒有 code（誤判），
+      // 會負責把按鈕改回來，所以這裡誤判也不會卡住使用者。
+      if (/\bLine\//i.test(navigator.userAgent) || /[?&]code=/.test(window.location.search)) {
         document.getElementById('loginButtonArea').style.display = 'none';
         document.getElementById('loginAutoWrap').style.display = 'block';
       }
@@ -490,7 +493,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 
   <div style="position:relative;margin-bottom:14px">
-    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋群組關鍵字" style="padding-left:14px" oninput="filterSummaryCards()">
+    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋摘要內容關鍵字，逗號分隔可同時搜尋多個（例：約定,羅小姐）" style="padding-left:14px" oninput="onSummarySearchInput()">
   </div>
 
   <div id="summaryCardList"></div>
@@ -709,6 +712,9 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
           <input type="checkbox" id="pm-perm-admin" style="width:16px;height:16px"> 管理員
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px">
+          <input type="checkbox" id="pm-perm-depts" style="width:16px;height:16px"> 部門表
         </label>
       </div>
     </div>
@@ -1666,9 +1672,9 @@ function renderUserBar() {
   const attBtn = $('navAttendanceBtn');
   if (attBtn) attBtn.style.display = isFinance ? 'block' : 'none';
 
-  // 系統管理入口：員工表／財務專區／管理員 任一權限都看得到（財務專區要看月工資總額、管理員要異動權限，都得先進得了這頁）
+  // 系統管理入口：員工表／財務專區／管理員／部門表 任一權限都看得到
   const sysBtn = $('navSysadminBtn');
-  const canSysadmin = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
+  const canSysadmin = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員') || hasPermission('部門表');
   if (sysBtn) sysBtn.style.display = canSysadmin ? 'block' : 'none';
   // 「管理」區塊目前僅含系統管理一個項目，無權限時整個區塊標題與分隔線一併隱藏
   const secAdmin = $('navSecAdmin'), sepAdmin = $('navSecSepAdmin');
@@ -1713,11 +1719,11 @@ function logout() {
 function renderSysAdminUserBar() {
   const u = S.user; if (!u) return;
   const canSeePersons = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
-  const hasPerm = hasPermission('員工表'); // 部門設定維持僅員工表權限管理
+  const canSeeDepts = hasPermission('部門表'); // 部門表拆成獨立權限，不再沿用員工表
   const persCard  = $('sysadmin-persons-card');
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = canSeePersons ? 'block' : 'none';
-  if (deptsCard) deptsCard.style.display = hasPerm ? 'block' : 'none';
+  if (deptsCard) deptsCard.style.display = canSeeDepts ? 'block' : 'none';
   // 月工資總額欄的顯示/隱藏改由 renderPersonsTable 依「這次後端實際回傳的資料」決定，
   // 這裡不再用 hasPermission('財務專區') 判斷，避免跟前端權限快取的新舊狀態脫鉤。
 }
@@ -1734,7 +1740,7 @@ function toggleDeptsSection() {
 let _deptsCache = [];
 
 async function loadDeptsAdmin(forceReload) {
-  if (!hasPermission('員工表')) return;
+  if (!hasPermission('部門表')) return;
   // E類優化：bootstrap 登入時已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_deptsCache.length && !forceReload) { renderDeptsTable(); return; }
   const tbody = $('sysadmin-depts-tbody');
@@ -1983,6 +1989,7 @@ async function openPersonModal(idx) {
   $('pm-perm-finance').checked = perms.includes('財務專區');
   $('pm-perm-acting').checked  = perms.includes('代申請');
   $('pm-perm-admin').checked   = perms.includes('管理員');
+  $('pm-perm-depts').checked   = perms.includes('部門表');
 
   // 權限區塊：只有「管理員」才看得到、才能異動任何人的權限；其他人（員工表/財務專區/代申請）完全看不到這塊
   const permBlock = $('pm-perm-block');
@@ -2018,6 +2025,7 @@ async function savePersonAdmin() {
     $('pm-perm-finance').checked ? '財務專區' : '',
     $('pm-perm-acting').checked  ? '代申請'   : '',
     $('pm-perm-admin').checked   ? '管理員'   : '',
+    $('pm-perm-depts').checked  ? '部門表'   : '',
   ].filter(Boolean).join(',');
 
   // 月工資總額：僅財務專區權限者才送出此欄，避免無此權限的操作者意外覆蓋既有值
@@ -3725,6 +3733,17 @@ async function removeFuelProj(idx) {
   const label = proj ? `${proj.id} ${proj.name}` : (fp.projId || '此專案');
   const ok = await showConfirm(`確定要移除「${label}」這筆月定額申請嗎？`);
   if (!ok) return;
+
+  // 計算歸屬鍵（跟 _syncFuelProjToSheet 同一套邏輯），去後端真的刪掉那一列，
+  // 否則畫面上看起來刪了，登出重登入 getFuelProjects 重讀表又會跑回來
+  const attrTarget = fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : '');
+  const person = effectivePerson();
+  const month  = curMonth();
+  if (attrTarget && person && month) {
+    const res = await callGAS({ action: 'deleteFuelProject', month, person, attrTarget });
+    if (!res.success) { toast('⚠️ 刪除失敗：' + (res.error || '') + '（畫面上仍會移除，請確認後端資料）'); }
+  }
+
   window._fuelProjList.splice(idx, 1);
   renderOCRResults();
 }
@@ -5284,7 +5303,7 @@ function switchSection(name) {
     loadSummaryDates();
   }
   if (name === 'sysadmin') {
-    if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員'))) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
+    if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員') || hasPermission('部門表'))) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
     renderSysAdminUserBar();
     // 員工表 accordion 預設收合，只在已展開時才載入；收合狀態下展開時由 togglePersonsSection 觸發
     if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
@@ -5693,7 +5712,7 @@ function renderProjectList(rawRows) {
 // ════════════════════════════════════════════════════════════
 // 摘要（Summary）頁籤 — 關鍵字搜尋 + 依日期往前捲動載入（每次7天）
 // ════════════════════════════════════════════════════════════
-S._summary = { nextEndDate: null, hasMore: true, loading: false, scrollBound: false };
+S._summary = { nextEndDate: null, hasMore: true, loading: false, scrollBound: false, searchMode: false };
 
 async function loadSummaryDates() {
   // 從「今天」開始往前抓第一批7天
@@ -5747,7 +5766,6 @@ async function loadMoreSummaryDays() {
   S._summary.nextEndDate = res.nextEndDate; // 後端算好的下一批 endDate（= 這批最早日期往前一天）
 
   if (!S._summary.hasMore) $('summaryEndMsg').style.display = 'block';
-  filterSummaryCards(); // 讓新載入的內容也套用目前的搜尋關鍵字
 }
 
 function appendSummaryDayGroups(days) {
@@ -5801,18 +5819,42 @@ function buildSummaryCardEl(card, dateStr) {
   return el;
 }
 
-// 關鍵字搜尋群組（比照 LINE 群組關鍵字搜尋：即時、依群組名稱比對，不分大小寫）
-function filterSummaryCards() {
-  const kw = ($('summarySearchInput')?.value || '').trim().toLowerCase();
-  document.querySelectorAll('#summaryCardList .summary-day-group').forEach(dayWrap => {
-    let anyVisible = false;
-    dayWrap.querySelectorAll('.summary-card').forEach(cardEl => {
-      const match = !kw || (cardEl.dataset.groupName || '').toLowerCase().includes(kw);
-      cardEl.style.display = match ? '' : 'none';
-      if (match) anyVisible = true;
-    });
-    dayWrap.style.display = anyVisible ? '' : 'none';
-  });
+// 摘要搜尋：逗號（半形/全形皆可）分隔多個關鍵字，每個都要同時出現在同一則摘要內容（或群組名稱）裡才算符合（AND）。
+// 這是跨「全部歷史」搜尋，不受目前已捲動載入到哪一天限制；清空搜尋框會回到預設依日期捲動瀏覽模式。
+let _summarySearchDebounce = null;
+function onSummarySearchInput() {
+  clearTimeout(_summarySearchDebounce);
+  _summarySearchDebounce = setTimeout(runSummarySearchOrReset, 400);
+}
+
+async function runSummarySearchOrReset() {
+  const raw = $('summarySearchInput').value || '';
+  const terms = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+
+  $('summaryLoadingMore').style.display = 'none';
+  $('summaryEndMsg').style.display = 'none';
+
+  if (!terms.length) {
+    S._summary.searchMode = false;
+    loadSummaryDates(); // 搜尋框清空，回到預設瀏覽模式
+    return;
+  }
+
+  S._summary.searchMode = true;
+  S._summary.hasMore = false; // 搜尋模式一次回傳全部符合結果，不用捲動載入更多
+  $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋中...</div>';
+
+  const res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
+  if (!res.success) {
+    $('summaryCardList').innerHTML = `<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋失敗：${esc(res.error)}</div>`;
+    return;
+  }
+  $('summaryCardList').innerHTML = '';
+  if (!res.days.length) {
+    $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">找不到符合的摘要</div>';
+    return;
+  }
+  appendSummaryDayGroups(res.days);
 }
 
 async function loadTasks(_isRetry) {
