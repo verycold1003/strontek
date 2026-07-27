@@ -34,6 +34,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
+  padding-right:var(--sbw,0px);
   border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
@@ -493,7 +494,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 
   <div style="position:relative;margin-bottom:14px">
-    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋摘要內容關鍵字，逗號分隔可同時搜尋多個（例：約定,羅小姐）" style="padding-left:14px" oninput="onSummarySearchInput()">
+    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋摘要內容關鍵字，逗號分隔可同時搜尋多個（例：一部,現勘）" style="padding-left:14px" oninput="onSummarySearchInput()">
   </div>
 
   <div id="summaryCardList"></div>
@@ -1369,6 +1370,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ym = new Date().toISOString().slice(0,7);
   $('global-month').value = ym;
 
+  // nav 是 position:fixed，永遠是完整視窗寬度；下面 .app-section 有 overflow-y:auto，
+  // 內容垂直捲動時瀏覽器捲軸會佔掉一小段寬度（Windows/Chrome 常見 15-17px），
+  // 讓兩邊「置中1100px」用的可用寬度不一樣而對不齊。這裡量出實際捲軸寬度，
+  // 讓 nav 也扣掉同樣寬度，兩邊基準才會一致。
+  const measureScrollbarWidth = () => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll;';
+    document.body.appendChild(probe);
+    const sbw = probe.offsetWidth - probe.clientWidth;
+    document.body.removeChild(probe);
+    document.documentElement.style.setProperty('--sbw', sbw + 'px');
+  };
+  measureScrollbarWidth();
+  window.addEventListener('resize', measureScrollbarWidth);
+
   const dz = $('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
@@ -1420,13 +1436,19 @@ async function initLiffAuth() {
   if (!liff.isInClient()) { restoreLoginButton(); return false; }
 
   // ── 在 Line App 內開啟：維持 loginAutoWrap 顯示，不用按鈕 ──
+  const LIFF_VERIFY_TIMEOUT_MS = 20000; // 20 秒逾時，避免卡在 spinner 畫面永遠出不去
   try {
     const profile    = await liff.getProfile();
     const lineUserId = profile.userId;
     const lineName   = profile.displayName;
     const avatar     = profile.pictureUrl || '';
 
-    const res = await callGAS({ action: 'liffVerify', lineUserId, lineName });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('LIFF 自動登入逾時')), LIFF_VERIFY_TIMEOUT_MS));
+    const res = await Promise.race([
+      callGAS({ action: 'liffVerify', lineUserId, lineName }),
+      timeoutPromise,
+    ]);
 
     if (res.success) {
       finishLogin({ ...res.person, avatar });
@@ -1441,7 +1463,7 @@ async function initLiffAuth() {
   } catch (e) {
     restoreLoginButton();
     console.error('LIFF auth error:', e);
-    toast('❌ LIFF 驗證失敗：' + e.message);
+    toast('❌ LIFF 驗證失敗：' + e.message + '，請點擊按鈕重新登入');
   }
 
   return true;
@@ -3292,6 +3314,7 @@ function renderFuelTab(fuelReceipts) {
     return !frList.length || frList.some(fr => !fr.exported);
   });
   const applyTotal = calcFuelApplyTotal();
+  const hiddenApplyCnt = (quotaListAll.length - quotaList.length) + (mileListAll.length - mileList.length);
   const diff       = invoiceTotal - applyTotal;
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
@@ -3317,6 +3340,7 @@ function renderFuelTab(fuelReceipts) {
     <div class="card" style="margin-bottom:14px">
       <div class="card-hd" style="font-size:14px;font-weight:800">
         🗂 申請專案
+        ${hiddenApplyCnt ? `<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:6px">（已隱藏 ${hiddenApplyCnt} 筆）</span>` : ''}
         <span style="margin-left:6px;cursor:pointer;position:relative;display:inline-block" id="apply-proj-info-wrap">
           <span style="font-size:15px;color:var(--accent);vertical-align:middle"
             onclick="toggleApplyProjInfo()" title="本月要申請的專案">ℹ️</span>
@@ -3375,14 +3399,23 @@ function renderFuelTab(fuelReceipts) {
 
 function calcFuelApplyTotal() {
   const rate = getMileageRate(curMonth());
-  return window._fuelProjList.reduce((sum, fp) => {
+  // 「顯示已匯出」比照畫面上月定額/里程實報清單的篩選邏輯：沒勾選時，
+  // 已匯出（或底下紀錄全部已匯出）的整筆歸屬會被隱藏，這裡加總也要排除同一批，
+  // 不然畫面上看不到的專案金額還是被算進申請總額，跟畫面顯示對不起來。
+  const visibleList = S._showExported ? window._fuelProjList : window._fuelProjList.filter(fp => {
+    if (fp.type === 'quota') return !fp.exported;
+    const frList = fp.fieldRows || [];
+    return !frList.length || frList.some(fr => !fr.exported);
+  });
+  return visibleList.reduce((sum, fp) => {
     if (fp.type === 'quota') {
       const proj = S.config.projects.find(p => p.id === fp.projId);
       return sum + (proj ? mySubsidyFor(proj) : 0);
     }
-    // 里程實報 / 部門 / 其他
+    // 里程實報 / 部門 / 其他：沒勾選「顯示已匯出」時，這筆底下已匯出的單筆紀錄也要跳過不計
     const frList = fp.fieldRows || [];
-    return sum + frList.reduce((s, fr) => {
+    const rows = S._showExported ? frList : frList.filter(fr => !fr.exported);
+    return sum + rows.reduce((s, fr) => {
       const km = parseFloat(fr.km) || 0;
       return s + Math.round(km * (fr.isRound !== false ? 2 : 1) * rate);
     }, 0);
@@ -5715,6 +5748,7 @@ function renderProjectList(rawRows) {
 S._summary = { nextEndDate: null, hasMore: true, loading: false, scrollBound: false, searchMode: false };
 
 async function loadSummaryDates() {
+  initSummarySearchComposition();
   // 從「今天」開始往前抓第一批7天
   S._summary.nextEndDate = formatDateYMD(new Date());
   S._summary.hasMore = true;
@@ -5822,14 +5856,30 @@ function buildSummaryCardEl(card, dateStr) {
 // 摘要搜尋：逗號（半形/全形皆可）分隔多個關鍵字，每個都要同時出現在同一則摘要內容（或群組名稱）裡才算符合（AND）。
 // 這是跨「全部歷史」搜尋，不受目前已捲動載入到哪一天限制；清空搜尋框會回到預設依日期捲動瀏覽模式。
 let _summarySearchDebounce = null;
+let _summarySearchSeq = 0;      // 序號：避免較舊的搜尋回應（網路較慢）比新的還晚回來，把正確結果蓋掉
+let _summaryIsComposing = false; // 中文注音/拼音輸入法組字中，不要用還沒選字完成的中間文字觸發搜尋
+
 function onSummarySearchInput() {
+  if (_summaryIsComposing) return; // compositionend 觸發時會自己補呼叫一次
   clearTimeout(_summarySearchDebounce);
   _summarySearchDebounce = setTimeout(runSummarySearchOrReset, 400);
+}
+
+function initSummarySearchComposition() {
+  const input = $('summarySearchInput');
+  if (!input || input._compositionBound) return;
+  input._compositionBound = true;
+  input.addEventListener('compositionstart', () => { _summaryIsComposing = true; });
+  input.addEventListener('compositionend', () => {
+    _summaryIsComposing = false;
+    onSummarySearchInput(); // 選字完成，這裡才真正觸發（依完整文字）debounce 搜尋
+  });
 }
 
 async function runSummarySearchOrReset() {
   const raw = $('summarySearchInput').value || '';
   const terms = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  const mySeq = ++_summarySearchSeq;
 
   $('summaryLoadingMore').style.display = 'none';
   $('summaryEndMsg').style.display = 'none';
@@ -5844,9 +5894,20 @@ async function runSummarySearchOrReset() {
   S._summary.hasMore = false; // 搜尋模式一次回傳全部符合結果，不用捲動載入更多
   $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋中...</div>';
 
-  const res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
+  let res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
   if (!res.success) {
-    $('summaryCardList').innerHTML = `<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋失敗：${esc(res.error)}</div>`;
+    // 網路一時不穩（例如 Failed to fetch）先自動重試一次，避免使用者一次失敗就卡住
+    res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
+  }
+
+  if (mySeq !== _summarySearchSeq) return; // 這段等待期間使用者又打了新的關鍵字，這次結果已經過期，不要覆蓋畫面
+
+  if (!res.success) {
+    $('summaryCardList').innerHTML = `
+      <div style="text-align:center;color:var(--muted);padding:30px 0">
+        搜尋失敗：${esc(res.error)}<br>
+        <button class="btn btn-sm btn-ghost" style="margin-top:10px" onclick="runSummarySearchOrReset()">🔄 重試</button>
+      </div>`;
     return;
   }
   $('summaryCardList').innerHTML = '';
