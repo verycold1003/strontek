@@ -934,6 +934,23 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </table>
     </div>
   </div>
+
+  <!-- 匯出紀錄 -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd">🗂️ 匯出紀錄</div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="fin-export-history-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">時間</th>
+          <th style="white-space:nowrap">項目</th>
+          <th style="white-space:nowrap">連結</th>
+        </tr></thead>
+        <tbody id="fin-export-history-tbody">
+          <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════ SECTION: 出勤統計（財務專區底下） ═══════════ -->
@@ -956,6 +973,23 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
       <div id="att-import-status" style="margin-top:12px;font-size:13px"></div>
       <div id="att-import-result" style="margin-top:10px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- 匯出紀錄 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd">🗂️ 匯出紀錄</div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="att-export-history-tbl">
+        <thead><tr>
+          <th style="white-space:nowrap">時間</th>
+          <th style="white-space:nowrap">項目</th>
+          <th style="white-space:nowrap">連結</th>
+        </tr></thead>
+        <tbody id="att-export-history-tbody">
+          <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -1260,7 +1294,7 @@ function curMonth() {
 function colorBySign(n) {
   return n >= 0 ? 'var(--green)' : 'var(--red)';
 }
-// 共用：檢查目前登入者是否具有某項權限（員工表／財務專區）
+// 共用：檢查目前登入者是否具有某項權限（員工表／財務專區／代申請／部門表／管理員）
 // 原本 4 處各自寫 String(S.user?.permission || '').includes('xxx')，這裡集中一處
 function hasPermission(name) {
   return String(S.user?.permission || '').includes(name);
@@ -1741,7 +1775,7 @@ function logout() {
 function renderSysAdminUserBar() {
   const u = S.user; if (!u) return;
   const canSeePersons = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
-  const canSeeDepts = hasPermission('部門表'); // 部門表拆成獨立權限，不再沿用員工表
+  const canSeeDepts = hasPermission('部門表') || hasPermission('管理員'); // 部門表是獨立權限，管理員仍可全部通行
   const persCard  = $('sysadmin-persons-card');
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = canSeePersons ? 'block' : 'none';
@@ -1762,7 +1796,7 @@ function toggleDeptsSection() {
 let _deptsCache = [];
 
 async function loadDeptsAdmin(forceReload) {
-  if (!hasPermission('部門表')) return;
+  if (!(hasPermission('部門表') || hasPermission('管理員'))) return;
   // E類優化：bootstrap 登入時已經拿過一次，這裡不強制重新整理就直接用快取 render，省一次 API 呼叫
   if (_deptsCache.length && !forceReload) { renderDeptsTable(); return; }
   const tbody = $('sysadmin-depts-tbody');
@@ -2973,7 +3007,16 @@ function renderOCRResults() {
   });
   // 已匯出過的收據預設隱藏，只在勾選「顯示已匯出」時才列出
   const visible = S._showExported ? sorted : sorted.filter(r => !r.exported);
-  const hiddenExportedCnt = sorted.length - visible.length;
+  const hiddenReceiptsCnt = sorted.length - visible.length;
+  // 已隱藏筆數要連同「申請專案」一起算：已匯出的月定額整筆算1筆；里程實報依單筆外勤紀錄的匯出狀態各自算
+  let hiddenFuelProjCnt = 0;
+  if (!S._showExported) {
+    (window._fuelProjList || []).forEach(fp => {
+      if (fp.type === 'quota') { if (fp.exported) hiddenFuelProjCnt++; }
+      else { hiddenFuelProjCnt += (fp.fieldRows || []).filter(fr => fr.exported).length; }
+    });
+  }
+  const hiddenExportedCnt = hiddenReceiptsCnt + hiddenFuelProjCnt;
   const tabs = {
     fuel:  visible.filter(r => r.category === '私車補助'),
     other: visible.filter(r => r.category !== '私車補助'),
@@ -3314,7 +3357,6 @@ function renderFuelTab(fuelReceipts) {
     return !frList.length || frList.some(fr => !fr.exported);
   });
   const applyTotal = calcFuelApplyTotal();
-  const hiddenApplyCnt = (quotaListAll.length - quotaList.length) + (mileListAll.length - mileList.length);
   const diff       = invoiceTotal - applyTotal;
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
@@ -3340,7 +3382,6 @@ function renderFuelTab(fuelReceipts) {
     <div class="card" style="margin-bottom:14px">
       <div class="card-hd" style="font-size:14px;font-weight:800">
         🗂 申請專案
-        ${hiddenApplyCnt ? `<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:6px">（已隱藏 ${hiddenApplyCnt} 筆）</span>` : ''}
         <span style="margin-left:6px;cursor:pointer;position:relative;display:inline-block" id="apply-proj-info-wrap">
           <span style="font-size:15px;color:var(--accent);vertical-align:middle"
             onclick="toggleApplyProjInfo()" title="本月要申請的專案">ℹ️</span>
@@ -3399,23 +3440,18 @@ function renderFuelTab(fuelReceipts) {
 
 function calcFuelApplyTotal() {
   const rate = getMileageRate(curMonth());
-  // 「顯示已匯出」比照畫面上月定額/里程實報清單的篩選邏輯：沒勾選時，
-  // 已匯出（或底下紀錄全部已匯出）的整筆歸屬會被隱藏，這裡加總也要排除同一批，
-  // 不然畫面上看不到的專案金額還是被算進申請總額，跟畫面顯示對不起來。
-  const visibleList = S._showExported ? window._fuelProjList : window._fuelProjList.filter(fp => {
-    if (fp.type === 'quota') return !fp.exported;
-    const frList = fp.fieldRows || [];
-    return !frList.length || frList.some(fr => !fr.exported);
-  });
-  return visibleList.reduce((sum, fp) => {
+  // 「顯示已匯出」沒勾選時，已匯出的月定額整筆不計、里程實報依單筆外勤紀錄的匯出狀態各自不計，
+  // 跟畫面上月定額/里程實報清單的顯示邏輯保持同一個粒度，總額才會跟畫面顯示對得起來。
+  return window._fuelProjList.reduce((sum, fp) => {
     if (fp.type === 'quota') {
+      if (!S._showExported && fp.exported) return sum; // 已匯出且目前被隱藏的月定額，不計入申請總額
       const proj = S.config.projects.find(p => p.id === fp.projId);
       return sum + (proj ? mySubsidyFor(proj) : 0);
     }
-    // 里程實報 / 部門 / 其他：沒勾選「顯示已匯出」時，這筆底下已匯出的單筆紀錄也要跳過不計
+    // 里程實報 / 部門 / 其他：未顯示已匯出時，被隱藏的單筆外勤紀錄不計入
     const frList = fp.fieldRows || [];
-    const rows = S._showExported ? frList : frList.filter(fr => !fr.exported);
-    return sum + rows.reduce((s, fr) => {
+    return sum + frList.reduce((s, fr) => {
+      if (!S._showExported && fr.exported) return s;
       const km = parseFloat(fr.km) || 0;
       return s + Math.round(km * (fr.isRound !== false ? 2 : 1) * rate);
     }, 0);
@@ -3767,16 +3803,13 @@ async function removeFuelProj(idx) {
   const ok = await showConfirm(`確定要移除「${label}」這筆月定額申請嗎？`);
   if (!ok) return;
 
-  // 計算歸屬鍵（跟 _syncFuelProjToSheet 同一套邏輯），去後端真的刪掉那一列，
-  // 否則畫面上看起來刪了，登出重登入 getFuelProjects 重讀表又會跑回來
   const attrTarget = fp.projId || fp.deptId || (fp.attrType === 'other' ? '其他' : '');
   const person = effectivePerson();
   const month  = curMonth();
   if (attrTarget && person && month) {
     const res = await callGAS({ action: 'deleteFuelProject', month, person, attrTarget });
-    if (!res.success) { toast('⚠️ 刪除失敗：' + (res.error || '') + '（畫面上仍會移除，請確認後端資料）'); }
+    if (!res.success) { toast('❌ 刪除失敗：' + (res.error || '未知錯誤')); return; }
   }
-
   window._fuelProjList.splice(idx, 1);
   renderOCRResults();
 }
@@ -4032,11 +4065,10 @@ async function _syncFuelProjToSheet(idx) {
   if (!attrType) return;
   if (fp.type !== 'quota' && !attrTarget) return;
 
-  // ── 前端去重：若 _fuelProjList 中已有相同 key，合併到那筆、移除本筆 ──
-  const myKey = attrType + '|' + attrTarget;
+  // ── 前端去重：若 _fuelProjList 中已有相同歸屬對象（不比對類型，類型本身就是可被改動的欄位）就合併到那筆、移除本筆 ──
+  const myKey = attrTarget;
   const dupIdx = window._fuelProjList.findIndex((x, i) =>
     i !== idx &&
-    (x.type === 'quota' ? 'quota' : (x.attrType || 'project')) + '|' +
     (x.projId || x.deptId || (x.attrType==='other'?'其他':'')) === myKey
   );
   if (dupIdx !== -1) {
@@ -4068,13 +4100,12 @@ async function _syncFuelProjToSheet(idx) {
       }))
     : '';
 
-  // key = attrType|attrTarget，讓 GAS 端以此 upsert（覆蓋舊筆）
-  const fuelProjKey = attrType + '|' + attrTarget;
+  // 後端 handleSaveFuelProject 是直接用 person+attrTarget 比對既有列（不含 attrType），
+  // 不需要也不吃這裡送的 key，所以不再組 fuelProjKey 送出
   // 自動儲存：靜默失敗（callGAS 內部已將所有失敗轉為 {success:false}，不會 reject）
   await callGAS({
     action: 'saveFuelProject',
     month, person, attrType, attrTarget, amount, supplement,
-    key: fuelProjKey,   // GAS 端以此 key 比對覆蓋
   });
 }
 
@@ -5323,12 +5354,14 @@ function switchSection(name) {
   if (name === 'finance' && !S._loaded.finance) {
     S._loaded.finance = true;
     loadFinance();
+    loadExportHistoryList('fin-export-history-tbody', l => l === '專案財務報表');
   }
   if (name === 'attendance') {
     if (!hasPermission('財務專區')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
     if (!S._loaded.attendance) {
       S._loaded.attendance = true;
       loadAttendanceSettings();
+      loadExportHistoryList('att-export-history-tbody', l => l === '出勤紀錄Excel' || l === '餐費支出申請PDF');
     }
   }
   if (name === 'summary' && !S._loaded.summary) {
@@ -7463,10 +7496,28 @@ async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
   const res = await callGAS(payload);
   if (btn) { btn.disabled = false; btn.innerHTML = origHtml ?? '💾 儲存'; }
   if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return res; }
-  toast('✅ 已儲存');
+  toast(res.warning ? ('⚠️ ' + res.warning) : '✅ 已儲存');
   if (modalId) closeModal(modalId);
   if (onSuccess) await onSuccess(res);
   return res;
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT HISTORY（匯出紀錄頁）
+// ════════════════════════════════════════════════════════════
+// 財務專區／出勤統計共用：載入 ExportHistory 全部資料，依 labelFilter(附件類型字串) 篩選要顯示的列
+async function loadExportHistoryList(tbodyId, labelFilter) {
+  const tbody = $(tbodyId); if (!tbody) return;
+  const res = await callGAS({ action: 'getExportHistory' });
+  if (!res.success) { tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--danger);padding:24px">❌ ${esc(res.error||'載入失敗')}</td></tr>`; return; }
+  const rows = (res.rows || []).filter(r => labelFilter(r.label));
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">尚無匯出紀錄</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="white-space:nowrap;font-size:13px">${esc(r.exportedAt)}</td>
+      <td style="white-space:nowrap">${esc(r.label)}${r.person ? '（' + esc(r.person) + '）' : ''}</td>
+      <td style="white-space:nowrap">${r.pdfUrl ? `<a href="${esc(r.pdfUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700">↗ 開啟</a>` : '—'}</td>
+    </tr>`).join('');
 }
 
 async function callGAS(payload, timeoutMs) {
