@@ -34,13 +34,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
-  padding-right:var(--sbw,0px);
   border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
   font-size:20px;background:none;border:none;border-right:1px solid var(--border);
   cursor:pointer;color:var(--text);position:absolute;left:0;top:0;height:52px;z-index:1}
-.mainnav-tabs{flex:1;display:flex;max-width:1100px;margin:0 auto;padding-left:52px}
+.mainnav-tabs{flex:1;display:flex;max-width:1100px;margin:0 auto}
 .mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
   font-size:14px;font-weight:600;transition:color .15s}
@@ -1403,21 +1402,6 @@ const LINE_BTN_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="whit
 document.addEventListener('DOMContentLoaded', async () => {
   const ym = new Date().toISOString().slice(0,7);
   $('global-month').value = ym;
-
-  // nav 是 position:fixed，永遠是完整視窗寬度；下面 .app-section 有 overflow-y:auto，
-  // 內容垂直捲動時瀏覽器捲軸會佔掉一小段寬度（Windows/Chrome 常見 15-17px），
-  // 讓兩邊「置中1100px」用的可用寬度不一樣而對不齊。這裡量出實際捲軸寬度，
-  // 讓 nav 也扣掉同樣寬度，兩邊基準才會一致。
-  const measureScrollbarWidth = () => {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll;';
-    document.body.appendChild(probe);
-    const sbw = probe.offsetWidth - probe.clientWidth;
-    document.body.removeChild(probe);
-    document.documentElement.style.setProperty('--sbw', sbw + 'px');
-  };
-  measureScrollbarWidth();
-  window.addEventListener('resize', measureScrollbarWidth);
 
   const dz = $('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
@@ -3536,7 +3520,7 @@ function openFuelTypeModal(idx) {
   const isQuota = fp.type === 'quota';
   setFtQuota(isQuota);
 
-  const perPerm = hasPermission('員工表');
+  const perPerm = hasPermission('管理員');
   const targetLineId = lineIdByName(effectivePerson());
   $('ft-person-fixed').style.display = perPerm ? 'none' : '';
   $('ft-person-fixed').textContent   = effectivePerson();
@@ -3566,7 +3550,7 @@ async function saveFuelTypeModal() {
   if (!fp) { closeModal('fuelTypeModal'); return; }
 
   const isQuota = $('ft-quota').value === 'true';
-  const perPerm = hasPermission('員工表');
+  const perPerm = hasPermission('管理員');
   const targetLineId = perPerm ? ($('ft-person-select')?.value || '') : lineIdByName(effectivePerson());
 
   const btn = $('ft-save-btn');
@@ -5526,14 +5510,14 @@ function removeNpSubsidyRow(idx) {
   renderNpSubsidyRows();
 }
 
-// 依「補助類型」+ 是否有員工表權限，決定核定補助區塊顯示內容
+// 依「補助類型」+ 是否有管理員權限，決定核定補助區塊顯示內容
 function renderNpSubsidyUI() {
   const quota = $('np-quota')?.value === 'true';
   const wrap = $('np-subsidy-amount-wrap');
   if (wrap) wrap.style.display = quota ? '' : 'none';
   if (!quota) return;
 
-  const perPerm = hasPermission('員工表');
+  const perPerm = hasPermission('管理員');
   const selfBox = $('np-subsidy-self'), perBox = $('np-subsidy-perperson');
   if (selfBox) selfBox.style.display = perPerm ? 'none' : '';
   if (perBox)  perBox.style.display  = perPerm ? '' : 'none';
@@ -5548,7 +5532,7 @@ function renderNpSubsidyUI() {
 
 // 收集目前 modal 上的核定補助設定，組成要送出的 { lineId: amount } JSON
 function collectNpSubsidyMap() {
-  if (hasPermission('員工表')) {
+  if (hasPermission('管理員')) {
     const map = {};
     _npSubsidyRows.forEach(row => {
       if (!row.lineId) return;
@@ -5556,7 +5540,7 @@ function collectNpSubsidyMap() {
     });
     return map;
   }
-  // 沒有員工表權限：只能改自己那一筆，其餘人既有的設定原樣保留（合併，不覆蓋）
+  // 沒有管理員權限：只能改自己那一筆，其餘人既有的設定原樣保留（合併，不覆蓋）
   const myId = S.user?.lineId || '';
   const map = { ..._npSubsidyExistingMap };
   if (myId) map[myId] = parseFloat($('np-subsidy')?.value) || 0;
@@ -5704,11 +5688,11 @@ async function loadProjectList(showToast, _isRetry) {
   if (showToast) toast(`📋 載入 ${rows.length} 筆專案`);
 }
 
-// 專案列表「核定補助」欄：有員工表權限顯示全部人名:金額（換行），否則只顯示自己的金額
+// 專案列表「核定補助」欄：有管理員權限顯示全部人名:金額（換行），否則只顯示自己的金額
 function subsidyCellHTML(p) {
   if (!p.quota) return '—';
   const map = p.subsidyMap || {};
-  if (hasPermission('員工表')) {
+  if (hasPermission('管理員')) {
     const entries = Object.entries(map);
     if (!entries.length) return '—';
     return entries.map(([lineId, amt]) => {
