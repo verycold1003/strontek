@@ -35,12 +35,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
   padding-right:var(--sbw,0px);
-  border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
+  border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.mainnav-inner{position:relative;height:100%;max-width:1100px;margin:0 auto;display:flex;align-items:stretch}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
   font-size:20px;background:none;border:none;border-right:1px solid var(--border);
   cursor:pointer;color:var(--text);position:absolute;left:0;top:0;height:52px;z-index:1}
-.mainnav-tabs{width:100%;max-width:1100px;margin:0 auto;display:flex;padding-left:52px;padding-right:54px;box-sizing:border-box}
+.mainnav-tabs{width:100%;display:flex;padding-left:52px;padding-right:54px;box-sizing:border-box}
 .mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
   font-size:14px;font-weight:600;transition:color .15s}
@@ -1054,6 +1055,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 </div>
 
 <div class="mainnav" id="mainNav" style="display:none">
+ <div class="mainnav-inner">
   <div class="mainnav-burger" id="navBurgerBtn">
     <button onclick="toggleNavMenu()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--brand-orange);width:100%;height:100%;transition:opacity .15s" onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">☰</button>
     <div class="navmenu" id="navMenuProject">
@@ -1156,6 +1158,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       </div>
     </div>
   </div>
+ </div>
 </div>
 
 
