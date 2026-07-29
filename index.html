@@ -34,12 +34,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 /* ── 頂部主導覽列 (漢堡 + 專案/費用/待辦) ── */
 .mainnav{position:fixed;left:0;right:0;top:0;height:52px;background:var(--surface);
+  padding-right:var(--sbw,0px);
   border-bottom:1px solid var(--border);border-top:3px solid var(--brand-orange);display:flex;align-items:stretch;z-index:200;
   box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .mainnav-burger{width:52px;display:flex;align-items:center;justify-content:center;
   font-size:20px;background:none;border:none;border-right:1px solid var(--border);
   cursor:pointer;color:var(--text);position:absolute;left:0;top:0;height:52px;z-index:1}
-.mainnav-tabs{flex:1;display:flex;max-width:1100px;margin:0 auto}
+.mainnav-tabs{flex:1;display:flex;max-width:1100px;margin:0 auto;padding-left:52px}
 .mainnav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
   font-size:14px;font-weight:600;transition:color .15s}
@@ -493,7 +494,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   </div>
 
   <div style="position:relative;margin-bottom:14px">
-    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋摘要內容關鍵字，逗號分隔可同時搜尋多個（例：一部,現勘）" style="padding-left:14px" oninput="onSummarySearchInput()">
+    <input class="inp" id="summarySearchInput" placeholder="🔍 搜尋部門/群組名稱/摘要內容，逗號分隔多關鍵字（需同時符合）" style="padding-left:14px" oninput="onSummarySearchInput()">
   </div>
 
   <div id="summaryCardList"></div>
@@ -658,7 +659,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     </div>
   </div>
 
-  <!-- 部門表（需「員工表」權限） -->
+  <!-- 部門表（需「部門表」或「管理員」權限，跟員工表分開） -->
   <div class="card" id="sysadmin-depts-card" style="margin-bottom:16px;display:none">
     <div class="card-hd" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleDeptsSection()">
       🏢 部門表
@@ -711,10 +712,10 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
           <input type="checkbox" id="pm-perm-acting" style="width:16px;height:16px"> 代申請
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
-          <input type="checkbox" id="pm-perm-admin" style="width:16px;height:16px"> 管理員
+          <input type="checkbox" id="pm-perm-depts" style="width:16px;height:16px"> 部門表
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:14px">
-          <input type="checkbox" id="pm-perm-depts" style="width:16px;height:16px"> 部門表
+          <input type="checkbox" id="pm-perm-admin" style="width:16px;height:16px"> 管理員
         </label>
       </div>
     </div>
@@ -1037,7 +1038,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
       <div style="font-size:14px;font-weight:700;margin:18px 0 8px">休息日加班</div>
       <div class="fg3">
-        <div><label class="lbl">1-3 小時倍率</label>
+        <div><label class="lbl">1-2 小時倍率</label>
           <input class="inp" type="number" id="att-restday-rate-1-8" step="0.01" min="0" placeholder="例：1.34"></div>
         <div><label class="lbl">3-8 小時倍率</label>
           <input class="inp" type="number" id="att-restday-rate-9-10" step="0.01" min="0" placeholder="例：1.67"></div>
@@ -1403,6 +1404,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ym = new Date().toISOString().slice(0,7);
   $('global-month').value = ym;
 
+  // nav 是 position:fixed，永遠是完整視窗寬度；下面 .app-section 有 overflow-y:auto，
+  // 內容垂直捲動時瀏覽器捲軸會佔掉一小段寬度（Windows/Chrome 常見 15-17px），
+  // 讓兩邊「置中1100px」用的可用寬度不一樣而對不齊。這裡量出實際捲軸寬度，
+  // 讓 nav 也扣掉同樣寬度，兩邊基準才會一致。
+  const measureScrollbarWidth = () => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll;';
+    document.body.appendChild(probe);
+    const sbw = probe.offsetWidth - probe.clientWidth;
+    document.body.removeChild(probe);
+    document.documentElement.style.setProperty('--sbw', sbw + 'px');
+  };
+  measureScrollbarWidth();
+  window.addEventListener('resize', measureScrollbarWidth);
+
   const dz = $('dz');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
@@ -1712,9 +1728,9 @@ function renderUserBar() {
   const attBtn = $('navAttendanceBtn');
   if (attBtn) attBtn.style.display = isFinance ? 'block' : 'none';
 
-  // 系統管理入口：員工表／財務專區／管理員／部門表 任一權限都看得到
+  // 系統管理入口：員工表／財務專區／管理員 任一權限都看得到（財務專區要看月工資總額、管理員要異動權限，都得先進得了這頁）
   const sysBtn = $('navSysadminBtn');
-  const canSysadmin = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員') || hasPermission('部門表');
+  const canSysadmin = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('部門表') || hasPermission('管理員');
   if (sysBtn) sysBtn.style.display = canSysadmin ? 'block' : 'none';
   // 「管理」區塊目前僅含系統管理一個項目，無權限時整個區塊標題與分隔線一併隱藏
   const secAdmin = $('navSecAdmin'), sepAdmin = $('navSecSepAdmin');
@@ -1759,7 +1775,7 @@ function logout() {
 function renderSysAdminUserBar() {
   const u = S.user; if (!u) return;
   const canSeePersons = hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員');
-  const canSeeDepts = hasPermission('部門表') || hasPermission('管理員'); // 部門表是獨立權限，管理員仍可全部通行
+  const canSeeDepts = hasPermission('部門表') || hasPermission('管理員'); // 部門表獨立權限，跟員工表分開
   const persCard  = $('sysadmin-persons-card');
   const deptsCard = $('sysadmin-depts-card');
   if (persCard)  persCard.style.display  = canSeePersons ? 'block' : 'none';
@@ -2028,8 +2044,8 @@ async function openPersonModal(idx) {
   $('pm-perm-persons').checked = perms.includes('員工表');
   $('pm-perm-finance').checked = perms.includes('財務專區');
   $('pm-perm-acting').checked  = perms.includes('代申請');
-  $('pm-perm-admin').checked   = perms.includes('管理員');
   $('pm-perm-depts').checked   = perms.includes('部門表');
+  $('pm-perm-admin').checked   = perms.includes('管理員');
 
   // 權限區塊：只有「管理員」才看得到、才能異動任何人的權限；其他人（員工表/財務專區/代申請）完全看不到這塊
   const permBlock = $('pm-perm-block');
@@ -2064,8 +2080,8 @@ async function savePersonAdmin() {
     $('pm-perm-persons').checked ? '員工表'   : '',
     $('pm-perm-finance').checked ? '財務專區' : '',
     $('pm-perm-acting').checked  ? '代申請'   : '',
+    $('pm-perm-depts').checked   ? '部門表'   : '',
     $('pm-perm-admin').checked   ? '管理員'   : '',
-    $('pm-perm-depts').checked  ? '部門表'   : '',
   ].filter(Boolean).join(',');
 
   // 月工資總額：僅財務專區權限者才送出此欄，避免無此權限的操作者意外覆蓋既有值
@@ -3424,8 +3440,6 @@ function renderFuelTab(fuelReceipts) {
 
 function calcFuelApplyTotal() {
   const rate = getMileageRate(curMonth());
-  // 「顯示已匯出」沒勾選時，已匯出的月定額整筆不計、里程實報依單筆外勤紀錄的匯出狀態各自不計，
-  // 跟畫面上月定額/里程實報清單的顯示邏輯保持同一個粒度，總額才會跟畫面顯示對得起來。
   return window._fuelProjList.reduce((sum, fp) => {
     if (fp.type === 'quota') {
       if (!S._showExported && fp.exported) return sum; // 已匯出且目前被隱藏的月定額，不計入申請總額
@@ -3476,7 +3490,9 @@ function updateFuelDiff() {
 }
 
 // 共用：月定額 badge（申請專案初始渲染 / updateFuelDiff 重繪皆使用）
-// 只有專案隸屬部門為私車補助類（isFuelType===true）才可點擊異動補助類型
+// 是否可點擊異動補助類型，依「登入者自己的部門」補助類型判斷，不是專案隸屬部門——
+// 私車補助部門的員工即使在幫純費用部門的專案登記工時，本人仍然是私車補助對象，
+// 這個判斷不該因為專案本身掛在哪個部門下而變動。
 function quotaBadgeHTML(fp) {
   const proj = S.config.projects.find(p => p.id === fp.projId);
   if (!proj) return '';
@@ -3484,7 +3500,7 @@ function quotaBadgeHTML(fp) {
   const expLabel = fp._isExpired ? '（已結案）' : '';
   const exportedTag = fp.exported
     ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px">已匯出</span>` : '';
-  const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+  const canEditType = getUserDeptIsFuelType();
   const amtPill = `<span style="background:rgba(124,58,237,.18);border-radius:99px;padding:2px 8px;font-size:12px">
     核定 $${mySubsidyFor(proj).toLocaleString()}/月</span>`;
   const inner = `${esc(proj.id)} ${esc(proj.name)}${expLabel} ${amtPill}`;
@@ -3504,14 +3520,14 @@ function quotaBadgeHTML(fp) {
 }
 
 // ── 私車補助 tab：點 badge 異動補助類型（月定額⇄里程實報） ──────
-// 只有專案隸屬部門為私車補助類（isFuelType===true）才會開啟；純費用專案不彈窗（呼叫端已判斷，這裡再防呆一次）
+// 依登入者自己的部門補助類型判斷是否會開啟，不是專案隸屬部門（理由同上）
 let _ftState = null; // { idx, proj }
 function openFuelTypeModal(idx) {
   const fp = window._fuelProjList[idx];
   if (!fp) return;
   const proj = S.config.projects.find(p => p.id === fp.projId);
   if (!proj) return;
-  if (!findDept(proj.deptCode)?.isFuelType) return; // 純費用專案：不彈窗
+  if (!getUserDeptIsFuelType()) return; // 登入者不是私車補助部門：不彈窗
 
   _ftState = { idx, proj };
   $('ftModal-title').textContent = `異動補助類型：${esc(proj.id)} ${esc(proj.name)}`;
@@ -3661,7 +3677,7 @@ function fuelMileRowHTML(fp, idx) {
   if (proj) {
     isSelected = true;
     const text = esc(`${proj.id} ${proj.name}`);
-    const canEditType = !!findDept(proj.deptCode)?.isFuelType;
+    const canEditType = getUserDeptIsFuelType();
     labelHtml = canEditType
       ? `<span onclick="openFuelTypeModal(${idx})" style="cursor:pointer" title="點擊異動補助類型">${text}</span>`
       : text;
@@ -4084,9 +4100,9 @@ async function _syncFuelProjToSheet(idx) {
       }))
     : '';
 
+  // 自動儲存：靜默失敗（callGAS 內部已將所有失敗轉為 {success:false}，不會 reject）
   // 後端 handleSaveFuelProject 是直接用 person+attrTarget 比對既有列（不含 attrType），
   // 不需要也不吃這裡送的 key，所以不再組 fuelProjKey 送出
-  // 自動儲存：靜默失敗（callGAS 內部已將所有失敗轉為 {success:false}，不會 reject）
   await callGAS({
     action: 'saveFuelProject',
     month, person, attrType, attrTarget, amount, supplement,
@@ -5353,7 +5369,7 @@ function switchSection(name) {
     loadSummaryDates();
   }
   if (name === 'sysadmin') {
-    if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('管理員') || hasPermission('部門表'))) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
+    if (!(hasPermission('員工表') || hasPermission('財務專區') || hasPermission('部門表') || hasPermission('管理員'))) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
     renderSysAdminUserBar();
     // 員工表 accordion 預設收合，只在已展開時才載入；收合狀態下展開時由 togglePersonsSection 觸發
     if ($('sysadmin-persons-body')?.style.display !== 'none') loadPersonsAdmin();
@@ -5443,12 +5459,13 @@ function populateNpDept() {
     depts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
 }
 
-// 部門下拉選單變更時：純費用類部門（isFuelType===false）隱藏補助類型整塊、清空成空白；
-// 費用/私車補助類部門顯示，預設月定額（不覆蓋既有已選值，見 openProjectModal 呼叫順序）
+// 部門下拉選單變更時：登入者不是私車補助部門就隱藏補助類型整塊、清空成空白；
+// 是私車補助部門就顯示，預設月定額（不覆蓋既有已選值，見 openProjectModal 呼叫順序）。
+// 這裡刻意不看「這次選的專案部門」，是看登入者自己的部門——私車補助部門的員工
+// 建立/編輯任何專案時都該看得到月定額選項，不會因為這個專案掛在哪個部門下而被藏起來。
 function onNpDeptChange() {
   const deptCode = $('np-dept')?.value;
-  const dept = (S.config.departments || []).find(d => d.code === deptCode);
-  const show = !deptCode || !!dept?.isFuelType;
+  const show = !deptCode || getUserDeptIsFuelType();
   const row = $('np-subsidy-row');
   if (row) row.style.display = show ? '' : 'none';
   if (!show) {
@@ -5763,17 +5780,83 @@ function renderProjectList(rawRows) {
 // 摘要（Summary）頁籤 — 關鍵字搜尋 + 依日期往前捲動載入（每次7天）
 // ════════════════════════════════════════════════════════════
 S._summary = { nextEndDate: null, hasMore: true, loading: false, scrollBound: false, searchMode: false };
+// 摘要搜尋：逗號（半形/全形皆可）分隔多個關鍵字，每個都要同時出現在同一則摘要的「部門／群組名稱／摘要內容」
+// 合併內容裡才算符合（AND）。這是跨「全部歷史」搜尋，不受目前已捲動載入到哪一天限制；
+// 清空搜尋框會回到預設依日期捲動瀏覽模式。
+let _summarySearchDebounce = null;
+let _summarySearchSeq = 0;       // 序號：避免較舊的搜尋回應（網路較慢）比新的還晚回來，把正確結果蓋掉
+let _summaryIsComposing = false; // 中文注音/拼音輸入法組字中，不要用還沒選字完成的中間文字觸發搜尋
 
 async function loadSummaryDates() {
   initSummarySearchComposition();
   // 從「今天」開始往前抓第一批7天
   S._summary.nextEndDate = formatDateYMD(new Date());
   S._summary.hasMore = true;
+  S._summary.searchMode = false;
   $('summaryCardList').innerHTML = '';
   $('summaryEndMsg').style.display = 'none';
   await loadMoreSummaryDays();
   refreshSummaryUnreadPill();
   bindSummaryScroll();
+}
+
+function initSummarySearchComposition() {
+  const input = $('summarySearchInput');
+  if (!input || input._compositionBound) return;
+  input._compositionBound = true;
+  input.addEventListener('compositionstart', () => { _summaryIsComposing = true; });
+  input.addEventListener('compositionend', () => {
+    _summaryIsComposing = false;
+    onSummarySearchInput(); // 選字完成，這裡才真正觸發（依完整文字）debounce 搜尋
+  });
+}
+
+function onSummarySearchInput() {
+  if (_summaryIsComposing) return; // compositionend 觸發時會自己補呼叫一次
+  clearTimeout(_summarySearchDebounce);
+  _summarySearchDebounce = setTimeout(runSummarySearchOrReset, 400);
+}
+
+async function runSummarySearchOrReset() {
+  const raw = $('summarySearchInput').value || '';
+  const terms = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  const mySeq = ++_summarySearchSeq;
+
+  $('summaryLoadingMore').style.display = 'none';
+  $('summaryEndMsg').style.display = 'none';
+
+  if (!terms.length) {
+    S._summary.searchMode = false;
+    loadSummaryDates(); // 搜尋框清空，回到預設瀏覽模式
+    return;
+  }
+
+  S._summary.searchMode = true;
+  S._summary.hasMore = false; // 搜尋模式一次回傳全部符合結果，不用捲動載入更多
+  $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋中...</div>';
+
+  let res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
+  if (!res.success) {
+    // 網路一時不穩（例如 Failed to fetch）先自動重試一次，避免使用者一次失敗就卡住
+    res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
+  }
+
+  if (mySeq !== _summarySearchSeq) return; // 這段等待期間使用者又打了新的關鍵字，這次結果已經過期，不要覆蓋畫面
+
+  if (!res.success) {
+    $('summaryCardList').innerHTML = `
+      <div style="text-align:center;color:var(--muted);padding:30px 0">
+        搜尋失敗：${esc(res.error)}<br>
+        <button class="btn btn-sm btn-ghost" style="margin-top:10px" onclick="runSummarySearchOrReset()">🔄 重試</button>
+      </div>`;
+    return;
+  }
+  $('summaryCardList').innerHTML = '';
+  if (!res.days.length) {
+    $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">找不到符合全部關鍵字的摘要</div>';
+    return;
+  }
+  appendSummaryDayGroups(res.days);
 }
 
 function formatDateYMD(d) {
@@ -5802,14 +5885,17 @@ async function loadMoreSummaryDays() {
   if (S._summary.loading || !S._summary.hasMore) return;
   S._summary.loading = true;
   $('summaryLoadingMore').style.display = 'block';
-  const res = await callGAS({
+  const payload = {
     action: 'getSummaryCardsRange',
     lineId: S.user?.lineId ?? '',
     endDate: S._summary.nextEndDate,
     days: 7,
-  });
+  };
+  let res = await callGAS(payload);
+  if (!res.success) res = await callGAS(payload); // 網路一時不穩先自動重試一次，避免使用者一次失敗就卡住
   $('summaryLoadingMore').style.display = 'none';
   S._summary.loading = false;
+
   if (!res.success) { toast('⚠️ 摘要載入失敗：' + res.error); return; }
 
   appendSummaryDayGroups(res.days || []);
@@ -5817,6 +5903,9 @@ async function loadMoreSummaryDays() {
   S._summary.nextEndDate = res.nextEndDate; // 後端算好的下一批 endDate（= 這批最早日期往前一天）
 
   if (!S._summary.hasMore) $('summaryEndMsg').style.display = 'block';
+  if (!$('summaryCardList').children.length) {
+    $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">沒有你有權限查看的群組摘要</div>';
+  }
 }
 
 function appendSummaryDayGroups(days) {
@@ -5870,70 +5959,6 @@ function buildSummaryCardEl(card, dateStr) {
   return el;
 }
 
-// 摘要搜尋：逗號（半形/全形皆可）分隔多個關鍵字，每個都要同時出現在同一則摘要內容（或群組名稱）裡才算符合（AND）。
-// 這是跨「全部歷史」搜尋，不受目前已捲動載入到哪一天限制；清空搜尋框會回到預設依日期捲動瀏覽模式。
-let _summarySearchDebounce = null;
-let _summarySearchSeq = 0;      // 序號：避免較舊的搜尋回應（網路較慢）比新的還晚回來，把正確結果蓋掉
-let _summaryIsComposing = false; // 中文注音/拼音輸入法組字中，不要用還沒選字完成的中間文字觸發搜尋
-
-function onSummarySearchInput() {
-  if (_summaryIsComposing) return; // compositionend 觸發時會自己補呼叫一次
-  clearTimeout(_summarySearchDebounce);
-  _summarySearchDebounce = setTimeout(runSummarySearchOrReset, 400);
-}
-
-function initSummarySearchComposition() {
-  const input = $('summarySearchInput');
-  if (!input || input._compositionBound) return;
-  input._compositionBound = true;
-  input.addEventListener('compositionstart', () => { _summaryIsComposing = true; });
-  input.addEventListener('compositionend', () => {
-    _summaryIsComposing = false;
-    onSummarySearchInput(); // 選字完成，這裡才真正觸發（依完整文字）debounce 搜尋
-  });
-}
-
-async function runSummarySearchOrReset() {
-  const raw = $('summarySearchInput').value || '';
-  const terms = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-  const mySeq = ++_summarySearchSeq;
-
-  $('summaryLoadingMore').style.display = 'none';
-  $('summaryEndMsg').style.display = 'none';
-
-  if (!terms.length) {
-    S._summary.searchMode = false;
-    loadSummaryDates(); // 搜尋框清空，回到預設瀏覽模式
-    return;
-  }
-
-  S._summary.searchMode = true;
-  S._summary.hasMore = false; // 搜尋模式一次回傳全部符合結果，不用捲動載入更多
-  $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">搜尋中...</div>';
-
-  let res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
-  if (!res.success) {
-    // 網路一時不穩（例如 Failed to fetch）先自動重試一次，避免使用者一次失敗就卡住
-    res = await callGAS({ action: 'searchSummaryCards', lineId: S.user?.lineId ?? '', keywords: terms });
-  }
-
-  if (mySeq !== _summarySearchSeq) return; // 這段等待期間使用者又打了新的關鍵字，這次結果已經過期，不要覆蓋畫面
-
-  if (!res.success) {
-    $('summaryCardList').innerHTML = `
-      <div style="text-align:center;color:var(--muted);padding:30px 0">
-        搜尋失敗：${esc(res.error)}<br>
-        <button class="btn btn-sm btn-ghost" style="margin-top:10px" onclick="runSummarySearchOrReset()">🔄 重試</button>
-      </div>`;
-    return;
-  }
-  $('summaryCardList').innerHTML = '';
-  if (!res.days.length) {
-    $('summaryCardList').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">找不到符合的摘要</div>';
-    return;
-  }
-  appendSummaryDayGroups(res.days);
-}
 
 async function loadTasks(_isRetry) {
   const list    = $('taskList');
@@ -6896,7 +6921,7 @@ const ATT_SETTINGS_FIELDS = [
   { key:'ATT_MANDATORY_REST_OT_RATE_1_8',   id:'att-mrest-rate-1-8',     type:'dec2', label:'例假日 1-8小時倍率' },
   { key:'ATT_MANDATORY_REST_OT_RATE_9_10',  id:'att-mrest-rate-9-10',    type:'dec2', label:'例假日 9-10小時倍率' },
   { key:'ATT_MANDATORY_REST_OT_RATE_11_12', id:'att-mrest-rate-11-12',   type:'dec2', label:'例假日 11-12小時倍率' },
-  { key:'ATT_RESTDAY_OT_RATE_1_8',          id:'att-restday-rate-1-8',   type:'dec2', label:'休息日 1-3小時倍率' },
+  { key:'ATT_RESTDAY_OT_RATE_1_8',          id:'att-restday-rate-1-8',   type:'dec2', label:'休息日 1-2小時倍率' },
   { key:'ATT_RESTDAY_OT_RATE_9_10',         id:'att-restday-rate-9-10',  type:'dec2', label:'休息日 3-8小時倍率' },
   { key:'ATT_RESTDAY_OT_RATE_11_12',        id:'att-restday-rate-11-12', type:'dec2', label:'休息日 9-12小時倍率' },
 ];
@@ -7424,6 +7449,21 @@ async function doStashAll(silent = false) {
 // ════════════════════════════════════════════════════════════
 // EXPORT HISTORY（匯出紀錄頁）
 // ════════════════════════════════════════════════════════════
+// 財務專區／出勤統計共用：載入 ExportHistory 全部資料，依 labelFilter(附件類型字串) 篩選要顯示的列
+async function loadExportHistoryList(tbodyId, labelFilter) {
+  const tbody = $(tbodyId); if (!tbody) return;
+  const res = await callGAS({ action: 'getExportHistory' });
+  if (!res.success) { tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--danger);padding:24px">❌ ${esc(res.error||'載入失敗')}</td></tr>`; return; }
+  const rows = (res.rows || []).filter(r => labelFilter(r.label));
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">尚無匯出紀錄</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="white-space:nowrap;font-size:13px">${esc(r.exportedAt)}</td>
+      <td style="white-space:nowrap">${esc(r.label)}${r.person ? '（' + esc(r.person) + '）' : ''}</td>
+      <td style="white-space:nowrap">${r.pdfUrl ? `<a href="${esc(r.pdfUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700">↗ 開啟</a>` : '—'}</td>
+    </tr>`).join('');
+}
+
 async function loadExportHistory(showToast) {
   const person = effectivePerson();
   const month  = curMonth();
@@ -7484,24 +7524,6 @@ async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
   if (modalId) closeModal(modalId);
   if (onSuccess) await onSuccess(res);
   return res;
-}
-
-// ════════════════════════════════════════════════════════════
-// EXPORT HISTORY（匯出紀錄頁）
-// ════════════════════════════════════════════════════════════
-// 財務專區／出勤統計共用：載入 ExportHistory 全部資料，依 labelFilter(附件類型字串) 篩選要顯示的列
-async function loadExportHistoryList(tbodyId, labelFilter) {
-  const tbody = $(tbodyId); if (!tbody) return;
-  const res = await callGAS({ action: 'getExportHistory' });
-  if (!res.success) { tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--danger);padding:24px">❌ ${esc(res.error||'載入失敗')}</td></tr>`; return; }
-  const rows = (res.rows || []).filter(r => labelFilter(r.label));
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">尚無匯出紀錄</td></tr>'; return; }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td style="white-space:nowrap;font-size:13px">${esc(r.exportedAt)}</td>
-      <td style="white-space:nowrap">${esc(r.label)}${r.person ? '（' + esc(r.person) + '）' : ''}</td>
-      <td style="white-space:nowrap">${r.pdfUrl ? `<a href="${esc(r.pdfUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700">↗ 開啟</a>` : '—'}</td>
-    </tr>`).join('');
 }
 
 async function callGAS(payload, timeoutMs) {
