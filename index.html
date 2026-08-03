@@ -1009,8 +1009,7 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
       <div style="font-size:14px;font-weight:700;margin:18px 0 8px">平日加班</div>
       <div class="fg3">
         <div><label class="lbl">平日加班起算時間</label>
-          <input class="inp" type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5"
-            id="att-weekday-ot-start" placeholder="例：18:00"></div>
+          <input class="inp" type="time" id="att-weekday-ot-start"></div>
         <div><label class="lbl">1-2 小時倍率</label>
           <input class="inp" type="number" id="att-weekday-rate-1-2" step="0.01" min="0" placeholder="例：1.34"></div>
         <div><label class="lbl">3-4 小時倍率</label>
@@ -3363,8 +3362,8 @@ function renderFuelTab(fuelReceipts) {
   const diff       = invoiceTotal - applyTotal;
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
-    ? `✅ 差額 +$${diff.toLocaleString()}`
-    : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}`;
+    ? `✅ 尚有餘額 +$${diff.toLocaleString()}`
+    : `⚠️ 尚有餘額 -$${Math.abs(diff).toLocaleString()}`;
 
   return `
     <!-- 私車補助發票 card -->
@@ -3470,8 +3469,8 @@ function updateFuelDiff() {
     bar.style.background  = diffOk ? 'rgba(21,128,61,.07)' : 'rgba(220,38,38,.07)';
     bar.style.borderColor = diffOk ? 'rgba(21,128,61,.2)'  : 'rgba(220,38,38,.2)';
     const msg = diffOk
-      ? `✅ 差額 +$${diff.toLocaleString()}`
-      : `⚠️ 差額 -$${Math.abs(diff).toLocaleString()}`;
+      ? `✅ 尚有餘額 +$${diff.toLocaleString()}`
+      : `⚠️ 尚有餘額 -$${Math.abs(diff).toLocaleString()}`;
     bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span style="font-size:14px;color:var(--muted)">
         發票總額 <strong style="color:var(--text)">$${invoiceTotal.toLocaleString()}</strong>
