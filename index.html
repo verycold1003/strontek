@@ -5725,17 +5725,17 @@ function toggleProjListCard(id) {
 function projScheduleSummaryHTML(p) {
   const fmtPeriods = items => (!items || !items.length)
     ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>'
-    : `<div style="display:flex;flex-direction:column;gap:4px">` + items.map(c =>
-        `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px">
+    : `<div style="display:flex;flex-direction:column;gap:6px">` + items.map(c =>
+        `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 10px;background:var(--surface2);border-radius:6px">
            <span>${esc(c.label || '（未命名）')}</span>
-           <span class="mono" style="color:var(--gold)">$${(Number(c.amount)||0).toLocaleString()}</span>
+           <span class="mono" style="color:var(--gold);white-space:nowrap">$${(Number(c.amount)||0).toLocaleString()}</span>
          </div>`).join('') + `</div>`;
-  const clientBlock = `<div style="margin-bottom:10px">
-    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:4px">🏢 業主端</div>
+  const clientBlock = `<div style="margin-bottom:14px">
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px">🏢 業主端</div>
     ${fmtPeriods(p.client)}
   </div>`;
-  const vendorBlocks = (p.vendors || []).map(v => `<div style="margin-bottom:10px">
-    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:4px">🚚 ${esc(v.name || '（未命名廠商）')}</div>
+  const vendorBlocks = (p.vendors || []).map(v => `<div style="margin-bottom:14px">
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px">🚚 ${esc(v.name || '（未命名廠商）')}</div>
     ${fmtPeriods(v.periods)}
   </div>`).join('');
   return clientBlock + (vendorBlocks || '<div style="color:var(--muted);font-size:13px">尚無廠商</div>');
@@ -5766,7 +5766,7 @@ function renderProjectList(rawRows) {
     S._projList = rows;
     return;
   }
-  container.innerHTML = rows.map((p, i) => {
+  container.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">` + rows.map((p, i) => {
     const quoteBadge = p.quota
       ? '<span class="badge bd-blue">月定額</span>'
       : '<span class="badge bd-muted">里程實報</span>';
@@ -5776,8 +5776,8 @@ function renderProjectList(rawRows) {
     const deptObj  = findDept(p.deptCode);
     const deptText = deptObj ? deptObj.name : (p.deptCode || '—');
     const expanded = !!S._projSettingsExpand[p.id];
-    return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer" onclick="toggleProjListCard('${p.id}')">
+    return `<div class="card" style="padding:14px 18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer" onclick="toggleProjListCard('${p.id}')">
         <span id="projcard-arrow-${p.id}" style="font-size:14px;color:var(--muted);width:14px;flex-shrink:0">${expanded?'▼':'▶'}</span>
         <span style="font-weight:800;font-family:monospace;white-space:nowrap">${p.code||p.id}${newTag}</span>
         <span style="font-weight:700">${esc(p.name)}</span>
@@ -5785,16 +5785,16 @@ function renderProjectList(rawRows) {
         ${quoteBadge}
         <span class="mono" style="color:var(--gold);font-size:13px">${subsidyCellHTML(p)}</span>
         <span style="font-size:12px;color:var(--muted);white-space:nowrap">${p.effectDate||'—'} ~ ${p.closeDate||'—'}</span>
-        <div style="display:flex;gap:6px;margin-left:auto" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:8px;margin-left:auto" onclick="event.stopPropagation()">
           <button class="btn btn-ghost btn-sm" onclick="openProjectModal(${i})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="doDeleteProject('${p.id}','${esc(p.name)}')">🗑</button>
         </div>
       </div>
-      <div id="projcard-body-${p.id}" style="display:${expanded?'block':'none'};margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div id="projcard-body-${p.id}" style="display:${expanded?'block':'none'};margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
         ${projScheduleSummaryHTML(p)}
       </div>
     </div>`;
-  }).join('');
+  }).join('') + `</div>`;
   // 存入 state 供 edit 讀取
   S._projList = rows;
 }
