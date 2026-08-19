@@ -557,76 +557,13 @@ input[type="time"].inp{min-width:0}
         <input type="text" class="inp" id="projSearchInput" placeholder="🔍 搜尋專案代號／名稱／部門"
           oninput="renderProjectList(S._projListRaw||[])" style="max-width:320px">
       </div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th style="white-space:nowrap">專案代號</th>
-              <th style="min-width:220px">名稱</th>
-              <th style="white-space:nowrap">部門</th>
-              <th style="white-space:nowrap">補助類型</th>
-              <th style="white-space:nowrap">核定補助</th>
-              <th style="white-space:nowrap">生效日</th>
-              <th style="white-space:nowrap">結案日</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="projListTbl">
-            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">
-              載入中...
-            </td></tr>
-          </tbody>
-        </table>
+      <div id="projListCards">
+        <div style="text-align:center;color:var(--muted);padding:32px">載入中...</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════ SECTION: 進度設定 ═══════════ -->
-<div class="app-section" id="sec-schedule" style="overflow-x:auto">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-    <div class="pg-title" style="margin:0">📈 進度設定</div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:18px">
-    <!-- 進度設定 card -->
-    <div class="card" id="pgCard">
-      <div class="card-hd">📈 進度設定（業主端／廠商端分期進度）</div>
-      <div class="card-bd">
-        <div class="fg2" style="margin-bottom:12px;align-items:end">
-          <div>
-            <label class="lbl">選擇專案</label>
-            <div id="pg-project-fd-wrap"></div>
-          </div>
-          <div>
-            <label class="lbl">編輯對象</label>
-            <select class="inp" id="pg-target-select" onchange="pgRenderEditor()">
-              <option value="client">🏢 業主端</option>
-            </select>
-          </div>
-        </div>
-        <div class="fg2" style="margin-bottom:12px;align-items:end">
-          <div>
-            <label class="lbl">新增廠商</label>
-            <div style="display:flex;gap:8px">
-              <input class="inp" id="pg-new-vendor" placeholder="廠商名稱" style="flex:1">
-              <button class="btn btn-ghost btn-sm" onclick="pgAddVendorQuick()">＋ 新增廠商</button>
-            </div>
-          </div>
-          <div>
-            <label class="lbl">預收款扣抵方式（僅套用於業主端）</label>
-            <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">
-              <span style="font-size:13px">每期扣回</span>
-              <input type="number" class="inp" id="pg-deduct-pct" min="0" max="100" step="0.1" style="width:70px;display:inline-block;padding:4px 8px" value="10">
-              <span style="font-size:13px">%</span>
-              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="pgApplyDeductMethod()">套用到全部分期</button>
-            </div>
-          </div>
-        </div>
-        <div id="pg-editor"></div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════ SECTION: 系統管理 ═══════════ -->
 <div class="app-section" id="sec-sysadmin" style="overflow-x:auto">
@@ -770,7 +707,7 @@ input[type="time"].inp{min-width:0}
 
 <!-- 專案新增/編輯共用 Modal -->
 <div class="modal-wrap" id="projectModal">
-  <div class="modal-box" style="max-width:520px">
+  <div class="modal-box" style="max-width:640px;max-height:88vh;overflow-y:auto">
     <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="projectModal-title">新增專案</div>
     <input type="hidden" id="np-rowIndex">
     <input type="hidden" id="np-id">
@@ -833,9 +770,32 @@ input[type="time"].inp{min-width:0}
     <!-- 預收款：簡化成單一金額輸入框，金額不為 0 就視為有啟用預收款 -->
     <div style="margin-bottom:14px">
       <label class="lbl">預收金額</label>
-      <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000">
+      <input type="number" class="inp" id="np-prepay-amount" placeholder="0" min="0" step="1000" onchange="npRenderEditor()">
     </div>
     <input type="hidden" id="np-prepay-deductpct" value="10">
+
+    <!-- 分期進度（原「進度設定」獨立頁面併入本 modal；新增/編輯專案都會顯示，
+         儲存時跟上面的基本資料合併成一次 addProject/updateProject 送出）-->
+    <div style="margin-bottom:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:10px">📈 分期進度</div>
+      <div class="fg2" style="margin-bottom:12px;align-items:end">
+        <div>
+          <label class="lbl">編輯對象</label>
+          <select class="inp" id="np-target-select" onchange="npRenderEditor()">
+            <option value="client">🏢 業主端</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">新增廠商</label>
+          <div style="display:flex;gap:8px">
+            <input class="inp" id="np-new-vendor" placeholder="廠商名稱" style="flex:1">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="npAddVendorQuick()">＋ 新增廠商</button>
+          </div>
+        </div>
+      </div>
+      <div id="np-schedule-editor"></div>
+    </div>
+
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
       <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
       <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
@@ -1068,7 +1028,6 @@ input[type="time"].inp{min-width:0}
       <div class="navmenu-sep"></div>
       <div class="nav-sec">專案功能</div>
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
-      <button class="navmenu-item" onclick="openScheduleNav()">📈 進度設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
       <button class="navmenu-item" id="navAttendanceBtn" onclick="switchSection('attendance');closeNavMenu()" style="display:none">🕒 出勤統計</button>
       <div class="navmenu-sep" id="navSecSepAdmin"></div>
@@ -1211,7 +1170,6 @@ const S = {
     todo:          false,  // 待辦
     project:       false,  // 專案頁
     projSettings:  false,  // 專案設定
-    schedule:      false,  // 進度管理
     finance:       false,  // 財務專區
     attendance:    false,  // 財務專區 > 出勤統計
     summary:       false,  // 摘要
@@ -1397,7 +1355,7 @@ let _lineConfig = null; // { channelId, redirectUri, liffId }
 
 // 深層連結：?tab=expense 之類的參數，在網址被登入流程清掉之前先記下來，
 // 供 finishLogin() 決定登入後要切到哪個分頁（支援值見 VALID_TAB_SECTIONS）
-const VALID_TAB_SECTIONS = ['project','expense','todo','summary','proj-settings','schedule','finance','sysadmin'];
+const VALID_TAB_SECTIONS = ['project','expense','todo','summary','proj-settings','finance','sysadmin'];
 // 會計科目：私車補助類（category==='私車補助'）一律自動歸「燃料費」；其餘六個由 Gemini 分類，AI 判斷不出來保底「其他」
 const ACCT_TYPES = ['停車費','燃料費','車輛保養費','耗材費','零件材料費','維修工具','其他'];
 let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
@@ -1837,7 +1795,7 @@ function renderDeptsTable() {
     </td>
     <td style="white-space:nowrap">
       <button class="btn btn-ghost btn-sm" onclick="openDeptModal(${i})" style="margin-right:4px">✏️</button>
-      <button class="btn btn-danger btn-sm" onclick="softDeleteDept(${i})" title="刪除">🗑</button>
+      <button class="btn btn-danger btn-sm" onclick="softDeleteDept(${i}, this)" title="刪除">🗑</button>
     </td>
   </tr>`;
   }).join('');
@@ -1895,13 +1853,20 @@ async function saveDeptAdmin() {
   });
 }
 
-async function softDeleteDept(idx) {
+async function softDeleteDept(idx, btnEl) {
   const d = _deptsCache[idx]; if (!d) return;
-  if (!confirm(`確定要刪除「${d.name}」？`)) return;
+  const ok = await showConfirm(`確定要刪除「${d.name}」？`);
+  if (!ok) return;
+  const originalHtml = btnEl?.innerHTML;
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<div class="spin"></div>'; }
   const res = await callGAS({ action:'deleteDeptAdmin', lineId: S.user?.lineId ?? '', code: d.code, deleted: true });
-  if (!res.success) { toast('❌ ' + (res.error||'刪除失敗')); return; }
+  if (!res.success) {
+    toast('❌ ' + (res.error||'刪除失敗'));
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; }
+    return;
+  }
   _deptsCache[idx].deleted = true;
-  renderDeptsTable(); toast('✅ 已刪除');
+  renderDeptsTable(); toast('✅ 已刪除'); // renderDeptsTable 會重繪整張表，btnEl 一併被換掉，不需再手動還原
 }
 
 async function saveDeptExpenseType(idx, type) {
@@ -2157,7 +2122,6 @@ function doUnifiedReload() {
     todo:           () => resetAndRun(['todo'],         loadTasks),
     project:        () => resetAndRun(['project'],      loadProjectsForBoard),
     'proj-settings':() => resetAndRun(['projSettings'], () => { loadConfig(); loadProjectList(true); }),
-    schedule:       () => { S._loaded.schedule = false; loadProjectsForBoard().then(pgPopulateProjectSelect); },
     finance:        () => resetAndRun(['finance'],      loadFinance),
     sysadmin:       () => { loadDeptsAdmin(true); loadPersonsAdmin(true); },
   };
@@ -2195,7 +2159,6 @@ async function loadConfig() {
       loadExportHistory(false);
     }
   }
-  if ($('sec-schedule')?.classList.contains('active')) pgPopulateDeductMethods();
 }
 
 function populateSelects() {
@@ -2323,8 +2286,11 @@ async function restoreFuelProjList(rows) {
 //   auto=true  → 靜默載入（頁面切換時自動呼叫，失敗不 toast）
 //   auto=false → 手動載入（按鈕觸發，顯示完整回饋訊息）
 // ════════════════════════════════════════════════════════════
+let _ocrLoadSeq = 0; // stale-response guard：月份／代申請對象快速切換時，避免較舊的回應晚回來蓋掉新畫面
 async function loadOcrResults(auto = false) {
   const month   = curMonth();
+  const person  = effectivePerson();
+  const mySeq   = ++_ocrLoadSeq;
   const loadBar = $('ocrSheetLoadBar'), loadMsg = $('ocrSheetLoadMsg');
   if (loadBar) loadBar.style.display = 'flex';
   if (loadMsg) loadMsg.textContent = '載入中...';
@@ -2333,9 +2299,12 @@ async function loadOcrResults(auto = false) {
   let timedOut = false;
   const timer = setTimeout(() => { timedOut=true; hideLoading(); if(!auto) toast('⚠️ 載入逾時，請按 🔄 重試'); }, 20000);
 
-  const res = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', person: effectivePerson(), month });
+  const res = await callGAS({ action:'getOcrResults', lineId: S.user?.lineId ?? '', person, month });
   clearTimeout(timer);
   if (timedOut) return;
+  // stale guard：這段等待期間使用者已經切換月份／代申請對象，觸發了更新的一次載入，
+  // 本次回應已過期，不能再合併進 S.receipts 或重繪畫面（否則會顯示錯月份的資料）
+  if (mySeq !== _ocrLoadSeq) return;
   hideLoading();
   if (!res.success) { if(!auto) toast('❌ 載入失敗：' + (res.error||'未知')); return; }
 
@@ -2405,10 +2374,12 @@ async function loadOcrResults(auto = false) {
   if (_fpPerson && _fpMonth) {
     callGAS({ action: 'getFuelProjects', month: _fpMonth, person: _fpPerson })
       .then(res => {
+        if (mySeq !== _ocrLoadSeq) return; // stale：已經有更新的載入取代這次
         if (!res.success) { console.error('[getFuelProjs] GAS error=', res.error); return; }
         if (res.rows?.length) return restoreFuelProjList(res.rows);
       })
       .then(() => {
+        if (mySeq !== _ocrLoadSeq) return; // stale：避免用過期資料重繪
         renderOCRResults(); updateStats();
       })
       .catch(e => { console.error('[getFuelProjs] catch', e); });
@@ -3365,7 +3336,7 @@ function renderFuelTab(fuelReceipts) {
   const diffOk     = diff >= 0;
   const diffMsg    = diffOk
     ? `✅ 尚有餘額 +$${diff.toLocaleString()}`
-    : `⚠️ 尚有餘額 -$${Math.abs(diff).toLocaleString()}`;
+    : `⚠️ 應補發票 $${Math.abs(diff).toLocaleString()}`;
 
   return `
     <!-- 私車補助發票 card -->
@@ -3472,7 +3443,7 @@ function updateFuelDiff() {
     bar.style.borderColor = diffOk ? 'rgba(21,128,61,.2)'  : 'rgba(220,38,38,.2)';
     const msg = diffOk
       ? `✅ 尚有餘額 +$${diff.toLocaleString()}`
-      : `⚠️ 尚有餘額 -$${Math.abs(diff).toLocaleString()}`;
+      : `⚠️ 應補發票 $${Math.abs(diff).toLocaleString()}`;
     bar.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span style="font-size:14px;color:var(--muted)">
         發票總額 <strong style="color:var(--text)">$${invoiceTotal.toLocaleString()}</strong>
@@ -3567,7 +3538,7 @@ async function saveFuelTypeModal() {
   const { idx, proj } = state;
   const fp = window._fuelProjList[idx];
   const msg = $('ftMsg');
-  if (!fp) { closeModal('fuelTypeModal'); return; }
+  if (!fp) { _dirtyModals.delete('fuelTypeModal'); closeModal('fuelTypeModal'); return; }
 
   const isQuota = $('ft-quota').value === 'true';
   const perPerm = hasPermission('管理員');
@@ -3581,7 +3552,7 @@ async function saveFuelTypeModal() {
       const amt = parseFloat($('ft-amount')?.value) || 0;
       const mergedMap = { ...(proj.subsidyMap || {}), [targetLineId]: amt };
       try {
-        const res = await callGAS({ action: 'updateProject', id: proj.id, subsidy: mergedMap });
+        const res = await callGAS({ action: 'updateProject', lineId: S.user?.lineId ?? '', id: proj.id, subsidy: mergedMap });
         if (!res.success) {
           if (msg) { msg.textContent = '❌ ' + (res.error || '更新失敗'); msg.style.color = 'var(--red)'; }
           return;
@@ -3596,6 +3567,7 @@ async function saveFuelTypeModal() {
     fp.type = isQuota ? 'quota' : 'mile';
     if (!isQuota) fp.attrType = 'project';
 
+    _dirtyModals.delete('fuelTypeModal'); // 已成功存檔，closeModal 不需再跳未存檔確認
     closeModal('fuelTypeModal');
     syncFuelProjToSheet(idx);
     renderOCRResults();
@@ -3772,7 +3744,7 @@ function fuelFRRowHTML(idx, fi, fr) {
         <input class="inp" id="fpe-${idx}-${fi}" value="${esc(fr.end||'')}"
           placeholder="終點地址" style="flex:1"
           onchange="queryFuelMaps(${idx},${fi});saveFuelFRs(${idx})">
-        <button class="btn btn-ghost btn-sm" onclick="queryFuelMaps(${idx},${fi})">🗺 距離</button>
+        <button class="btn btn-ghost btn-sm" onclick="queryFuelMaps(${idx},${fi},this)">🗺 距離</button>
       </div>
     </div>
     <div>
@@ -4132,13 +4104,14 @@ async function saveFuelProjToSheet(silent = false) {
   } catch(_) { /* 靜默 */ }
 }
 
-async function queryFuelMaps(idx, fi) {
+async function queryFuelMaps(idx, fi, btnEl) {
   const start = S.config.startAddress || '';
   const end   = $(`fpe-${idx}-${fi}`)?.value?.trim();
   if (!start || !end) { toast('⚠️ 請先請管理員設定出發地址，並填入終點地址'); return; }
   const txtEl = $(`fpkm-txt-${idx}-${fi}`);
   const kmEl  = $(`fpkm-${idx}-${fi}`);
   if (txtEl) txtEl.textContent = '查詢中...';
+  if (btnEl) btnEl.disabled = true; // 避免連點打多次 Maps API、造成回應競速蓋掉正確結果
   try {
     const res = await callGAS({ action: 'getDistance', origin: start, dest: end });
     if (!res.success) throw new Error(res.error);
@@ -4166,6 +4139,8 @@ async function queryFuelMaps(idx, fi) {
   } catch(e) {
     if (txtEl) txtEl.textContent = '查詢失敗';
     toast('❌ Maps 查詢失敗：' + e.message);
+  } finally {
+    if (btnEl) btnEl.disabled = false;
   }
 }
 
@@ -5302,15 +5277,20 @@ async function _doExport(skipStash = false) {
 // ════════════════════════════════════════════════════════════
 let _currentExpensePage = 'upload'; // 記住費用子頁
 
-let _currentSection = 'expense'; // 記住目前主分頁（project/expense/todo/proj-settings/schedule/finance）
+let _currentSection = 'expense'; // 記住目前主分頁（project/expense/todo/proj-settings/finance）
 
 function switchSection(name) {
+  // item9: 若有 modal 開著且有未存變更，切分頁前先確認
+  if (_hasDirtyOpenModal() && !confirm('有尚未儲存的變更，確定要離開嗎？離開後這些變更不會被保留。')) {
+    return;
+  }
+  DIRTY_TRACKED_MODALS.forEach(id => _dirtyModals.delete(id));
   _currentSection = name;
   const displayName = isProjectRelated(name) ? 'project' : name;
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
 
-  ['project','todo','summary','proj-settings','schedule','finance','attendance','sysadmin',
+  ['project','todo','summary','proj-settings','finance','attendance','sysadmin',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
     const el = $('sec-'+s);
     if (el) el.classList.remove('active');
@@ -5322,7 +5302,7 @@ function switchSection(name) {
     $('sec-'+name)?.classList.add('active');
   }
 
-  // 漢堡：費用→費用子頁選單，專案→專案設定，待辦→篩選，proj-settings/schedule/finance→返回
+  // 漢堡：費用→費用子頁選單，專案→專案設定，待辦→篩選，proj-settings/finance→返回
   $('navBurgerBtn').style.display = 'flex';
   $('navMenuProject').classList.toggle('menu-hidden', !isProjectRelated(name));
   $('navMenuExpense').classList.toggle('menu-hidden', name!=='expense');
@@ -5344,15 +5324,6 @@ function switchSection(name) {
     if (!S._loaded.projSettings) {
       S._loaded.projSettings = true;
       loadProjectList(false);
-    }
-  }
-  if (name === 'schedule') {
-    pgPopulateDeductMethods();
-    if (S._pjBoard?.length) {
-      pgPopulateProjectSelect(); // 已有快取直接填充，不重新 fetch
-    } else if (!S._loaded.schedule) {
-      S._loaded.schedule = true;
-      loadProjectsForBoard().then(pgPopulateProjectSelect);
     }
   }
   if (name === 'finance' && !S._loaded.finance) {
@@ -5395,7 +5366,7 @@ function switchSection(name) {
 
 // 漢堡選單：專案設定在「專案」nav-btn active 狀態下顯示
 function isProjectRelated(name) {
-  return name === 'project' || name === 'proj-settings' || name === 'schedule' || name === 'finance' || name === 'attendance' || name === 'sysadmin';
+  return name === 'project' || name === 'proj-settings' || name === 'finance' || name === 'attendance' || name === 'sysadmin';
 }function switchExpensePage(page) {
   _currentExpensePage = page;
   closeNavMenu();
@@ -5436,10 +5407,6 @@ document.addEventListener('click', (e) => {
 function openSettingsModal() {
   closeNavMenu();
   switchSection('proj-settings');
-}
-function openScheduleNav() {
-  closeNavMenu();
-  switchSection('schedule');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -5603,6 +5570,16 @@ function openProjectModal(i) {
   $('np-prepay-amount').value     = prepay.amount || '';
   $('np-prepay-deductpct').value  = prepay.deductPct || 10;
 
+  // 分期進度（原「進度設定」頁併入本 modal）：深拷貝既有 client/vendors，
+  // 避免直接改到 S._projList 快取；新增專案則從空陣列開始
+  S._npSchedule = {
+    client:  (!isNew && p.client)  ? JSON.parse(JSON.stringify(p.client))  : [],
+    vendors: (!isNew && p.vendors) ? JSON.parse(JSON.stringify(p.vendors)) : [],
+  };
+  npPopulateTargetSelect();
+  $('np-target-select').value = 'client';
+  npRenderEditor();
+
   $('npMsg').textContent = '';
   const btn = $('btnAddProj');
   if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
@@ -5651,20 +5628,26 @@ async function saveProjectModal() {
   if (btn) { btn.disabled = true; btn.textContent = isNew ? '新增中...' : '儲存中...'; }
   if (msg) msg.textContent = '';
 
+  const scheduleClient  = S._npSchedule?.client  || [];
+  const scheduleVendors = S._npSchedule?.vendors || [];
+
   const payload = isNew
     ? {
         action: 'addProject',
+        lineId: S.user?.lineId ?? '',
         id: code, code, name, quota, subsidy,
         effectDate: effect, closeDate: close || '',
         deptCode: deptCode || '',
-        client: [], vendors: [],
+        client: scheduleClient, vendors: scheduleVendors,
         prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
         addedBy: S.user?.name || '',
       }
     : {
         action: 'updateProject',
+        lineId: S.user?.lineId ?? '',
         id, code, name, deptCode, quota, subsidy,
         effectDate: effect, closeDate: close || '',
+        client: scheduleClient, vendors: scheduleVendors,
         prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
       };
 
@@ -5672,6 +5655,7 @@ async function saveProjectModal() {
     const res = await callGAS(payload);
     if (res.success) {
       toast(isNew ? '✅ 已新增！' : '✅ 已儲存');
+      _dirtyModals.delete('projectModal'); // 已成功存檔，closeModal 不需再跳未存檔確認
       closeModal('projectModal');
       loadProjectList(true);
       loadConfig();
@@ -5687,12 +5671,12 @@ async function saveProjectModal() {
 
 // 載入專案列表
 async function loadProjectList(showToast, _isRetry) {
-  const tbody   = $('projListTbl');
-  if (tbody) tbody.innerHTML = loadingRow(8);
+  const container = $('projListCards');
+  if (container) container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:32px">載入中...</div>';
   // 規則見 callGAS 定義處的說明
   const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
   if (!res.success) {
-    if (tbody) tbody.innerHTML = errorRow(8);
+    if (container) container.innerHTML = '<div style="text-align:center;color:var(--red);padding:28px;font-size:15px">❌ 載入失敗，請重試</div>';
     if (showToast) toast('❌ 載入失敗：' + (res.error || '未知'));
     return;
   }
@@ -5725,12 +5709,43 @@ function subsidyCellHTML(p) {
   return mine ? '$' + mine.toLocaleString() : '—';
 }
 
+// 展開狀態：以專案 id 為 key，記住哪些卡片是展開的（搜尋/切換篩選重繪後仍保留）
+S._projSettingsExpand = S._projSettingsExpand || {};
+function toggleProjListCard(id) {
+  S._projSettingsExpand[id] = !S._projSettingsExpand[id];
+  const body  = $('projcard-body-' + id);
+  const arrow = $('projcard-arrow-' + id);
+  if (body)  body.style.display = S._projSettingsExpand[id] ? 'block' : 'none';
+  if (arrow) arrow.textContent  = S._projSettingsExpand[id] ? '▼' : '▶';
+}
+
+// 展開卡片內容：業主端／各廠商端分期摘要（唯讀，項目 + 金額；要編輯請點 ✏️ 開 modal）
+function projScheduleSummaryHTML(p) {
+  const fmtPeriods = items => (!items || !items.length)
+    ? '<div style="color:var(--muted);font-size:13px">尚無分期</div>'
+    : `<div style="display:flex;flex-direction:column;gap:4px">` + items.map(c =>
+        `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px">
+           <span>${esc(c.label || '（未命名）')}</span>
+           <span class="mono" style="color:var(--gold)">$${(Number(c.amount)||0).toLocaleString()}</span>
+         </div>`).join('') + `</div>`;
+  const clientBlock = `<div style="margin-bottom:10px">
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:4px">🏢 業主端</div>
+    ${fmtPeriods(p.client)}
+  </div>`;
+  const vendorBlocks = (p.vendors || []).map(v => `<div style="margin-bottom:10px">
+    <div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:4px">🚚 ${esc(v.name || '（未命名廠商）')}</div>
+    ${fmtPeriods(v.periods)}
+  </div>`).join('');
+  return clientBlock + (vendorBlocks || '<div style="color:var(--muted);font-size:13px">尚無廠商</div>');
+}
+
 // 渲染專案列表（newest first，已由 GAS 排序）
 // 預設僅顯示「未結案」（!closeDate || closeDate >= today），勾選「顯示已結案」才顯示全部
+// item3: 改為收合卡片呈現——每列預設收合，點擊展開顯示業主端/廠商端分期摘要（唯讀）
 function renderProjectList(rawRows) {
-  const tbody = $('projListTbl');
+  const container = $('projListCards');
   const cntEl = $('projListCnt');
-  if (!tbody) return;
+  if (!container) return;
   const showClosed = $('projShowClosed')?.checked;
   const today = todayStr();
   let rows = showClosed
@@ -5745,10 +5760,11 @@ function renderProjectList(rawRows) {
   }
   if (cntEl) cntEl.textContent = rows.length + ' 筆';
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">${kw ? '找不到符合搜尋條件的專案' : '尚無專案'}</td></tr>`;
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px">${kw ? '找不到符合搜尋條件的專案' : '尚無專案'}</div>`;
+    S._projList = rows;
     return;
   }
-  tbody.innerHTML = rows.map((p, i) => {
+  container.innerHTML = rows.map((p, i) => {
     const quoteBadge = p.quota
       ? '<span class="badge bd-blue">月定額</span>'
       : '<span class="badge bd-muted">里程實報</span>';
@@ -5757,21 +5773,25 @@ function renderProjectList(rawRows) {
       : '';
     const deptObj  = findDept(p.deptCode);
     const deptText = deptObj ? deptObj.name : (p.deptCode || '—');
-    return `<tr id="prow-${i}">
-      <td style="font-weight:800;font-family:monospace;white-space:nowrap">${p.code||p.id}${newTag}</td>
-      <td style="font-weight:700">${p.name}</td>
-      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${deptText}</td>
-      <td style="white-space:nowrap">${quoteBadge}</td>
-      <td class="mono" style="color:var(--gold)">${subsidyCellHTML(p)}</td>
-      <td style="font-size:13px;color:var(--muted)">${p.effectDate||'—'}</td>
-      <td style="font-size:13px;color:var(--muted)">${p.closeDate||'—'}</td>
-      <td>
-        <div style="display:flex;gap:6px">
+    const expanded = !!S._projSettingsExpand[p.id];
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer" onclick="toggleProjListCard('${p.id}')">
+        <span id="projcard-arrow-${p.id}" style="font-size:14px;color:var(--muted);width:14px;flex-shrink:0">${expanded?'▼':'▶'}</span>
+        <span style="font-weight:800;font-family:monospace;white-space:nowrap">${p.code||p.id}${newTag}</span>
+        <span style="font-weight:700">${esc(p.name)}</span>
+        <span style="font-size:13px;color:var(--muted);white-space:nowrap">${esc(deptText)}</span>
+        ${quoteBadge}
+        <span class="mono" style="color:var(--gold);font-size:13px">${subsidyCellHTML(p)}</span>
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">${p.effectDate||'—'} ~ ${p.closeDate||'—'}</span>
+        <div style="display:flex;gap:6px;margin-left:auto" onclick="event.stopPropagation()">
           <button class="btn btn-ghost btn-sm" onclick="openProjectModal(${i})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="doDeleteProject('${p.id}','${esc(p.name)}')">🗑</button>
         </div>
-      </td>
-    </tr>`;
+      </div>
+      <div id="projcard-body-${p.id}" style="display:${expanded?'block':'none'};margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        ${projScheduleSummaryHTML(p)}
+      </div>
+    </div>`;
   }).join('');
   // 存入 state 供 edit 讀取
   S._projList = rows;
@@ -6118,6 +6138,7 @@ async function loadProjectsForBoard(_isRetry) {
     S._pjBoard = res.rows ?? [];
     ProjectStore.rebuild();
     if (S._projSelectId && S._projExpenses) delete S._projExpenses[S._projSelectId];
+    if (S._projSelectId && S._projExpenseError) delete S._projExpenseError[S._projSelectId];
     renderProjectBoard();
     setNavSyncStatus('project', '✅ 同步完成 ' + now());
     flashNavSyncDone('project');
@@ -6435,13 +6456,19 @@ function pjRenderDetail(p) {
         }).join('')}
   </div>`;
 
-  // ── 專案費用：未載入時自動觸發載入（併入頁面重新整理流程，不再需要手動按鈕）──
-  if ((!S._projExpenses || !S._projExpenses[p.id]) && !_projExpenseLoading[p.id]) {
+  // ── 專案費用：未載入且沒有錯誤時才自動觸發載入（併入頁面重新整理流程，不再需要手動按鈕）──
+  // 有錯誤狀態時不自動重試，避免每次重繪都對後端重打一次失敗的請求；改由使用者按「🔄 重試」
+  if ((!S._projExpenses || !S._projExpenses[p.id]) && !_projExpenseLoading[p.id] && !S._projExpenseError?.[p.id]) {
     setTimeout(() => loadProjectExpenses(p.id), 0);
   }
-  const expenseHtml = (S._projExpenses && S._projExpenses[p.id])
-    ? renderProjExpenseList(S._projExpenses[p.id], p)
-    : `<div style="color:var(--muted);font-size:13px">載入中...</div>`;
+  const expenseHtml = S._projExpenseError?.[p.id]
+    ? `<div style="color:var(--red);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+         ❌ 費用載入失敗：${esc(S._projExpenseError[p.id])}
+         <button class="btn btn-ghost btn-sm" onclick="retryLoadProjectExpenses('${p.id}')">🔄 重試</button>
+       </div>`
+    : (S._projExpenses && S._projExpenses[p.id])
+      ? renderProjExpenseList(S._projExpenses[p.id], p)
+      : `<div style="color:var(--muted);font-size:13px">載入中...</div>`;
 
   return summaryHtml + clientHtml + vendorHtml + `
     <div style="font-weight:700;font-size:15px;margin-bottom:8px">🧾 專案費用
@@ -6495,11 +6522,13 @@ async function loadProjectExpenses(projectId, _isRetry) {
   if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">載入中...</div>';
   let rows = [];
   let ok   = false;
+  let errMsg = '';
   try {
     const res = await callGAS({ action:'getProjectExpenses', projectId });
     ok   = !!(res && res.success);
     rows = ok ? (res.rows || []) : [];
-  } catch(e) { /* rows 維持空陣列 */ }
+    if (!ok) errMsg = (res && res.error) || '載入失敗';
+  } catch(e) { errMsg = e?.message || '網路異常，載入失敗'; }
 
   // item1: 切換到此專案後費用卡片顯示空白，需手動重新整理才會出現——可能是
   // loadProjectsForBoard 清快取後的競態，也可能是剛在費用頁存完月定額/里程實報，
@@ -6515,8 +6544,22 @@ async function loadProjectExpenses(projectId, _isRetry) {
 
   delete _projExpenseLoading[projectId];
   S._projExpenses = S._projExpenses || {};
-  S._projExpenses[projectId] = rows;
+  S._projExpenseError = S._projExpenseError || {};
+  if (ok) {
+    delete S._projExpenseError[projectId];
+    S._projExpenses[projectId] = rows;
+  } else {
+    // item7: 失敗跟「這個專案真的沒有費用」要分開表示，不能都顯示成空清單，
+    // 否則使用者會誤以為專案沒有任何費用紀錄，看不出是載入失敗
+    delete S._projExpenses[projectId];
+    S._projExpenseError[projectId] = errMsg;
+  }
   renderProjectBoard(); // re-render to update expense total
+}
+// 費用卡片載入失敗時「🔄 重試」按鈕呼叫這支，清掉錯誤狀態後重新載入一次
+function retryLoadProjectExpenses(projectId) {
+  delete S._projExpenseError?.[projectId];
+  loadProjectExpenses(projectId);
 }
 
 // ── 業主端「待收款/已收款」badge 點擊 → 編輯收款狀態 ─────────
@@ -6541,6 +6584,8 @@ function pjEditClientPay(projectId, periodIndex) {
         toast('❌ 已收款時，收款日期為必填');
         return false;
       }
+      // 先存一份原始值快照，若後端更新失敗要能還原，避免畫面顯示「已儲存」但後端其實沒存到
+      const snapshot = { paid: c.paid, payDate: c.payDate, underReview: c.underReview, accepted: c.accepted };
       c.paid    = willPaid;
       c.payDate = c.paid ? (vals['pay-date'] || '') : '';
       // item6-2/item4: 「待查帳」標記 underReview=true，顯示為「待查帳」；
@@ -6550,7 +6595,7 @@ function pjEditClientPay(projectId, periodIndex) {
       // 故無論選擇何種狀態都應保持 accepted=true，
       // 避免選「待查帳」後 badge 因 accepted/invoiced 均為空而誤判回「未收款」
       c.accepted = true;
-      const res = await callGAS({ action:'updateProjectPeriod',
+      const res = await callGAS({ action:'updateProjectPeriod', lineId: S.user?.lineId ?? '',
         id:p.id, target:'client', periodIndex:idx,
         fields:{ paid:c.paid, payDate:c.payDate, accepted:c.accepted, underReview:c.underReview } });
       if (res.success) {
@@ -6559,7 +6604,11 @@ function pjEditClientPay(projectId, periodIndex) {
         S._clientExpand[projectId] = true;
         renderProjectBoard();
       }
-      else { toast('❌ ' + (res.error||'更新失敗')); }
+      else {
+        Object.assign(c, snapshot); // 後端沒存成功，還原成修改前的狀態，避免畫面跟後端資料不一致
+        renderProjectBoard();
+        toast('❌ ' + (res.error||'更新失敗'));
+      }
     }
   });
 }
@@ -6587,9 +6636,10 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
         toast('❌ 已收票時，收票日期為必填');
         return false;
       }
+      const snapshot = { invReceived: c.invReceived, invReceivedDate: c.invReceivedDate };
       c.invReceived     = willReceived;
       c.invReceivedDate = c.invReceived ? (vals['inv-date'] || '') : '';
-      const res = await callGAS({ action:'updateProjectPeriod',
+      const res = await callGAS({ action:'updateProjectPeriod', lineId: S.user?.lineId ?? '',
         id:p.id, target:'vendor', vendorIndex:vi, periodIndex:pj,
         fields:{ invReceived:c.invReceived, invReceivedDate:c.invReceivedDate } });
       if (res.success) {
@@ -6598,7 +6648,11 @@ function pjEditVendorInv(projectId, vendorIndex, periodIndex) {
         S._vendorExpand[projectId + ':' + vi] = true;
         renderProjectBoard();
       }
-      else { toast('❌ ' + (res.error||'更新失敗')); }
+      else {
+        Object.assign(c, snapshot); // 還原，避免畫面顯示已收票但後端其實沒存到
+        renderProjectBoard();
+        toast('❌ ' + (res.error||'更新失敗'));
+      }
     }
   });
 }
@@ -6608,15 +6662,23 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl)
   const p = ProjectStore.find(projectId);
   if (!p) return;
 
+  // item7: 標記驗收完成會同時建立請款／索取發票待辦，屬於一次性動作，先跟使用者確認一下
+  const confirmMsg = target === 'client'
+    ? '確定要標記此期款為「驗收完成」嗎？系統會同時建立一筆「請款」待辦。'
+    : '確定要標記此期款為「驗收完成」嗎？系統會同時建立一筆「索取發票」待辦。';
+  const okToProceed = await showConfirm(confirmMsg, { title: '✅ 確認驗收完成', okLabel: '確定', okClass: 'btn-primary' });
+  if (!okToProceed) return;
+
   // 顯示 loading：按鈕換成轉圈圈，避免使用者重複點擊或誤以為沒反應
   const originalHtml = btnEl ? btnEl.innerHTML : '';
   if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<div class="spin"></div>'; }
 
-  let arr, c;
+  let arr, c, snapshot;
   if (target === 'client') {
     arr = p.client = p.client || [];
     c   = arr[periodIndex];
     if (!c) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; } return; }
+    snapshot = { accepted: c.accepted };
     // item8: 驗收完成標記 accepted=true（不標記 invoiced，由財務填開票日期後才改 invoiced）
     if (!c.accepted) c.accepted = true;
     // 驗收完成後業主端區塊應保持展開
@@ -6636,6 +6698,7 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl)
     arr = p.vendors[vendorIndex].periods = p.vendors[vendorIndex].periods || [];
     c   = arr[periodIndex];
     if (!c) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; } return; }
+    snapshot = { invAccepted: c.invAccepted };
     // item12: 驗收完成標記 invAccepted=true（不標記 invReceived，由收票 badge 點擊後才改）
     if (!c.invAccepted) c.invAccepted = true;
     // 驗收完成後此廠商區塊應保持展開（item9）
@@ -6648,15 +6711,18 @@ async function pjQuickAccept(projectId, target, vendorIndex, periodIndex, btnEl)
       addedBy: S.user?.name || '' });
   }
 
-  const res = await callGAS({ action:'updateProject', id:p.id,
+  const res = await callGAS({ action:'updateProject', lineId: S.user?.lineId ?? '', id:p.id,
     client:p.client||[], vendors:p.vendors||[] });
   if (res.success) {
     toast('✅ 已標記驗收完成，待辦已新增');
     renderProjectBoard();
-    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
   } else {
+    Object.assign(c, snapshot); // 還原 accepted/invAccepted，避免畫面顯示驗收完成但後端其實沒存到
+    // 注意：上面建立的「請款／索取發票」待辦不會跟著回滾，若後端更新失敗，
+    // 待辦仍會留著，需要的話請手動到待辦事項刪除
     toast('❌ ' + (res.error||'更新失敗'));
     if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = originalHtml; }
+    renderProjectBoard();
   }
 }
 
@@ -7071,10 +7137,11 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
   if (!p) return;
   const c = (p.client||[])[periodIdx];
   if (!c) return;
+  const snapshot = { invoiceDate: c.invoiceDate, invoiced: c.invoiced, accepted: c.accepted };
   c.invoiceDate = dateVal;
   c.invoiced    = !!dateVal;
   if (dateVal && !c.accepted) c.accepted = true; // 開票日期填入時同步標記 accepted
-  const res = await callGAS({ action:'updateProjectPeriod',
+  const res = await callGAS({ action:'updateProjectPeriod', lineId: S.user?.lineId ?? '',
     id:projectId, target:'client', periodIndex:periodIdx,
     fields:{ invoiced:c.invoiced, invoiceDate:dateVal, accepted:c.accepted } });
   if (res.success) {
@@ -7082,8 +7149,12 @@ async function finUpdateInvoiceDate(projectId, periodIdx, dateVal) {
     if (row) { row.c.invoiced = c.invoiced; row.c.invoiceDate = dateVal; }
     renderFinanceInvoice();
     renderProjectBoard();
-    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
-  } else { toast('❌ ' + (res.error||'更新失敗')); }
+  } else {
+    Object.assign(c, snapshot); // 還原，避免輸入框顯示新日期但後端其實沒存到
+    renderFinanceInvoice();
+    renderProjectBoard();
+    toast('❌ ' + (res.error||'更新失敗'));
+  }
 }
 
 // ── 財務：更新付款日期 → vendorPaid=true ────────────────────
@@ -7092,10 +7163,11 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
   if (!p) return;
   const c = ((p.vendors||[])[vendorIdx]?.periods||[])[periodIdx];
   if (!c) return;
+  const snapshot = { vendorPayDate: c.vendorPayDate, vendorPaid: c.vendorPaid, invAccepted: c.invAccepted };
   c.vendorPayDate = dateVal;
   c.vendorPaid    = !!dateVal;
   if (dateVal && !c.invAccepted) c.invAccepted = true; // 付款時同步標記 invAccepted
-  const res = await callGAS({ action:'updateProjectPeriod',
+  const res = await callGAS({ action:'updateProjectPeriod', lineId: S.user?.lineId ?? '',
     id:projectId, target:'vendor', vendorIndex:vendorIdx, periodIndex:periodIdx,
     fields:{ vendorPaid:c.vendorPaid, vendorPayDate:dateVal, invAccepted:c.invAccepted } });
   if (res.success) {
@@ -7104,126 +7176,90 @@ async function finUpdatePayDate(projectId, vendorIdx, periodIdx, dateVal) {
     if (row) { row.c.vendorPaid = c.vendorPaid; row.c.vendorPayDate = dateVal; }
     renderFinancePayment();
     renderProjectBoard();
-    if (S._pgProject && S._pgProject.id===projectId) pgLoadProject(projectId);
-  } else { toast('❌ ' + (res.error||'更新失敗')); }
-}
-
-// ── 設定 > 進度設定：可編輯 ──────────────────────────────────
-function pgPopulateProjectSelect() {
-  const wrap = $('pg-project-fd-wrap');
-  if (!wrap) return;
-  // 進度設定：顯示未刪除、未結案的可見部門專案（需求3）
-  const rows = getProjList('active');
-  if (!wrap.querySelector('.fd-wrap')) {
-    wrap.innerHTML = fdHTML('pg-project-fd', 'pg-project-fd-inp', '輸入專案代號或名稱搜尋');
+  } else {
+    Object.assign(c, snapshot); // 還原，避免輸入框顯示新日期但後端其實沒存到
+    renderFinancePayment();
+    renderProjectBoard();
+    toast('❌ ' + (res.error||'更新失敗'));
   }
-  const items = rows.map(p => ({ id: p.code || p.id, name: p.name, _projId: p.id }));
-  fdInit('pg-project-fd', items, item => {
-    pgLoadProject(item._projId);
-  }, S._recentProjIds || []);
-
-  const cur = S._pgProject && rows.some(p=>p.id===S._pgProject.id) ? S._pgProject.id : '';
-  const curItem = items.find(it => it._projId === cur);
-  const inp = document.querySelector('#pg-project-fd .fd-input');
-  if (inp) inp.value = curItem ? (curItem.id + ' ' + curItem.name) : '';
 }
 
-// item2: 將「進度設定」頁的扣抵方式 UI（僅每期扣回 % 輸入框）同步成目前載入專案
-// 自己的 prepay.deductPct 設定值，確保跟「新增專案」表單顯示一致，不再各自為政
-function pgPopulateDeductMethods() {
-  const pctInput = $('pg-deduct-pct');
-  if (!pctInput) return;
-  const p = S._pgProject;
-  const prepay = (p && p.prepay) || {enabled:false,amount:0,deductPct:10};
-  pctInput.value = prepay.deductPct || 10;
-}
-
-function pgPopulateTargetSelect() {
-  const sel = $('pg-target-select');
+// ── 專案設定 modal：分期進度（原「進度設定」獨立頁面併入 projectModal）──────
+// S._npSchedule = { client:[...], vendors:[{name,periods:[...]}] }，
+// 只存在於 projectModal 開啟期間；儲存時跟其他基本欄位合併成同一次 addProject/updateProject 送出
+function npPopulateTargetSelect() {
+  const sel = $('np-target-select');
   if (!sel) return;
-  const p = S._pgProject;
+  const sc  = S._npSchedule;
   const cur = sel.value;
   let opts = '<option value="client">🏢 業主端</option>';
-  (p?.vendors||[]).forEach((v,vi)=> opts += `<option value="vendor:${vi}">🚚 ${esc(v.name||'（未命名廠商'+(vi+1)+'）')}</option>`);
+  (sc?.vendors||[]).forEach((v,vi)=> opts += `<option value="vendor:${vi}">🚚 ${esc(v.name||'（未命名廠商'+(vi+1)+'）')}</option>`);
   sel.innerHTML = opts;
   if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
 }
 
-function pgLoadProject(id) {
-  const editor = $('pg-editor');
-  if (!id) { S._pgProject = null; if (editor) editor.innerHTML=''; pgPopulateTargetSelect(); return; }
-  const p = ProjectStore.find(id);
-  if (!p) return;
-  // 深拷貝，避免直接改到 board 快取
-  S._pgProject = JSON.parse(JSON.stringify(p));
-  S._pgProject.client  = S._pgProject.client  || [];
-  S._pgProject.vendors = S._pgProject.vendors || [];
-  pgPopulateTargetSelect();
-  $('pg-target-select').value = 'client';
-  pgPopulateDeductMethods();
-  pgRenderEditor();
-}
-
 // 取得目前編輯對象的期款陣列（業主端 client 或某廠商 periods）
-function pgTargetArray() {
-  const p = S._pgProject;
-  if (!p) return null;
-  const target = $('pg-target-select')?.value || 'client';
-  if (target === 'client') return p.client = p.client || [];
+function npTargetArray() {
+  const sc = S._npSchedule;
+  if (!sc) return null;
+  const target = $('np-target-select')?.value || 'client';
+  if (target === 'client') return sc.client = sc.client || [];
   const vi = Number(target.split(':')[1]);
-  p.vendors[vi] = p.vendors[vi] || {name:'',periods:[]};
-  return p.vendors[vi].periods = p.vendors[vi].periods || [];
+  sc.vendors[vi] = sc.vendors[vi] || {name:'',periods:[]};
+  return sc.vendors[vi].periods = sc.vendors[vi].periods || [];
 }
 
-function pgAddVendorQuick() {
-  const p = S._pgProject;
-  if (!p) { toast('請先選擇專案'); return; }
-  const input = $('pg-new-vendor');
+function npAddVendorQuick() {
+  const sc = S._npSchedule;
+  if (!sc) return;
+  const input = $('np-new-vendor');
   const name = input?.value.trim();
   if (!name) return;
-  p.vendors = p.vendors || [];
-  p.vendors.push({ name, periods: [] });
+  sc.vendors = sc.vendors || [];
+  sc.vendors.push({ name, periods: [] });
   input.value = '';
-  pgPopulateTargetSelect();
-  $('pg-target-select').value = 'vendor:' + (p.vendors.length-1);
-  pgRenderEditor();
+  npPopulateTargetSelect();
+  $('np-target-select').value = 'vendor:' + (sc.vendors.length-1);
+  npRenderEditor();
 }
 
-function pgRenderEditor() {
-  const editor = $('pg-editor');
+function npRenderEditor() {
+  const editor = $('np-schedule-editor');
   if (!editor) return;
-  const p = S._pgProject;
-  if (!p) { editor.innerHTML=''; return; }
-  const target = $('pg-target-select')?.value || 'client';
-  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
+  const sc = S._npSchedule;
+  if (!sc) { editor.innerHTML=''; return; }
+  const target = $('np-target-select')?.value || 'client';
+  const prepayAmount = Number($('np-prepay-amount')?.value) || 0;
 
   let removeVendorBtn = '';
   if (target.startsWith('vendor:')) {
     const vi = Number(target.split(':')[1]);
-    removeVendorBtn = `<button class="btn btn-danger btn-sm" style="margin-bottom:8px" onclick="pgRemoveVendor(${vi})">🗑 刪除此廠商</button>`;
+    removeVendorBtn = `<button type="button" class="btn btn-danger btn-sm" style="margin-bottom:8px" onclick="npRemoveVendor(${vi})">🗑 刪除此廠商</button>`;
   }
 
   editor.innerHTML = `
-    ${target==='client' && prepay.enabled ? `<div id="pg-prepay-summary" style="font-size:13px;color:var(--muted);margin-bottom:10px">
-      💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${p.client.reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
+    ${target==='client' && prepayAmount>0 ? `
+    <div id="np-prepay-summary" style="font-size:13px;color:var(--muted);margin-bottom:10px">
+      💰 本案預收款：$${prepayAmount.toLocaleString()}（已分配扣抵：$${(sc.client||[]).reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0).toLocaleString()}）
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:13px">每期扣回</span>
+      <input type="number" class="inp" id="np-deduct-pct" min="0" max="100" step="0.1" style="width:70px;display:inline-block;padding:4px 8px" value="${$('np-prepay-deductpct')?.value || 10}">
+      <span style="font-size:13px">%</span>
+      <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="npApplyDeductMethod()">套用到全部分期</button>
     </div>` : ''}
     ${removeVendorBtn}
-    <div id="pg-periods"></div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pgAddPeriod()">＋ 新增分期</button>
-
-    <div style="margin-top:18px">
-      <button class="btn btn-primary btn-sm" onclick="pgSave()">💾 儲存進度</button>
-      <span id="pg-msg" style="font-size:13px;margin-left:8px"></span>
-    </div>`;
-  pgRenderPeriods();
+    <div id="np-periods"></div>
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="npAddPeriod()">＋ 新增分期</button>`;
+  npRenderPeriods();
 }
 
-function pgRenderPeriods() {
-  const wrap  = $('pg-periods');
+function npRenderPeriods() {
+  const wrap  = $('np-periods');
   if (!wrap) return;
-  const items = pgTargetArray() || [];
+  const items = npTargetArray() || [];
   if (!items.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px">尚無分期</div>'; return; }
-  const target = $('pg-target-select')?.value || 'client';
+  const target = $('np-target-select')?.value || 'client';
   const isClient = (target === 'client');
   // 業主端：項目(*必填)、金額(*必填)、扣抵預收 → 開票/收款由財務/專案頁更新
   // 廠商端：項目(*必填)、金額(*必填) → 收票/付款由財務/專案頁更新
@@ -7232,74 +7268,72 @@ function pgRenderPeriods() {
     : `<th style="min-width:140px">項目 *</th><th style="min-width:110px">金額 *</th><th></th>`;
   wrap.innerHTML = `<div style="overflow-x:auto"><table class="tbl"><thead><tr>${headers}</tr></thead><tbody>` +
     items.map((c,j)=>`<tr>
-    <td><input class="inp" value="${esc(c.label||'')}" required onchange="pgSetPeriod(${j},'label',this.value)"
+    <td><input class="inp" value="${esc(c.label||'')}" required onchange="npSetPeriod(${j},'label',this.value)"
       style="border-color:${c.label?'':'var(--red)'}"></td>
     <td><input type="number" class="inp" style="width:100px;border-color:${c.amount?'':'var(--red)'}"
-      value="${c.amount||0}" required onfocus="this.select()" onchange="pgSetPeriod(${j},'amount',this.value)"></td>
+      value="${c.amount||0}" required onfocus="this.select()" onchange="npSetPeriod(${j},'amount',this.value)"></td>
     ${isClient?`<td><input type="number" class="inp" style="width:100px" value="${c.prepayDeduct||0}"
-      onfocus="this.select()" onchange="pgSetPeriod(${j},'prepayDeduct',this.value)"></td>`:''}
-    <td><button class="btn btn-danger btn-sm" onclick="pgRemovePeriod(${j})">🗑</button></td>
+      onfocus="this.select()" onchange="npSetPeriod(${j},'prepayDeduct',this.value)"></td>`:''}
+    <td><button type="button" class="btn btn-danger btn-sm" onclick="npRemovePeriod(${j})">🗑</button></td>
   </tr>`).join('') + `</tbody></table></div>`;
 }
 
-function pgAddPeriod() {
-  const arr = pgTargetArray();
+function npAddPeriod() {
+  const arr = npTargetArray();
   if (!arr) return;
-  const isClient = ($('pg-target-select')?.value || 'client') === 'client';
+  const isClient = ($('np-target-select')?.value || 'client') === 'client';
   arr.push(isClient ? pjBlankClientPeriod() : pjBlankVendorPeriod());
-  pgRenderPeriods();
+  npRenderPeriods();
 }
-function pgRemovePeriod(j) {
-  const arr = pgTargetArray();
+function npRemovePeriod(j) {
+  const arr = npTargetArray();
   if (!arr) return;
   arr.splice(j,1);
-  pgRenderPeriods();
+  npRenderPeriods();
 }
-function pgSetPeriod(j,k,v) {
-  const arr = pgTargetArray();
+function npSetPeriod(j,k,v) {
+  const arr = npTargetArray();
   if (!arr) return;
   if (k==='amount'||k==='prepayDeduct') arr[j][k] = parseFloat(v)||0;
   else if (k==='invoiced'||k==='paid')  arr[j][k] = !!v;
   else arr[j][k] = v;
-  if (k==='invoiced'||k==='paid') pgRenderPeriods(); // 重新渲染以反映 checkbox 狀態
-  if (k==='prepayDeduct') pgUpdatePrepaySummary(); // item3: 局部更新已分配扣抵總計，避免輸入框失焦
+  if (k==='invoiced'||k==='paid') npRenderPeriods(); // 重新渲染以反映 checkbox 狀態
+  if (k==='prepayDeduct') npUpdatePrepaySummary(); // 局部更新已分配扣抵總計，避免輸入框失焦
 }
 
-// item3: 局部更新「已分配扣抵」總計文字，讓使用者手動修改某一期的扣抵金額時，
-// 摘要立即跟著異動，而不需要整頁重繪或切換目標才會看到正確數字
-function pgUpdatePrepaySummary() {
-  const el = $('pg-prepay-summary');
-  const p  = S._pgProject;
-  if (!el || !p) return;
-  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-  const allocated = (p.client||[]).reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0);
-  el.innerHTML = `💰 本案預收款：$${Number(prepay.amount).toLocaleString()}（已分配扣抵：$${allocated.toLocaleString()}）`;
+// 局部更新「已分配扣抵」總計文字，讓使用者手動修改某一期的扣抵金額時，
+// 摘要立即跟著異動，而不需要整個編輯區重繪或切換目標才會看到正確數字
+function npUpdatePrepaySummary() {
+  const el = $('np-prepay-summary');
+  const sc = S._npSchedule;
+  if (!el || !sc) return;
+  const prepayAmount = Number($('np-prepay-amount')?.value) || 0;
+  const allocated = (sc.client||[]).reduce((s,c)=>s+(Number(c.prepayDeduct)||0),0);
+  el.innerHTML = `💰 本案預收款：$${prepayAmount.toLocaleString()}（已分配扣抵：$${allocated.toLocaleString()}）`;
 }
 
-function pgRemoveVendor(vi) {
-  S._pgProject.vendors.splice(vi,1);
-  pgPopulateTargetSelect();
-  $('pg-target-select').value = 'client';
-  pgRenderEditor();
+function npRemoveVendor(vi) {
+  S._npSchedule.vendors.splice(vi,1);
+  npPopulateTargetSelect();
+  $('np-target-select').value = 'client';
+  npRenderEditor();
 }
 
 // 套用預收款扣抵方式至「業主端」全部分期（依序計算，可手動覆寫個別金額）
-// item2: 改為讀取該專案自己的扣抵設定（僅每期扣回 % 輸入框），不再依賴全域 SystemSettings 模板，
-// 避免「新增專案」表單裡的每期扣回比例跟「進度設定」頁顯示的比例互相脫鉤、各自為政
-function pgApplyDeductMethod() {
-  const p = S._pgProject;
-  if (!p) { toast('請先選擇專案'); return; }
-  const pct  = parseFloat($('pg-deduct-pct')?.value) || 0;
-  const prepay = p.prepay || {enabled:false,amount:0,deductPct:10};
-  if (!prepay.enabled) { toast('此專案未啟用預收款'); return; }
+function npApplyDeductMethod() {
+  const sc = S._npSchedule;
+  if (!sc) return;
+  const pct  = parseFloat($('np-deduct-pct')?.value) || 0;
+  const prepayAmount = Number($('np-prepay-amount')?.value) || 0;
+  if (!prepayAmount) { toast('此專案未設定預收金額'); return; }
 
-  // 同步寫回專案的 deductPct，讓「新增專案」表單跟「進度設定」頁顯示一致
-  prepay.deductPct = pct;
-  p.prepay = prepay;
+  // 同步寫回隱藏欄位，確保儲存專案時 saveProjectModal 讀到的扣抵比例跟這裡套用的一致
+  const hiddenPct = $('np-prepay-deductpct');
+  if (hiddenPct) hiddenPct.value = pct;
 
-  const items = p.client || [];
-  let remaining = Number(prepay.amount) || 0;
-  items.forEach((c,idx) => {
+  const items = sc.client || [];
+  let remaining = prepayAmount;
+  items.forEach((c) => {
     const amount = Number(c.amount) || 0;
     let deduct = amount * (pct/100);
     deduct = Math.min(deduct, amount, remaining);
@@ -7307,32 +7341,9 @@ function pgApplyDeductMethod() {
     c.prepayDeduct = Math.round(deduct);
     remaining -= c.prepayDeduct;
   });
-  if (($('pg-target-select')?.value)==='client') pgRenderPeriods();
-  pgUpdatePrepaySummary();
-  const modeLabel = `每期扣回 ${pct}%`;
-  toast('已套用「' + modeLabel + '」，剩餘預收款 $' + remaining.toLocaleString());
-}
-
-async function pgSave() {
-  const p = S._pgProject;
-  if (!p) return;
-  const msg = $('pg-msg');
-  if (msg) { msg.textContent='儲存中...'; msg.style.color='var(--muted)'; }
-  try {
-    const res = await callGAS({
-      action:'updateProject', id:p.id,
-      client:p.client||[], vendors:p.vendors||[],
-    });
-    if (res.success) {
-      if (msg) { msg.textContent='✅ 已儲存'; msg.style.color='var(--green)'; }
-      await loadProjectsForBoard();
-      pgPopulateProjectSelect();
-    } else {
-      if (msg) { msg.textContent='❌ '+(res.error||'失敗'); msg.style.color='var(--red)'; }
-    }
-  } catch(e) {
-    if (msg) { msg.textContent='❌ '+e.message; msg.style.color='var(--red)'; }
-  }
+  if (($('np-target-select')?.value)==='client') npRenderPeriods();
+  npUpdatePrepaySummary();
+  toast('已套用「每期扣回 ' + pct + '%」，剩餘預收款 $' + remaining.toLocaleString());
 }
 
 async function doDeleteProject(id, name) {
@@ -7342,7 +7353,7 @@ async function doDeleteProject(id, name) {
   );
   if (!confirmed) return;
   try {
-    const res = await callGAS({ action: 'deleteProject', id });
+    const res = await callGAS({ action: 'deleteProject', lineId: S.user?.lineId ?? '', id });
     if (res.success) {
       toast('✅ 已刪除專案：' + name);
       loadProjectList(false);
@@ -7357,17 +7368,18 @@ async function doDeleteProject(id, name) {
 }
 
 // 通用確認 dialog（Promise 版）
-function showConfirm(msg) {
+function showConfirm(msg, opts) {
+  const { title = '⚠️ 確認刪除', okLabel = '確定刪除', okClass = 'btn-danger' } = opts || {};
   return new Promise(resolve => {
     const wrap = document.createElement('div');
     wrap.className = 'modal-wrap';
     wrap.style.cssText = 'display:flex;z-index:9999';
     wrap.innerHTML = `
       <div class="modal-box" style="max-width:420px">
-        <div style="font-size:16px;font-weight:800;margin-bottom:12px">⚠️ 確認刪除</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:12px">${title}</div>
         <div style="font-size:15px;color:var(--text);margin-bottom:20px;white-space:pre-wrap">${msg}</div>
         <div style="display:flex;gap:10px">
-          <button class="btn btn-danger" id="cfmOk" style="flex:1">確定刪除</button>
+          <button class="btn ${okClass}" id="cfmOk" style="flex:1">${okLabel}</button>
           <button class="btn btn-ghost"  id="cfmNo" style="flex:1">取消</button>
         </div>
       </div>`;
@@ -7525,7 +7537,7 @@ async function submitModalAction({ btnSelector, payload, modalId, onSuccess }) {
   if (btn) { btn.disabled = false; btn.innerHTML = origHtml ?? '💾 儲存'; }
   if (!res.success) { toast('❌ ' + (res.error || '儲存失敗')); return res; }
   toast(res.warning ? ('⚠️ ' + res.warning) : '✅ 已儲存');
-  if (modalId) closeModal(modalId);
+  if (modalId) { _dirtyModals.delete(modalId); closeModal(modalId); } // 已成功存檔，closeModal 不需再跳未存檔確認
   if (onSuccess) await onSuccess(res);
   return res;
 }
@@ -7616,10 +7628,47 @@ function badge(id, n) {
   if(n>0){el.style.display='inline';el.textContent=n;}else el.style.display='none';
 }
 
+// ── item9: 未存檔離開提醒 ─────────────────────────────────────
+// 只追蹤這 4 個「開 modal 編輯多個欄位、要按儲存才送出」的表單；
+// OCR 收據欄位是 onchange 就即時 stashSingle() 自動存檔，不算未存檔風險，不追蹤。
+const DIRTY_TRACKED_MODALS = ['personModal', 'deptModal', 'projectModal', 'fuelTypeModal'];
+let _dirtyModals = new Set();
+function _hasDirtyOpenModal() {
+  return DIRTY_TRACKED_MODALS.some(id => {
+    const modal = $(id);
+    return _dirtyModals.has(id) && modal && modal.classList.contains('open');
+  });
+}
+// 用捕獲階段的委派監聽，避免要一個個欄位手動加 onchange/oninput
+document.addEventListener('input',  _markModalDirtyFromEvent, true);
+document.addEventListener('change', _markModalDirtyFromEvent, true);
+function _markModalDirtyFromEvent(e) {
+  for (const id of DIRTY_TRACKED_MODALS) {
+    const modal = $(id);
+    if (modal && modal.classList.contains('open') && modal.contains(e.target)) {
+      _dirtyModals.add(id);
+      return;
+    }
+  }
+}
+// 關分頁／重新整理／關閉網站前提醒（瀏覽器原生機制，文字內容各家瀏覽器不一定會顯示）
+window.addEventListener('beforeunload', (e) => {
+  if (_hasDirtyOpenModal()) { e.preventDefault(); e.returnValue = ''; }
+});
+
 const $ = id => document.getElementById(id);
 function se(id, txt)    { const el=$(id); if(el) el.textContent=txt; }
-function openModal(id)  { $(id).classList.add('open'); }
-function closeModal(id) { $(id).classList.remove('open'); }
+function openModal(id)  { _dirtyModals.delete(id); $(id).classList.add('open'); }
+async function closeModal(id) {
+  // App 內關 modal（點✕/取消/背景）：若有未存變更先跟使用者確認
+  if (DIRTY_TRACKED_MODALS.includes(id) && _dirtyModals.has(id)) {
+    const ok = await showConfirm('有尚未儲存的變更，確定要離開嗎？離開後這些變更不會被保留。',
+      { title: '⚠️ 尚未儲存', okLabel: '離開', okClass: 'btn-primary' });
+    if (!ok) return;
+  }
+  _dirtyModals.delete(id);
+  $(id).classList.remove('open');
+}
 function setBtnLoading(id, loading, label) {
   const b=$(id); if(!b) return;
   b.disabled=loading; b.innerHTML=loading?`<div class="spin"></div> ${label}`:label;
