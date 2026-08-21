@@ -282,9 +282,23 @@ input[type="time"].inp{min-width:0}
 .summary-card-bullets li::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--accent)}
 .summary-card-footer{display:flex;justify-content:flex-end;margin-top:8px}
+/* 匯出紀錄批次列印：把選取 PDF 轉成的頁面圖片塞進 #printArea，列印時只顯示這裡 */
+#printArea { display: none; }
+@media print {
+  body.printing-hist * { visibility: hidden; }
+  body.printing-hist #printArea,
+  body.printing-hist #printArea * { visibility: visible; }
+  body.printing-hist #printArea {
+    display: block; position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0;
+  }
+  #printArea .print-page { page-break-after: always; }
+  #printArea .print-page:last-child { page-break-after: auto; }
+  #printArea img { width: 100%; display: block; }
+}
 </style>
 </head>
 <body>
+<div id="printArea"></div>
 
 <div class="toast" id="toast"></div>
 <div class="login-wrap" id="loginWrap">
@@ -470,14 +484,21 @@ input[type="time"].inp{min-width:0}
         </div>
         <div style="overflow-x:auto">
           <table class="tbl" id="histTbl">
-            <thead><tr><th style="min-width:200px">附件</th><th style="white-space:nowrap">匯出時間</th><th></th></tr></thead>
-            <tbody id="histTblBody"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:28px">
+            <thead><tr>
+              <th style="width:36px"><div class="chkbox on" id="chkAllHist" title="全選 / 全不選" onclick="toggleAllHist()"></div></th>
+              <th style="min-width:200px">附件</th><th style="white-space:nowrap">匯出時間</th><th></th>
+            </tr></thead>
+            <tbody id="histTblBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:28px">
               <div style="display:inline-flex;align-items:center;gap:10px;font-size:15px">
                 <div style="width:16px;height:16px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite"></div>
                 載入中...
               </div>
             </td></tr></tbody>
           </table>
+        </div>
+        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" id="btnBatchDlHist" onclick="batchDownloadHist()">💾 批次下載勾選</button>
+          <button class="btn btn-ghost btn-sm" id="btnBatchPrintHist" onclick="batchPrintHist()">🖨 批次列印勾選</button>
         </div>
       </div>
 </div>
@@ -4694,21 +4715,30 @@ function setFRRound(rid, i, val) {
 }
 
 // 從 DOM 收集外勤紀錄並存回 S.receipts
-function saveFRs(rid) {
+// mapUrl/mapUrlIdx：queryMapsFR 查完距離後，把該筆的靜態地圖網址一併存進對應 fieldRow，
+// 匯出附件二時可直接使用，不用重打一次 Directions API
+function saveFRs(rid, mapUrl, mapUrlIdx) {
   const r = S.receipts.find(x => x.id === rid);
   if (!r) return;
+  const prevRows = r.fieldRows || [];
   const cnt = _frCount[rid] || 0;
   const rows = [];
   for (let i = 0; i < cnt; i++) {
     if (!$(`fr-${rid}-${i}`)) continue;
+    const start = $(`fr-s-${rid}-${i}`)?.value || '';
+    const end   = $(`fr-e-${rid}-${i}`)?.value || '';
+    const prev  = prevRows[i];
+    // 起點/終點沒變就沿用先前存的地圖網址；有變就清掉，避免圖跟地址對不上
+    let mapUrlVal = (prev && prev.start === start && prev.end === end) ? (prev.mapUrl || '') : '';
+    if (mapUrl !== undefined && i === (mapUrlIdx ?? i)) mapUrlVal = mapUrl;
     rows.push({
       date:    $(`fr-d-${rid}-${i}`)?.value    || '',
       reason:  $(`fr-rsn-${rid}-${i}`)?.value  || '',
-      start:   $(`fr-s-${rid}-${i}`)?.value    || '',
-      end:     $(`fr-e-${rid}-${i}`)?.value    || '',
+      start, end,
       km:      parseFloat($(`fr-km-${rid}-${i}`)?.value) || 0,
       isRound: $(`fr-rnd-${rid}-${i}`)?.classList.contains('on') ?? true,
       remark:  $(`fr-rem-${rid}-${i}`)?.value  || '',
+      mapUrl:  mapUrlVal,
     });
   }
   r.fieldRows = rows;
@@ -4734,7 +4764,7 @@ async function queryMapsFR(rid, i) {
   const km = res.km || 0;
   if (kmEl)  kmEl.value = km;
   if (txtEl) txtEl.textContent = `${km} 公里`;
-  saveFRs(rid);
+  saveFRs(rid, res.staticMapUrl || '', i); // 一併存下地圖網址，匯出附件二時直接用、不用重打一次 Directions API
 }
 
 function setCat(id, cat) {
@@ -7498,11 +7528,13 @@ async function loadExportHistory(showToast) {
   }
   const rows = res.rows || [];
   if (cntEl) cntEl.textContent = rows.length + ' 筆';
+  S._histRows = rows; // 供批次下載使用
   if (!tbody) return;
   if (!rows.length) {
-    tbody.innerHTML = emptyRow(3, '此月份尚無匯出紀錄');
+    tbody.innerHTML = emptyRow(4, '此月份尚無匯出紀錄');
   } else {
-    tbody.innerHTML = rows.map(r => `<tr>
+    tbody.innerHTML = rows.map((r, i) => `<tr>
+      <td><div class="chkbox ${r.pdfUrl ? 'on' : ''}" id="hck-${i}" onclick="toggleHistRow(${i})" style="${r.pdfUrl ? '' : 'visibility:hidden'}"></div></td>
       <td style="font-size:14px;font-weight:700;min-width:200px">
         ${r.pdfUrl
           ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
@@ -7514,8 +7546,133 @@ async function loadExportHistory(showToast) {
         : ''}</td>
     </tr>`).join('');
   }
+  syncAllHistChk();
   flashNavSyncDone('expense');
   if (showToast) toast(`📋 載入 ${rows.length} 筆匯出紀錄`);
+}
+
+// ── 匯出紀錄：勾選框 + 批次下載 ─────────────────────────────────
+// 每列的勾選狀態就是 chkbox DOM 的 'on' class（沒有 pdfUrl 的列不可勾選、隱藏勾選框）
+function toggleHistRow(i) {
+  $('hck-' + i)?.classList.toggle('on');
+  syncAllHistChk();
+}
+
+function toggleAllHist() {
+  const master = $('chkAllHist');
+  if (!master) return;
+  const toOn = !master.classList.contains('on');
+  master.classList.toggle('on', toOn);
+  (S._histRows || []).forEach((r, i) => {
+    if (!r.pdfUrl) return; // 沒有 PDF 的列不受全選影響
+    $('hck-' + i)?.classList.toggle('on', toOn);
+  });
+}
+
+function syncAllHistChk() {
+  const master = $('chkAllHist');
+  if (!master) return;
+  const rows = S._histRows || [];
+  const withPdf = rows.map((r, i) => ({ r, i })).filter(x => x.r.pdfUrl);
+  const allOn = withPdf.length > 0 && withPdf.every(x => $('hck-' + x.i)?.classList.contains('on'));
+  master.classList.toggle('on', allOn);
+}
+
+// Drive 分享連結（.../file/d/FILEID/view...）取出 fileId
+function extractDriveFileId(shareUrl) {
+  const m = String(shareUrl || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+
+// 用既有的 getFileBase64 action 把 Drive 檔案抓回來組成 Blob（走自家 POST endpoint，不受
+// Drive 網域 CORS 限制，也不算瀏覽器的跨網域彈出視窗，不會觸發多檔下載擋窗）
+async function fetchDriveFileBlob(fileId) {
+  const res = await callGAS({ action: 'getFileBase64', fileId });
+  if (!res.success || !res.base64) return null;
+  const bin = atob(res.base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: res.mimeType || 'application/pdf' });
+}
+
+function pickedHistRows() {
+  const rows = S._histRows || [];
+  return rows
+    .map((r, i) => ({ r, i }))
+    .filter(x => x.r.pdfUrl && $('hck-' + x.i)?.classList.contains('on'))
+    .map(x => x.r);
+}
+
+// 批次下載勾選的匯出紀錄：逐一抓 Blob 觸發下載（本機 blob: 連結，不會被瀏覽器當成
+// 跨網域彈出視窗擋掉），下載完使用者可在檔案總管批次選取列印
+async function batchDownloadHist() {
+  const picked = pickedHistRows();
+  if (!picked.length) { toast('⚠️ 請先勾選要下載的 PDF'); return; }
+  toast(`⏳ 下載中 0/${picked.length}...`);
+  let ok = 0;
+  for (let i = 0; i < picked.length; i++) {
+    const fileId = extractDriveFileId(picked[i].pdfUrl);
+    const blob = fileId ? await fetchDriveFileBlob(fileId) : null;
+    if (!blob) continue;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (picked[i].label || 'PDF') + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    ok++;
+    toast(`⏳ 下載中 ${ok}/${picked.length}...`);
+  }
+  toast(ok === picked.length ? `✅ 已下載 ${ok} 個檔案` : `⚠️ 完成 ${ok}/${picked.length}，部分檔案抓取失敗`);
+}
+
+// 批次列印勾選的匯出紀錄：用 pdf.js 把每個 PDF 的每一頁渲染成圖片塞進 #printArea，
+// 一次呼叫 window.print()，瀏覽器就是單一個列印工作（要存成單一 PDF 的話，列印對話框
+// 選「另存為 PDF」就會把所有頁面合併成一個檔案，不需要在 GAS 端另外做 PDF 合併）
+async function batchPrintHist() {
+  const picked = pickedHistRows();
+  if (!picked.length) { toast('⚠️ 請先勾選要列印的 PDF'); return; }
+  if (typeof pdfjsLib === 'undefined') { toast('⚠️ PDF 預覽元件未載入，無法批次列印'); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const area = $('printArea');
+  area.innerHTML = '';
+  toast(`⏳ 排版中 0/${picked.length}...`);
+  let ok = 0, pageCount = 0;
+  for (let i = 0; i < picked.length; i++) {
+    const fileId = extractDriveFileId(picked[i].pdfUrl);
+    const blob = fileId ? await fetchDriveFileBlob(fileId) : null;
+    if (!blob) continue;
+    try {
+      const buf = await blob.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        const wrap = document.createElement('div');
+        wrap.className = 'print-page';
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL('image/jpeg', 0.92);
+        wrap.appendChild(img);
+        area.appendChild(wrap);
+        pageCount++;
+      }
+      ok++;
+    } catch (e) { console.warn('[batchPrintHist] 渲染失敗:', picked[i].label, e.message); }
+    toast(`⏳ 排版中 ${ok}/${picked.length}...`);
+  }
+  if (!pageCount) { toast('⚠️ 沒有成功轉換任何 PDF，無法列印'); area.innerHTML = ''; return; }
+  if (ok < picked.length) toast(`⚠️ ${picked.length - ok} 個檔案轉換失敗，將只列印其餘 ${ok} 個`);
+
+  document.body.classList.add('printing-hist');
+  const cleanup = () => { document.body.classList.remove('printing-hist'); area.innerHTML = ''; window.removeEventListener('afterprint', cleanup); };
+  window.addEventListener('afterprint', cleanup);
+  window.print();
 }
 
 // ════════════════════════════════════════════════════════════
