@@ -5140,38 +5140,86 @@ async function resolveDup(action) {
 // ════════════════════════════════════════════════════════════
 // renderPdfResultList — 顯示匯出 PDF 連結清單
 // ════════════════════════════════════════════════════════════
+// wrapId -> [{url,label}]：供本清單的勾選狀態、批次下載／列印使用（session記憶體，重整頁面即消失）
+const _ocrResultState = {};
+
 function renderPdfResultList(urls, labels, containerId) {
   if (!urls || !urls.length) return;
   // 移除舊的結果列表（同一個容器內）
   const wrapId = containerId ? `pdfResultList__${containerId}` : 'pdfResultList';
   $(wrapId)?.remove();
 
+  const items = urls.map((url, i) => ({ url, label: labels[i] || ('檔案 ' + (i + 1)) }));
+  _ocrResultState[wrapId] = items;
+
   const wrap = document.createElement('div');
   wrap.id = wrapId;
   wrap.style.cssText = 'margin-top:16px;display:flex;flex-direction:column;gap:8px;';
 
-  const title = document.createElement('div');
-  title.style.cssText = 'font-size:14px;font-weight:800;color:var(--green);margin-bottom:4px';
-  title.textContent = `✅ 已產生 ${urls.length} 份檔案，點擊連結開啟`;
-  wrap.appendChild(title);
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap';
 
-  urls.forEach((url, i) => {
-    const label = labels[i] || ('檔案 ' + (i + 1));
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:800;color:var(--green)';
+  title.textContent = `✅ 已產生 ${urls.length} 份檔案，點擊連結開啟`;
+  titleRow.appendChild(title);
+
+  // 全選 / 全不選（預設全選）
+  const masterChk = document.createElement('div');
+  masterChk.className = 'chkbox on';
+  masterChk.id = `ockAll__${wrapId}`;
+  masterChk.title = '全選 / 全不選';
+  masterChk.style.cssText = 'margin-left:auto';
+  masterChk.onclick = () => toggleAllOcrResult(wrapId);
+  const masterLabel = document.createElement('span');
+  masterLabel.style.cssText = 'font-size:13px;color:var(--muted)';
+  masterLabel.textContent = '全選';
+  titleRow.appendChild(masterChk);
+  titleRow.appendChild(masterLabel);
+  wrap.appendChild(titleRow);
+
+  items.forEach((item, i) => {
+    const rowWrap = document.createElement('div');
+    rowWrap.style.cssText = 'display:flex;align-items:center;gap:10px;';
+
+    const chk = document.createElement('div');
+    chk.className = 'chkbox on';
+    chk.id = `ock-${wrapId}-${i}`;
+    chk.title = '勾選';
+    chk.onclick = () => toggleOcrResultRow(wrapId, i);
+    rowWrap.appendChild(chk);
+
     const row = document.createElement('a');
-    row.href = url;
+    row.href = item.url;
     row.target = '_blank';
     row.rel = 'noopener noreferrer';
     row.style.cssText = `
-      display:flex;align-items:center;gap:10px;padding:10px 14px;
+      flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 14px;
       background:var(--surface);border:1px solid var(--border);border-radius:8px;
       color:var(--accent);font-size:14px;font-weight:700;text-decoration:none;
       transition:background .15s;
     `;
-    row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
+    row.innerHTML = `<span style="font-size:18px;flex-shrink:0">📄</span><span style="flex:1;min-width:0">${item.label}</span><span style="margin-left:auto;font-size:13px;flex-shrink:0;white-space:nowrap">↗ 開啟</span>`;
     row.onmouseover = () => row.style.background = 'rgba(37,99,235,.06)';
     row.onmouseout  = () => row.style.background = 'var(--surface)';
-    wrap.appendChild(row);
+    rowWrap.appendChild(row);
+
+    wrap.appendChild(rowWrap);
   });
+
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:4px';
+  const btnDl = document.createElement('button');
+  btnDl.className = 'btn btn-primary btn-sm';
+  btnDl.textContent = '💾 批次下載勾選';
+  btnDl.onclick = () => batchDownloadOcrResult(wrapId);
+  const btnPr = document.createElement('button');
+  btnPr.className = 'btn btn-ghost btn-sm';
+  btnPr.textContent = '🖨 批次列印勾選';
+  btnPr.onclick = () => batchPrintOcrResult(wrapId);
+  toolbar.appendChild(btnDl);
+  toolbar.appendChild(btnPr);
+  wrap.appendChild(toolbar);
 
   if (containerId) {
     const el = $(containerId);
@@ -5185,6 +5233,41 @@ function renderPdfResultList(urls, labels, containerId) {
   } else {
     $('ocrResults')?.appendChild(wrap);
   }
+}
+
+// ── OCR結果清單：勾選框 + 批次下載/列印（沿用「匯出紀錄」頁同一套邏輯，見下方通用函式）──
+function toggleOcrResultRow(wrapId, i) {
+  $(`ock-${wrapId}-${i}`)?.classList.toggle('on');
+  syncOcrResultAllChk(wrapId);
+}
+
+function toggleAllOcrResult(wrapId) {
+  const master = $(`ockAll__${wrapId}`);
+  if (!master) return;
+  const toOn = !master.classList.contains('on');
+  master.classList.toggle('on', toOn);
+  (_ocrResultState[wrapId] || []).forEach((_, i) => $(`ock-${wrapId}-${i}`)?.classList.toggle('on', toOn));
+}
+
+function syncOcrResultAllChk(wrapId) {
+  const master = $(`ockAll__${wrapId}`);
+  if (!master) return;
+  const items = _ocrResultState[wrapId] || [];
+  const allOn = items.length > 0 && items.every((_, i) => $(`ock-${wrapId}-${i}`)?.classList.contains('on'));
+  master.classList.toggle('on', allOn);
+}
+
+function pickedOcrResultRows(wrapId) {
+  const items = _ocrResultState[wrapId] || [];
+  return items.filter((_, i) => $(`ock-${wrapId}-${i}`)?.classList.contains('on'));
+}
+
+async function batchDownloadOcrResult(wrapId) {
+  return batchDownloadPdfList(pickedOcrResultRows(wrapId));
+}
+
+async function batchPrintOcrResult(wrapId) {
+  return batchPrintPdfList(pickedOcrResultRows(wrapId));
 }
 
 async function _doExport(skipStash = false) {
@@ -7603,46 +7686,45 @@ function pickedHistRows() {
     .map(x => x.r);
 }
 
-// 批次下載勾選的匯出紀錄：逐一抓 Blob 觸發下載（本機 blob: 連結，不會被瀏覽器當成
-// 跨網域彈出視窗擋掉），下載完使用者可在檔案總管批次選取列印
-async function batchDownloadHist() {
-  const picked = pickedHistRows();
-  if (!picked.length) { toast('⚠️ 請先勾選要下載的 PDF'); return; }
-  toast(`⏳ 下載中 0/${picked.length}...`);
+// ── 通用批次下載／列印：items 為 [{url,label}]，「匯出紀錄」頁與 OCR辨識匯出結果清單共用 ──
+// 批次下載：逐一抓 Blob 觸發下載（本機 blob: 連結，不會被瀏覽器當成跨網域彈出視窗擋掉），
+// 下載完使用者可在檔案總管批次選取列印
+async function batchDownloadPdfList(items) {
+  if (!items.length) { toast('⚠️ 請先勾選要下載的 PDF'); return; }
+  toast(`⏳ 下載中 0/${items.length}...`);
   let ok = 0;
-  for (let i = 0; i < picked.length; i++) {
-    const fileId = extractDriveFileId(picked[i].pdfUrl);
+  for (let i = 0; i < items.length; i++) {
+    const fileId = extractDriveFileId(items[i].url);
     const blob = fileId ? await fetchDriveFileBlob(fileId) : null;
     if (!blob) continue;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (picked[i].label || 'PDF') + '.pdf';
+    a.download = (items[i].label || 'PDF') + '.pdf';
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     ok++;
-    toast(`⏳ 下載中 ${ok}/${picked.length}...`);
+    toast(`⏳ 下載中 ${ok}/${items.length}...`);
   }
-  toast(ok === picked.length ? `✅ 已下載 ${ok} 個檔案` : `⚠️ 完成 ${ok}/${picked.length}，部分檔案抓取失敗`);
+  toast(ok === items.length ? `✅ 已下載 ${ok} 個檔案` : `⚠️ 完成 ${ok}/${items.length}，部分檔案抓取失敗`);
 }
 
-// 批次列印勾選的匯出紀錄：用 pdf.js 把每個 PDF 的每一頁渲染成圖片塞進 #printArea，
-// 一次呼叫 window.print()，瀏覽器就是單一個列印工作（要存成單一 PDF 的話，列印對話框
-// 選「另存為 PDF」就會把所有頁面合併成一個檔案，不需要在 GAS 端另外做 PDF 合併）
-async function batchPrintHist() {
-  const picked = pickedHistRows();
-  if (!picked.length) { toast('⚠️ 請先勾選要列印的 PDF'); return; }
+// 批次列印：用 pdf.js 把每個 PDF 的每一頁渲染成圖片塞進 #printArea，一次呼叫 window.print()，
+// 瀏覽器就是單一個列印工作（要存成單一 PDF 的話，列印對話框選「另存為 PDF」就會把所有頁面
+// 合併成一個檔案，不需要在 GAS 端另外做 PDF 合併）
+async function batchPrintPdfList(items) {
+  if (!items.length) { toast('⚠️ 請先勾選要列印的 PDF'); return; }
   if (typeof pdfjsLib === 'undefined') { toast('⚠️ PDF 預覽元件未載入，無法批次列印'); return; }
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   const area = $('printArea');
   area.innerHTML = '';
-  toast(`⏳ 排版中 0/${picked.length}...`);
+  toast(`⏳ 排版中 0/${items.length}...`);
   let ok = 0, pageCount = 0;
-  for (let i = 0; i < picked.length; i++) {
-    const fileId = extractDriveFileId(picked[i].pdfUrl);
+  for (let i = 0; i < items.length; i++) {
+    const fileId = extractDriveFileId(items[i].url);
     const blob = fileId ? await fetchDriveFileBlob(fileId) : null;
     if (!blob) continue;
     try {
@@ -7663,16 +7745,26 @@ async function batchPrintHist() {
         pageCount++;
       }
       ok++;
-    } catch (e) { console.warn('[batchPrintHist] 渲染失敗:', picked[i].label, e.message); }
-    toast(`⏳ 排版中 ${ok}/${picked.length}...`);
+    } catch (e) { console.warn('[batchPrintPdfList] 渲染失敗:', items[i].label, e.message); }
+    toast(`⏳ 排版中 ${ok}/${items.length}...`);
   }
   if (!pageCount) { toast('⚠️ 沒有成功轉換任何 PDF，無法列印'); area.innerHTML = ''; return; }
-  if (ok < picked.length) toast(`⚠️ ${picked.length - ok} 個檔案轉換失敗，將只列印其餘 ${ok} 個`);
+  if (ok < items.length) toast(`⚠️ ${items.length - ok} 個檔案轉換失敗，將只列印其餘 ${ok} 個`);
 
   document.body.classList.add('printing-hist');
   const cleanup = () => { document.body.classList.remove('printing-hist'); area.innerHTML = ''; window.removeEventListener('afterprint', cleanup); };
   window.addEventListener('afterprint', cleanup);
   window.print();
+}
+
+// 批次下載勾選的匯出紀錄
+async function batchDownloadHist() {
+  return batchDownloadPdfList(pickedHistRows().map(r => ({ url: r.pdfUrl, label: r.label })));
+}
+
+// 批次列印勾選的匯出紀錄
+async function batchPrintHist() {
+  return batchPrintPdfList(pickedHistRows().map(r => ({ url: r.pdfUrl, label: r.label })));
 }
 
 // ════════════════════════════════════════════════════════════
