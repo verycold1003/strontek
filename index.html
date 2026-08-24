@@ -5378,6 +5378,10 @@ async function _doExport(skipStash = false) {
       const urls   = res.urls   || (res.url   ? [res.url]   : []);
       const labels = res.labels || (res.label ? [res.label] : [`${month} ${person} 雜支申請`]);
       toast(`✅ PDF 已產生！共 ${urls.length} 份`);
+      // 記下本次匯出產生的 PDF 網址：之後若切到「匯出紀錄」頁，這些列會標「新產生」
+      // （session記憶體、不寫入後端，重新整理頁面後自動消失，跟其他地方的「新產生」邏輯一致）
+      S._justExportedUrls = S._justExportedUrls || new Set();
+      urls.forEach(u => S._justExportedUrls.add(u));
       renderPdfResultList(urls, labels);
     } else {
       toast('❌ ' + (res.error || '匯出失敗'));
@@ -7616,18 +7620,24 @@ async function loadExportHistory(showToast) {
   if (!rows.length) {
     tbody.innerHTML = emptyRow(4, '此月份尚無匯出紀錄');
   } else {
-    tbody.innerHTML = rows.map((r, i) => `<tr>
+    tbody.innerHTML = rows.map((r, i) => {
+      const isNew  = !!(r.pdfUrl && S._justExportedUrls && S._justExportedUrls.has(r.pdfUrl));
+      const newTag = isNew
+        ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 6px;margin-left:6px">新產生</span>`
+        : '';
+      return `<tr>
       <td><div class="chkbox ${r.pdfUrl ? 'on' : ''}" id="hck-${i}" onclick="toggleHistRow(${i})" style="${r.pdfUrl ? '' : 'visibility:hidden'}"></div></td>
       <td style="font-size:14px;font-weight:700;min-width:200px">
         ${r.pdfUrl
-          ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>`
+          ? `<a href="${r.pdfUrl}" target="_blank" style="color:var(--accent)">📄 ${r.label||'PDF'}</a>${newTag}`
           : `<span style="color:var(--muted)">📄 ${r.label||'PDF'}</span>`}
       </td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${r.exportedAt||''}</td>
       <td>${r.pdfUrl
         ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-ghost btn-sm">↗ 開啟</a>`
         : ''}</td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   }
   syncAllHistChk();
   flashNavSyncDone('expense');
@@ -7742,6 +7752,10 @@ async function batchPrintPdfList(items) {
         img.src = canvas.toDataURL('image/jpeg', 0.92);
         wrap.appendChild(img);
         area.appendChild(wrap);
+        // data URI 圖片指定 src 後，瀏覽器實際把像素畫出來是非同步的；
+        // 若最後一張圖片緊接著就呼叫 window.print()，可能來不及畫完就被截圖，
+        // 印出來變空白頁。用 decode() 等它真的畫完才繼續（失敗也不擋流程）。
+        await img.decode().catch(() => {});
         pageCount++;
       }
       ok++;
@@ -7750,6 +7764,10 @@ async function batchPrintPdfList(items) {
   }
   if (!pageCount) { toast('⚠️ 沒有成功轉換任何 PDF，無法列印'); area.innerHTML = ''; return; }
   if (ok < items.length) toast(`⚠️ ${items.length - ok} 個檔案轉換失敗，將只列印其餘 ${ok} 個`);
+
+  // 保險：decode() 完成後仍多等兩個 repaint frame 再印，避免排版/合成尚未真正
+  // flush 到畫面就被列印引擎捕捉到空白。
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   document.body.classList.add('printing-hist');
   const cleanup = () => { document.body.classList.remove('printing-hist'); area.innerHTML = ''; window.removeEventListener('afterprint', cleanup); };
