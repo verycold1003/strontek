@@ -1007,6 +1007,9 @@ input[type="time"].inp{min-width:0}
     </div>
   </div>
 
+  <!-- 採購/進貨/付款/傳票：尚在測試，由 CFG.FEATURE_FLAGS.financeDocs 控制顯示 -->
+  <div id="fin-docs-testing-section" style="display:none">
+
   <!-- 採購單列表 -->
   <div class="card" style="margin-top:16px">
     <div class="card-hd">🧾 採購單</div>
@@ -1069,7 +1072,10 @@ input[type="time"].inp{min-width:0}
     </div>
   </div>
 
-  <!-- 匯出紀錄 -->
+  </div>
+  <!-- /fin-docs-testing-section -->
+
+
   <div class="card" style="margin-top:16px">
     <div class="card-hd">🗂️ 匯出紀錄</div>
     <div style="overflow-x:auto">
@@ -1323,7 +1329,12 @@ input[type="time"].inp{min-width:0}
 // CONFIG
 // ════════════════════════════════════════════════════════════
 const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec',
+  // 尚在測試、避免影響正式區的功能開關：改成 true 才會在畫面上顯示。
+  FEATURE_FLAGS: {
+    financeDocs:   true, // 財務專區：採購單／進貨單／付款單／傳票
+    salesStaging:  true, // 專案管理：📦 銷貨暫存
+  },
 };
 
 // ════════════════════════════════════════════════════════════
@@ -5603,7 +5614,10 @@ function switchSection(name) {
     S._loaded.finance = true;
     loadFinance();
     loadExportHistoryList('fin-export-history-tbody', l => l === '專案財務報表');
-    loadDocExportLists();
+    if (CFG.FEATURE_FLAGS.financeDocs) {
+      const sec = $('fin-docs-testing-section'); if (sec) sec.style.display = '';
+      loadDocExportLists();
+    }
   }
   if (name === 'attendance') {
     if (!hasPermission('財務專區')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
@@ -6816,7 +6830,7 @@ function pjRenderDetail(p) {
         <div style="font-weight:700">🏢 業主端
           <span style="color:var(--muted);font-size:13px;font-weight:400;margin-left:6px">
             ${clientDone}/${clientItems.length} 期</span>
-          <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();pjOpenSalesStaging('${p.id}')">📦 銷貨暫存</button>
+          ${CFG.FEATURE_FLAGS.salesStaging ? `<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();pjOpenSalesStaging('${p.id}')">📦 銷貨暫存</button>` : ''}
         </div>
         <div style="font-weight:800;font-family:monospace">$${clientDoneAmt.toLocaleString()} / $${clientTotal.toLocaleString()}</div>
       </div>
