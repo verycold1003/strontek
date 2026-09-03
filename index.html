@@ -8176,20 +8176,24 @@ async function importAttendanceExcel(file) {
     if (!rows.length) throw new Error('打卡紀錄分頁沒有可用資料列');
 
     if (statusEl) statusEl.innerHTML = `⏳ 已解析 ${rows.length} 筆紀錄，計算加班費/餐費並產生報表中...`;
+    let fileData = '';
+    try { fileData = await toBase64(file); } catch (e) { /* 原始檔轉檔失敗不影響匯入，後端只是不會存這份原始檔 */ }
     const res = await callGAS({
       action: 'importAttendanceExcel',
       lineId: S.user?.lineId || '',
       sheetTabName, dateRangeLabel, rows,
+      fileData, fileName: file.name, mimeType: file.type || '',
     }, 110000);
 
     if (!res.success) throw new Error(res.error || '匯入失敗');
-    _attLastResult = { downloadUrl: res.downloadUrl || res.url, fileName: res.fileName || '', mealPdfUrl: res.mealPdfUrl || '' };
+    _attLastResult = { downloadUrl: res.downloadUrl || res.url, fileName: res.fileName || '', mealPdfUrl: res.mealPdfUrl || '', sourceFileUrl: res.sourceFileUrl || '' };
     if (statusEl) {
       statusEl.innerHTML = `✅ 匯入完成${res.fileName ? '（' + esc(res.fileName) + '）' : ''}` +
-        (res.mealPdfError ? `<br>⚠️ ${esc(res.mealPdfError)}` : '');
+        (res.mealPdfError ? `<br>⚠️ ${esc(res.mealPdfError)}` : '') +
+        (res.sourceFileError ? `<br>⚠️ ${esc(res.sourceFileError)}` : '');
     }
-    const urls   = [_attLastResult.downloadUrl, ...(_attLastResult.mealPdfUrl ? [_attLastResult.mealPdfUrl] : [])];
-    const labels = ['出勤統計 Excel', ...(_attLastResult.mealPdfUrl ? ['餐費支出申請 PDF'] : [])];
+    const urls   = [_attLastResult.downloadUrl, ...(_attLastResult.mealPdfUrl ? [_attLastResult.mealPdfUrl] : []), ...(_attLastResult.sourceFileUrl ? [_attLastResult.sourceFileUrl] : [])];
+    const labels = ['出勤統計 Excel', ...(_attLastResult.mealPdfUrl ? ['餐費支出申請 PDF'] : []), ...(_attLastResult.sourceFileUrl ? ['原始上傳檔（Drive備份）'] : [])];
     renderPdfResultList(urls, labels, 'att-import-result');
     toast('✅ 出勤統計已產生');
   } catch (e) {
