@@ -5296,6 +5296,21 @@ async function resolveDup(action) {
         const el = $('rc-' + rec.id);
         if (el) { el.outerHTML = rcHTML(rec); }
       }
+      // 覆蓋動作：後端已把「舊紀錄」那一列的『已刪除』欄位設為 true。
+      // 若該筆舊紀錄剛好也存在於本地清單（例如同一批次辨識出兩筆重複項目、
+      // 或舊紀錄本來就已載入畫面），要一併從 S.receipts 移除，
+      // 否則畫面上會留著一張後端已經標記刪除、實際上已作廢的舊卡片。
+      if (action === 'overwrite') {
+        const oldKey = String(r._duplicateOfKey || '').trim();
+        const beforeCount = S.receipts.length;
+        if (oldKey) {
+          S.receipts = S.receipts.filter(x => x.id === r.id || String(x.ocrKey || '').trim() !== oldKey);
+        }
+        if (S.receipts.length !== beforeCount) {
+          renderOCRResults();
+          updateStats();
+        }
+      }
     } else {
       toast('❌ 處理失敗：' + (res.error || '未知'));
     }
