@@ -899,13 +899,14 @@ input[type="time"].inp{min-width:0}
       </div>
     </div>
 
-    <div style="font-weight:700;font-size:14px;margin-bottom:8px">💰 業主端付款階段（訂金已列為第一期，非另外的預收款）</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:8px">💰 業主端付款階段（訂金已列為第一期，若有訂金會預設扣抵在最後一期）</div>
     <div style="overflow-x:auto;margin-bottom:6px">
       <table class="tbl" id="npd-owner-tbl">
         <thead><tr><th style="min-width:220px">付款條件</th><th style="width:130px">金額</th><th style="width:36px"></th></tr></thead>
         <tbody id="npd-owner-body"></tbody>
       </table>
     </div>
+    <div id="npd-total-check"></div>
     <button class="btn btn-ghost btn-sm" onclick="npdAddOwnerRow()" style="margin-bottom:18px">＋ 新增付款階段</button>
 
     <div style="font-weight:700;font-size:14px;margin-bottom:8px">🔧 設備明細</div>
@@ -1313,10 +1314,10 @@ input[type="time"].inp{min-width:0}
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Gemini 辨識到的發票號碼已存在於紀錄中，請確認如何處理</div>
     <div id="dupModalBody"></div>
     <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-danger" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5" id="btnDupOverwrite" onclick="resolveDup('overwrite')">
-        🔄 覆蓋舊紀錄<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">舊的標記刪除，沿用此發票號碼</span>
+      <button class="btn btn-danger" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5;box-shadow:0 0 0 2px var(--red)" id="btnDupOverwrite" onclick="resolveDup('overwrite')">
+        🔄 覆蓋舊紀錄（建議）<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">舊的標記刪除，沿用此發票號碼</span>
       </button>
-      <button class="btn btn-gold" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5" id="btnDupKeep" onclick="resolveDup('keepSerial')">
+      <button class="btn btn-ghost" style="flex:1;min-width:0;white-space:normal;height:auto;line-height:1.5" id="btnDupKeep" onclick="resolveDup('keepSerial')">
         🆕 新增流水號<br><span style="font-size:10px;font-weight:400;opacity:.8;white-space:normal">視為誤植，改用年月流水號</span>
       </button>
     </div>
@@ -3013,7 +3014,16 @@ async function runOCR() {
       });
       const items = res.items || [];
       items.forEach((item, idx) => {
-        const id = `${qf.id}_${idx}`;
+        let id = `${qf.id}_${idx}`;
+        // 重複發票（含「同一份檔案重新辨識」sameFile）一律要讓使用者看到確認視窗，
+        // 即使組出來的 id 跟先前已存在的卡片一樣（同一份 Drive 檔案重新辨識時必然如此），
+        // 也要用獨立 id 疊加一筆「幽靈項目」進 S.receipts，讓下面的重複確認流程收得到、
+        // 跳得出視窗；使用者確認完後 resolveDup() 的 sameFile 分支會自己移除這筆幽靈項目。
+        // 若在這裡直接用「id 已存在就跳過」擋掉，重複確認視窗永遠不會跳出來——這正是
+        // 「重新從已上傳的檔案再次辨識」時看不到提示視窗、只看到舊資料原地不動的原因。
+        if (item.isDuplicate && S.receipts.find(r => r.id === id)) {
+          id = `${id}_dup${Date.now()}${idx}`;
+        }
         if (!S.receipts.find(r => r.id===id)) {
           const rec = mkReceipt(id, qf, item, idx, true);
           // 套用佇列指定的歸屬
@@ -3317,7 +3327,7 @@ function renderOtherTab(otherReceipts) {
       <!-- 展開：辨識資訊 -->
       <div id="other-body-${r.id}" style="display:none;background:var(--surface2);border-radius:8px;margin-bottom:8px;padding:12px">
         <div class="fg4" style="margin-bottom:10px">
-          <div><label class="lbl">廠商</label>
+          <div><label class="lbl">採購商</label>
             <input class="inp" value="${esc(r.vendor)}"
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
@@ -3484,7 +3494,7 @@ function renderFuelTab(fuelReceipts) {
       <!-- 展開區塊 -->
       <div id="fuel-inv-body-${r.id}" style="display:none;padding:10px 0 14px;background:var(--surface2);border-radius:8px;margin-bottom:8px;padding:12px">
         <div class="fg4" style="margin-bottom:10px">
-          <div><label class="lbl">廠商</label>
+          <div><label class="lbl">採購商</label>
             <input class="inp" id="fi-vendor-${r.id}" value="${esc(r.vendor)}"
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
@@ -4362,8 +4372,8 @@ function rcHTML(r) {
       <div id="rc-edit-${r.id}" style="display:none;padding:14px;border-top:1px solid #ffcdd2;flex-direction:column;gap:10px">
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:140px">
-            <label class="lbl">廠商/說明</label>
-            <input class="inp" id="err-vendor-${r.id}" value="${r.vendor==='辨識失敗'?'':r.vendor}" placeholder="輸入廠商或說明"
+            <label class="lbl">採購商/說明</label>
+            <input class="inp" id="err-vendor-${r.id}" value="${r.vendor==='辨識失敗'?'':r.vendor}" placeholder="輸入採購商或說明"
               oninput="upR('${r.id}','vendor',this.value)">
           </div>
           <div style="width:110px">
@@ -4476,7 +4486,7 @@ function rcHTML(r) {
       <div style="padding:14px">
         <!-- 基本欄位 -->
         <div class="fg4" style="margin-bottom:12px">
-          <div><label class="lbl">廠商</label>
+          <div><label class="lbl">採購商</label>
             <input class="inp" value="${esc(r.vendor)}"
               onchange="upR('${r.id}','vendor',this.value);stashSingle('${r.id}')"></div>
           <div><label class="lbl">金額</label>
@@ -5139,6 +5149,10 @@ function nextDup() {
 
   renderDupModal(_dupCurrent);
   openModal('dupModal');
+  // 預設聚焦「覆蓋舊紀錄」：多數重複情況就是同一張發票被重複辨識，覆蓋是最常見的正確操作，
+  // 讓使用者可以直接按 Enter 確認；跨月／非同一申請人時該按鈕本身就是 disabled，聚焦也不會誤觸。
+  const btnOverwrite = $('btnDupOverwrite');
+  if (btnOverwrite && !btnOverwrite.disabled) setTimeout(() => btnOverwrite.focus(), 50);
 }
 
 function renderDupModal(r) {
@@ -5164,7 +5178,7 @@ function renderDupModal(r) {
     $('dupModalBody').innerHTML = `
       <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
         <div class="info-row">
-          <span style="color:var(--muted)">廠商</span>
+          <span style="color:var(--muted)">採購商</span>
           <span style="font-weight:700">${r.vendor}</span>
         </div>
         <div class="info-row">
@@ -5195,7 +5209,7 @@ function renderDupModal(r) {
   $('dupModalBody').innerHTML = `
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">
       <div class="info-row">
-        <span style="color:var(--muted)">廠商</span>
+        <span style="color:var(--muted)">採購商</span>
         <span style="font-weight:700">${r.vendor}</span>
       </div>
       <div class="info-row">
@@ -5509,6 +5523,14 @@ async function _doExport(skipStash = false) {
     return;
   }
 
+  // ── 匯出前再檢查一次發票號碼是否重複，攔住「重複時選了新增流水號卻忘記修正」的漏網之魚 ──
+  const dupInvoices = findDuplicateInvoiceNos([...fuelReceipts, ...otherReceipts]);
+  if (dupInvoices.length) {
+    showExportDupWarning(dupInvoices);
+    toast(`⚠️ 發現 ${dupInvoices.length} 組重複發票號碼，請先修正再匯出`);
+    return;
+  }
+
   // ── 先暫存，再匯出 ──────────────────────────────────────
   if (!skipStash) {
     toast('⏳ 暫存中...');
@@ -5746,6 +5768,8 @@ function npdOpenReview(parsed) {
     ownerJson: parsed.ownerJson || [],
     equipmentItems: parsed.equipmentItems || [],
     engineeringStages: parsed.engineeringStages || [],
+    prepay: parsed.prepay || { enabled:false, amount:0 },
+    invoiceTotal: parsed.totalCheck?.invoiceTotal ?? null,
   };
   $('npd-name').value = parsed.projectName || '';
   $('npd-note').value = parsed.note || '';
@@ -5759,12 +5783,40 @@ function npdOpenReview(parsed) {
   openModal('newProjDocModal');
 }
 
+// 重新分配訂金扣抵：固定扣在目前陣列的「最後一期」，其餘全部歸零
+// （新增/刪除付款階段列後呼叫，避免扣抵金額停留在被刪掉或已經不是最後一筆的那一列）
+function npdRecalcPrepayDeduct() {
+  const d = S._npdDraft;
+  d.ownerJson.forEach(s => { s.prepayDeduct = 0; });
+  if (d.prepay?.enabled && d.ownerJson.length) {
+    d.ownerJson[d.ownerJson.length - 1].prepayDeduct = d.prepay.amount;
+  }
+}
+
+function npdRenderTotalCheck() {
+  const box = $('npd-total-check');
+  if (!box) return;
+  const d = S._npdDraft;
+  if (d.invoiceTotal == null) { box.innerHTML = ''; return; }
+  const stages = d.prepay?.enabled ? d.ownerJson.slice(1) : d.ownerJson;
+  const stageSum = stages.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const diff = stageSum - d.invoiceTotal;
+  const ok = Math.abs(diff) <= 1;
+  box.innerHTML = `<div style="font-size:13px;padding:8px 12px;border-radius:8px;margin:8px 0;
+      background:${ok ? 'rgba(16,185,129,.1)' : 'rgba(220,38,38,.1)'};color:${ok ? '#059669' : 'var(--red)'}">
+    🔢 總計核對：${d.prepay?.enabled ? '（訂金以外）' : ''}各期加總 ${stageSum.toLocaleString()}　vs　合約總計 ${d.invoiceTotal.toLocaleString()}
+    　${ok ? '✅ 一致' : `⚠️ 不一致（差 ${diff.toLocaleString()}），請核對每期金額`}
+  </div>`;
+}
+
 function npdRenderRows() {
   $('npd-owner-body').innerHTML = S._npdDraft.ownerJson.map((s, i) => `<tr>
     <td><input class="inp" style="font-size:13px;padding:4px 6px" value="${esc(s.label)}" onchange="npdOwnerSet(${i},'label',this.value)"></td>
-    <td><input type="number" class="inp" style="font-size:13px;padding:4px 6px" value="${s.amount ?? ''}" placeholder="未拆分" onchange="npdOwnerSet(${i},'amount',this.value)"></td>
+    <td><input type="number" class="inp" style="font-size:13px;padding:4px 6px" value="${s.amount ?? ''}" placeholder="未拆分" onchange="npdOwnerSet(${i},'amount',this.value)">
+      ${s.prepayDeduct ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">扣抵訂金：${Number(s.prepayDeduct).toLocaleString()}</div>` : ''}</td>
     <td><button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="npdRemoveOwnerRow(${i})">✕</button></td>
   </tr>`).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:12px">（無付款階段，請手動新增）</td></tr>`;
+  npdRenderTotalCheck();
 
   $('npd-eq-body').innerHTML = S._npdDraft.equipmentItems.map((it, i) => `<tr>
     <td><input class="inp" style="font-size:13px;padding:4px 6px" value="${esc(it.itemName)}" onchange="npdEqSet(${i},'itemName',this.value)"></td>
@@ -5787,6 +5839,7 @@ function npdRenderRows() {
 function npdOwnerSet(i, key, val) {
   const s = S._npdDraft.ownerJson[i]; if (!s) return;
   s[key] = key === 'label' ? val : (val === '' ? null : Number(val) || 0);
+  if (key === 'amount') npdRenderTotalCheck();
 }
 function npdEqSet(i, key, val) {
   const it = S._npdDraft.equipmentItems[i]; if (!it) return;
@@ -5797,8 +5850,8 @@ function npdEngSet(i, key, val) {
   if (key === 'stageLabel') { st[key] = val; return; }
   st[key] = val === '' ? null : (Number(val) || 0);
 }
-function npdAddOwnerRow() { S._npdDraft.ownerJson.push({ label:'', amount:null, prepayDeduct:0, accepted:false, invoiced:false, invoiceDate:'', paid:false, payDate:'' }); npdRenderRows(); }
-function npdRemoveOwnerRow(i) { S._npdDraft.ownerJson.splice(i,1); npdRenderRows(); }
+function npdAddOwnerRow() { S._npdDraft.ownerJson.push({ label:'', amount:null, prepayDeduct:0, accepted:false, invoiced:false, invoiceDate:'', paid:false, payDate:'' }); npdRecalcPrepayDeduct(); npdRenderRows(); }
+function npdRemoveOwnerRow(i) { S._npdDraft.ownerJson.splice(i,1); npdRecalcPrepayDeduct(); npdRenderRows(); }
 function npdAddEqRow() { S._npdDraft.equipmentItems.push({ itemName:'', spec:'', qty:1, unit:'', unitPrice:0, amount:0 }); npdRenderRows(); }
 function npdRemoveEqRow(i) { S._npdDraft.equipmentItems.splice(i,1); npdRenderRows(); }
 function npdAddEngRow() { S._npdDraft.engineeringStages.push({ stageLabel:'', percent:0, contractAmount:null }); npdRenderRows(); }
@@ -5814,7 +5867,7 @@ async function npdConfirmCreate() {
   const res = await callGAS({
     action: 'createProjectFromDoc', lineId: S.user?.lineId ?? '',
     deptCode, projectName: name,
-    ownerJson: S._npdDraft.ownerJson, prepay: { enabled:false, amount:0 },
+    ownerJson: S._npdDraft.ownerJson, prepay: S._npdDraft.prepay || { enabled:false, amount:0 },
     note: $('npd-note').value || '',
     equipmentItems: S._npdDraft.equipmentItems, engineeringStages: S._npdDraft.engineeringStages,
   }, 30000);
@@ -6830,7 +6883,7 @@ function pjRenderDetail(p) {
         <div style="font-weight:700">🏢 業主端
           <span style="color:var(--muted);font-size:13px;font-weight:400;margin-left:6px">
             ${clientDone}/${clientItems.length} 期</span>
-          ${CFG.FEATURE_FLAGS.salesStaging ? `<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();pjOpenSalesStaging('${p.id}')">📦 銷貨暫存</button>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();pjOpenSalesStaging('${p.id}')">📦 銷貨暫存</button>
         </div>
         <div style="font-weight:800;font-family:monospace">$${clientDoneAmt.toLocaleString()} / $${clientTotal.toLocaleString()}</div>
       </div>
@@ -8462,6 +8515,52 @@ function showConfirm(msg, opts) {
     wrap.querySelector('#cfmOk').onclick = () => { wrap.remove(); resolve(true);  };
     wrap.querySelector('#cfmNo').onclick = () => { wrap.remove(); resolve(false); };
   });
+}
+
+// ── 匯出前檢查發票號碼是否重複 ──────────────────────────────
+// 背景：OCR 辨識當下的重複偵測（見 code.gs logOcrResults）只能攔到「辨識瞬間」
+// 已存在 Sheet 裡的重複；使用者若選擇「新增流水號」保留下來，之後卻忘記回頭修正
+// 發票號碼，這筆重複資料就會一路留到匯出。這裡在真正送出匯出前，針對「本次實際
+// 要匯出」的清單（含私車補助油資 + 其他費用）再做一次發票號碼比對，攔住這種漏網之魚。
+// 只比對「像統一發票號碼」格式（2碼英文+8碼數字，不分大小寫、忽略中間的「-」），
+// 「收據」、停車單號、儲值單號等非統一發票格式的備援字串不在此比對範圍內，
+// 避免把「大家都填收據」誤判成重複。
+const normInvoiceNo = v => String(v ?? '').trim().toUpperCase().replace(/[-\s]/g, '');
+const INVOICE_NO_RE = /^[A-Z]{2}\d{8}$/;
+
+function findDuplicateInvoiceNos(receipts) {
+  const groups = new Map(); // normInvoiceNo -> receipts[]
+  receipts.forEach(r => {
+    const n = normInvoiceNo(r.invoiceNo);
+    if (!INVOICE_NO_RE.test(n)) return;
+    if (!groups.has(n)) groups.set(n, []);
+    groups.get(n).push(r);
+  });
+  return [...groups.entries()].filter(([, list]) => list.length > 1);
+}
+
+function showExportDupWarning(dupGroups) {
+  const rowsHtml = dupGroups.map(([invNo, list]) => `
+    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-weight:700;color:var(--red);margin-bottom:6px" class="mono">發票號碼 ${invNo}（重複 ${list.length} 筆）</div>
+      ${list.map(r => `
+        <div style="font-size:13px;color:var(--muted);padding:2px 0">
+          ・${r.vendor || '（未命名）'}　$${(r.amount||0).toLocaleString()}　${r.date || '—'}
+        </div>`).join('')}
+    </div>`).join('');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-wrap';
+  wrap.style.cssText = 'display:flex;z-index:9999';
+  wrap.innerHTML = `
+    <div class="modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto">
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px">⚠️ 發現重複發票號碼</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">以下發票號碼在本次匯出清單中出現超過一次，請確認是否為重複申報，修正發票號碼或刪除多餘那筆後再重新匯出。</div>
+      ${rowsHtml}
+      <button class="btn btn-primary" id="expDupOk" style="width:100%;margin-top:8px">我知道了，去修正</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector('#expDupOk').onclick = () => wrap.remove();
 }
 
 // ════════════════════════════════════════════════════════════
