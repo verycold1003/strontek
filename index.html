@@ -944,6 +944,84 @@ input[type="time"].inp{min-width:0}
   </div>
 </div>
 
+<!-- 新增／編輯採購單（可從銷貨明細「轉採購單」帶入品項，也可在財務專區手動新增） -->
+<div class="modal-wrap" id="poModal">
+  <div class="modal-box" style="max-width:680px;max-height:88vh;overflow-y:auto">
+    <div style="font-weight:700;font-size:17px;margin-bottom:14px" id="po-title">🧾 新增採購單</div>
+    <div class="fg2" style="margin-bottom:12px">
+      <div>
+        <label class="lbl">專案代號 <span style="color:var(--danger)">*</span></label>
+        <select class="inp" id="po-project"><option value="">— 選擇專案 —</option></select>
+      </div>
+      <div>
+        <label class="lbl">廠商 <span style="color:var(--danger)">*</span></label>
+        <select class="inp" id="po-vendor"><option value="">— 選擇廠商 —</option></select>
+      </div>
+    </div>
+    <div class="fg2" style="margin-bottom:12px">
+      <div><label class="lbl">下單日期</label><input class="inp" type="date" id="po-order-date"></div>
+      <div><label class="lbl">預計到貨日</label><input class="inp" type="date" id="po-expected-date"></div>
+    </div>
+
+    <div style="font-weight:700;font-size:14px;margin-bottom:8px">品項明細</div>
+    <div style="overflow-x:auto;margin-bottom:6px">
+      <table class="tbl" id="po-items-tbl">
+        <thead><tr>
+          <th style="min-width:140px">品名</th><th style="min-width:90px">規格</th>
+          <th style="width:64px">數量</th><th style="width:56px">單位</th>
+          <th style="width:100px">單價</th><th style="width:110px">金額</th><th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="po-items-body"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="poAddItemRow()" style="margin-bottom:14px">＋ 新增品項</button>
+
+    <div style="margin-bottom:12px">
+      <label class="lbl">備註</label>
+      <textarea class="inp" id="po-note" rows="2"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="poMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('poModal')">取消</button>
+      <button class="btn btn-primary" onclick="poSubmit()">💾 儲存採購單</button>
+    </div>
+  </div>
+</div>
+
+<!-- 廠商付款申請（依採購單申請本次付款，匯出《廠商付款申請單》PDF，同時落一筆待付付款紀錄） -->
+<div class="modal-wrap" id="vpModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="font-weight:700;font-size:17px;margin-bottom:6px">💰 廠商付款申請</div>
+    <div id="vp-po-summary" style="font-size:13px;color:var(--muted);margin-bottom:14px"></div>
+
+    <div style="margin-bottom:10px">
+      <label class="lbl">本次付款金額 <span style="color:var(--danger)">*</span></label>
+      <input class="inp" type="number" id="vp-amount" min="0">
+    </div>
+    <div class="fg2" style="margin-bottom:10px">
+      <div><label class="lbl">付款日期</label><input class="inp" type="date" id="vp-pay-date"></div>
+      <div><label class="lbl">付款方式</label>
+        <select class="inp" id="vp-method">
+          <option value="現金">現金</option>
+          <option value="匯款/轉帳">匯款/轉帳</option>
+          <option value="支票">支票</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="lbl">說明</label>
+      <textarea class="inp" id="vp-note" rows="2" placeholder="特殊付款條件請於此備註"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="vpMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('vpModal')">取消</button>
+      <button class="btn btn-primary" onclick="vpSubmit()">🖨 匯出申請單</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ SECTION: 財務專區 ═══════════ -->
 <div class="app-section" id="sec-finance" style="overflow-x:auto">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -1013,7 +1091,10 @@ input[type="time"].inp{min-width:0}
 
   <!-- 採購單列表 -->
   <div class="card" style="margin-top:16px">
-    <div class="card-hd">🧾 採購單</div>
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px">
+      🧾 採購單
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="poOpenModal()">＋ 新增採購單</button>
+    </div>
     <div style="overflow-x:auto">
       <table class="tbl" id="fin-po-tbl">
         <thead><tr>
@@ -5798,13 +5879,20 @@ function npdOpenReview(parsed) {
   openModal('newProjDocModal');
 }
 
-// 重新分配訂金扣抵：固定扣在目前陣列的「最後一期」，其餘全部歸零
-// （新增/刪除付款階段列後呼叫，避免扣抵金額停留在被刪掉或已經不是最後一筆的那一列）
+// 重新分配訂金扣抵：從最後一期往前扣，每期最多扣到該期金額歸零（收款金額最小是0），
+// 扣不完的餘額往前一期繼續扣，以此類推。訂金那一筆（第一筆）本身不扣自己。
+// 跟後端 project-ocr.gs 的 _cascadePrepayDeduct 同一套規則，新增/刪除付款階段列或改金額後都要呼叫，
+// 避免扣抵金額停留在被刪掉、金額已改的舊分配上。
 function npdRecalcPrepayDeduct() {
   const d = S._npdDraft;
   d.ownerJson.forEach(s => { s.prepayDeduct = 0; });
-  if (d.prepay?.enabled && d.ownerJson.length) {
-    d.ownerJson[d.ownerJson.length - 1].prepayDeduct = d.prepay.amount;
+  if (!d.prepay?.enabled || d.ownerJson.length < 2) return;
+  let remaining = Number(d.prepay.amount) || 0;
+  for (let i = d.ownerJson.length - 1; i >= 1 && remaining > 0; i--) {
+    const amt = Number(d.ownerJson[i].amount) || 0;
+    const deduct = Math.min(amt, remaining);
+    d.ownerJson[i].prepayDeduct = deduct;
+    remaining -= deduct;
   }
 }
 
@@ -5854,7 +5942,7 @@ function npdRenderRows() {
 function npdOwnerSet(i, key, val) {
   const s = S._npdDraft.ownerJson[i]; if (!s) return;
   s[key] = key === 'label' ? val : (val === '' ? null : Number(val) || 0);
-  if (key === 'amount') npdRenderTotalCheck();
+  if (key === 'amount') { npdRecalcPrepayDeduct(); npdRenderRows(); }
 }
 function npdEqSet(i, key, val) {
   const it = S._npdDraft.equipmentItems[i]; if (!it) return;
@@ -5890,6 +5978,129 @@ async function npdConfirmCreate() {
   toast(`✅ 專案已建立：${res.id}${res.stagingId ? '（銷貨明細已存入待確認暫存）' : ''}`);
   closeModal('newProjDocModal');
   loadProjectList(false);
+}
+
+// ════════════════════════════════════════════════════════════
+// 採購單新增／編輯（poModal）：可從銷貨明細「轉採購單」帶入品項，
+// 也可在財務專區手動新增（此時 items 從空白開始）。
+// ════════════════════════════════════════════════════════════
+S._poDraft = { items: [] };
+
+// prefill: { projectId, items, vendorCode } 皆可省略；items 元素需含 itemName/spec/qty/unit/unitPrice/amount
+async function poOpenModal(prefill) {
+  prefill = prefill || {};
+  S._poDraft = { items: (prefill.items || []).map(it => ({ ...it })) };
+  $('po-title').textContent = '🧾 新增採購單';
+  $('poMsg').textContent = '';
+  $('po-note').value = '';
+  $('po-order-date').value = '';
+  $('po-expected-date').value = '';
+
+  const projSel = $('po-project');
+  const projects = ProjectStore.list();
+  projSel.innerHTML = '<option value="">— 選擇專案 —</option>' +
+    projects.map(p => `<option value="${esc(p.id)}">${esc(p.id)}　${esc(p.name)}</option>`).join('');
+  projSel.value = prefill.projectId || '';
+  projSel.disabled = !!prefill.projectId; // 從銷貨明細轉過來的，專案已經確定，不給改
+
+  const vendorSel = $('po-vendor');
+  vendorSel.innerHTML = '<option value="">載入中...</option>';
+  const vRes = await callGAS({ action:'searchVendors', lineId:S.user?.lineId??'' });
+  const vendors = vRes.success ? (vRes.vendors || []) : [];
+  vendorSel.innerHTML = '<option value="">— 選擇廠商 —</option>' +
+    vendors.map(v => `<option value="${esc(v.code)}">${esc(v.name)}</option>`).join('');
+  vendorSel.value = prefill.vendorCode || '';
+
+  poRenderItems();
+  openModal('poModal');
+}
+
+// 從「本期銷貨」勾選的設備/工程品項轉成採購單草稿——品名/數量/金額原樣帶入，
+// 單價/規格/單位設備品項有就帶、工程期別沒有單價概念所以整筆當一項、單價=金額。
+function poOpenFromSalesSelection() {
+  const { equipmentIds, projectStageIds } = spCollectCheckedSalesIds();
+  if (!equipmentIds.length && !projectStageIds.length) { toast('⚠️ 請先勾選至少一筆設備或工程品項'); return; }
+  const eqItems = (S._spEquipment || []).filter(r => equipmentIds.includes(r.id)).map(r => ({
+    itemName: r.item, spec: r.spec || '', qty: Number(r.qty) || 1, unit: r.unit || '',
+    unitPrice: Number(r.unitPrice) || Number(r.amount) || 0, amount: Number(r.amount) || 0,
+  }));
+  const stItems = (S._spStages || []).filter(r => projectStageIds.includes(r.id)).map(r => ({
+    itemName: r.stageLabel, spec: '', qty: 1, unit: '式',
+    unitPrice: Number(r.amount) || 0, amount: Number(r.amount) || 0,
+  }));
+  poOpenModal({ projectId: S._spCtx.projectId, items: [...eqItems, ...stItems] });
+}
+
+function poRenderItems() {
+  $('po-items-body').innerHTML = S._poDraft.items.map((it, i) => `<tr>
+    <td><input class="inp" style="font-size:13px;padding:4px 6px" value="${esc(it.itemName||'')}" onchange="poItemSet(${i},'itemName',this.value)"></td>
+    <td><input class="inp" style="font-size:13px;padding:4px 6px" value="${esc(it.spec||'')}" onchange="poItemSet(${i},'spec',this.value)"></td>
+    <td><input type="number" class="inp" style="font-size:13px;padding:4px 6px" value="${it.qty||0}" onchange="poItemSet(${i},'qty',this.value)"></td>
+    <td><input class="inp" style="font-size:13px;padding:4px 6px" value="${esc(it.unit||'')}" onchange="poItemSet(${i},'unit',this.value)"></td>
+    <td><input type="number" class="inp" style="font-size:13px;padding:4px 6px" value="${it.unitPrice||0}" onchange="poItemSet(${i},'unitPrice',this.value)"></td>
+    <td><input type="number" class="inp" style="font-size:13px;padding:4px 6px" value="${it.amount||0}" onchange="poItemSet(${i},'amount',this.value)"></td>
+    <td><button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="poRemoveItemRow(${i})">✕</button></td>
+  </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">（無品項，請新增）</td></tr>`;
+}
+function poItemSet(i, key, val) {
+  const it = S._poDraft.items[i]; if (!it) return;
+  it[key] = (key === 'itemName' || key === 'spec' || key === 'unit') ? val : (Number(val) || 0);
+}
+function poAddItemRow() { S._poDraft.items.push({ itemName:'', spec:'', qty:1, unit:'', unitPrice:0, amount:0 }); poRenderItems(); }
+function poRemoveItemRow(i) { S._poDraft.items.splice(i,1); poRenderItems(); }
+
+async function poSubmit() {
+  const projectId = $('po-project').value;
+  const vendorCode = $('po-vendor').value;
+  const msg = $('poMsg');
+  if (!projectId)  { msg.textContent = '⚠️ 請選擇專案';   msg.style.color = 'var(--red)'; return; }
+  if (!vendorCode) { msg.textContent = '⚠️ 請選擇廠商';   msg.style.color = 'var(--red)'; return; }
+  if (!S._poDraft.items.length) { msg.textContent = '⚠️ 請至少新增一筆品項'; msg.style.color = 'var(--red)'; return; }
+  msg.textContent = '儲存中...'; msg.style.color = 'var(--muted)';
+  const res = await callGAS({
+    action: 'savePurchaseOrder', lineId: S.user?.lineId ?? '', isNew: true,
+    projectId, vendorCode,
+    orderDate: $('po-order-date').value, expectedDate: $('po-expected-date').value,
+    items: S._poDraft.items, note: $('po-note').value || '',
+  });
+  if (!res.success) { msg.textContent = '❌ ' + (res.error||'儲存失敗'); msg.style.color = 'var(--red)'; return; }
+  toast(`✅ 採購單已建立：${res.id}`);
+  closeModal('poModal');
+  if (typeof loadDocExportLists === 'function') loadDocExportLists();
+}
+
+// ════════════════════════════════════════════════════════════
+// 廠商付款申請（vpModal）：依採購單申請本次付款，匯出《廠商付款申請單》PDF，
+// 同時後端會落一筆「待付」的付款紀錄——財會實際撥款後記得到付款列表切成「已付」。
+// ════════════════════════════════════════════════════════════
+function vpOpenModal(poId) {
+  const po = (S._poList || []).find(p => p.id === poId);
+  if (!po) { toast('❌ 找不到這張採購單'); return; }
+  S._vpPoId = poId;
+  $('vp-po-summary').innerHTML = `採購單 <b>${esc(po.id)}</b>　廠商代號 ${esc(po.vendorCode)}<br>合約金額 $${po.amount.toLocaleString()}`;
+  $('vp-amount').value = '';
+  $('vp-pay-date').value = todayStr();
+  $('vp-method').value = '現金';
+  $('vp-note').value = '';
+  $('vpMsg').textContent = '';
+  openModal('vpModal');
+}
+
+async function vpSubmit() {
+  const amount = Number($('vp-amount').value) || 0;
+  const msg = $('vpMsg');
+  if (amount <= 0) { msg.textContent = '⚠️ 請輸入本次付款金額'; msg.style.color = 'var(--red)'; return; }
+  msg.textContent = '匯出中...'; msg.style.color = 'var(--muted)';
+  const res = await callGAS({
+    action: 'exportVendorPaymentRequest', lineId: S.user?.lineId ?? '',
+    poId: S._vpPoId, amount, payDate: $('vp-pay-date').value,
+    method: $('vp-method').value, note: $('vp-note').value || '',
+  });
+  if (!res.success) { msg.textContent = '❌ ' + (res.error||'匯出失敗'); msg.style.color = 'var(--red)'; return; }
+  toast('✅ 已匯出申請單，並登錄一筆待付付款紀錄');
+  closeModal('vpModal');
+  window.open(res.url, '_blank');
+  if (typeof loadDocExportLists === 'function') loadDocExportLists();
 }
 
 // 部門下拉選單變更時：登入者不是私車補助部門就隱藏補助類型整塊、清空成空白；
@@ -7396,6 +7607,7 @@ function spRenderSalesToolbar() {
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <button class="btn btn-secondary btn-sm" onclick="spOpenExportModal('salesOrder')">🖨 匯出銷貨單（勾選品項）</button>
     <button class="btn btn-secondary btn-sm" onclick="spOpenExportModal('invoiceRequest')">📝 開立發票申請單（勾選品項）</button>
+    <button class="btn btn-secondary btn-sm" onclick="poOpenFromSalesSelection()">🔄 轉採購單（勾選品項）</button>
   </div>`;
 }
 
@@ -7467,7 +7679,8 @@ function spRenderEquipmentBlock() {
       .reduce((s,x)=>s+(Number(x.qty)||0),0);
     const invoiceHtml = r.invoiceStatus === '未申請'
       ? `<button class="btn btn-ghost btn-sm" onclick="spRequestInvoice('equipment','${r.id}')">🧾 申請開立發票</button>`
-      : `<span class="badge ${r.invoiceStatus==='已開立'?'bd-green':'bd-orange'}">${esc(r.invoiceStatus)}${r.invoiceNo?' '+esc(r.invoiceNo):''}</span>`;
+      : `<span class="badge ${r.invoiceStatus==='已開立'?'bd-green':'bd-orange'}">${esc(r.invoiceStatus)}${r.invoiceNo?' '+esc(r.invoiceNo):''}</span>` +
+        (r.invoicePdfUrl ? `<a href="${esc(r.invoicePdfUrl)}" target="_blank" class="btn btn-ghost btn-sm">📄 開立發票申請單PDF</a>` : '');
     return `<div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px">
         <span style="font-weight:700"><input type="checkbox" class="sp-eq-chk" value="${esc(r.id)}" style="margin-right:6px">${esc(r.item)}${r.spec?`（${esc(r.spec)}）`:''}</span>
@@ -7556,7 +7769,8 @@ function spRenderStageBlock() {
     const mismatch  = Math.abs(expected - (Number(s.amount)||0)) > 1;
     const invoiceHtml = s.invoiceStatus === '未申請'
       ? `<button class="btn btn-ghost btn-sm" onclick="spRequestInvoice('project','${s.id}')">🧾 申請開立發票</button>`
-      : `<span class="badge ${s.invoiceStatus==='已開立'?'bd-green':'bd-orange'}">${esc(s.invoiceStatus)}${s.invoiceNo?' '+esc(s.invoiceNo):''}</span>`;
+      : `<span class="badge ${s.invoiceStatus==='已開立'?'bd-green':'bd-orange'}">${esc(s.invoiceStatus)}${s.invoiceNo?' '+esc(s.invoiceNo):''}</span>` +
+        (s.invoicePdfUrl ? `<a href="${esc(s.invoicePdfUrl)}" target="_blank" class="btn btn-ghost btn-sm">📄 開立發票申請單PDF</a>` : '');
     return `<div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px">
         <span style="font-weight:700"><input type="checkbox" class="sp-st-chk" value="${esc(s.id)}" style="margin-right:6px">${esc(s.stageLabel)}</span>
@@ -8051,7 +8265,10 @@ function renderPoList() {
     <td style="white-space:nowrap">${esc(r.orderDate)}</td>
     <td style="font-family:monospace;white-space:nowrap">$${r.amount.toLocaleString()}</td>
     <td><span class="badge bd-muted">${esc(r.status)}</span></td>
-    <td><button class="btn btn-secondary btn-sm" onclick="exportDoc('exportPurchaseOrder',{id:'${esc(r.id)}'})">🖨 匯出</button></td>
+    <td>
+      <button class="btn btn-secondary btn-sm" onclick="exportDoc('exportPurchaseOrder',{id:'${esc(r.id)}'})">🖨 匯出</button>
+      <button class="btn btn-secondary btn-sm" onclick="vpOpenModal('${esc(r.id)}')">💰 申請付款</button>
+    </td>
   </tr>`).join('');
 }
 
