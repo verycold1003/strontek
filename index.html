@@ -265,6 +265,11 @@ input[type="time"].inp{min-width:0}
   .modal-box::before{content:'';display:block;width:36px;height:4px;
     background:var(--border2);border-radius:2px;margin:0 auto 16px;opacity:.6}
 }
+/* 專案新增/編輯整頁模式：表單掛在頁面主體，不受彈窗寬高限制 */
+.modal-box.page-mode{width:100%!important;max-width:1100px!important;max-height:none!important;overflow:visible!important;
+  margin:0 auto;border-radius:16px!important;animation:none!important;padding:28px!important;position:static!important}
+.modal-box.page-mode::before{display:none!important}
+@media(min-width:900px){.modal-box.page-mode .fg2{grid-template-columns:1fr 1fr 1fr!important}}
 @keyframes slideUp{
   from{transform:translateY(30px);opacity:0}
   to{transform:translateY(0);opacity:1}
@@ -506,9 +511,9 @@ input[type="time"].inp{min-width:0}
 <!-- ═══════════ SECTION: 專案 ═══════════ -->
 <div class="app-section" id="sec-project">
   <div class="pg-title">🗂 專案管理</div>
-  <div id="proj-current-display" style="margin-bottom:14px"></div>
+  <div id="proj-current-display" style="margin-bottom:12px"></div>
+  <div style="margin-bottom:14px;position:relative" id="proj-switch-fd-wrap"></div>
   <div id="projBoard"></div>
-  <div style="margin-top:18px;position:relative" id="proj-switch-fd-wrap"></div>
 </div>
 
 <!-- ═══════════ SECTION: 待辦 ═══════════ -->
@@ -575,7 +580,7 @@ input[type="time"].inp{min-width:0}
         <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" id="projShowClosed" onchange="renderProjectList(S._projListRaw||[])"> 顯示已結案
         </label>
-        <button class="btn btn-primary btn-sm" onclick="openProjectModal(null)">➕ 新增專案</button>
+        <button class="btn btn-primary btn-sm" onclick="openProjectDetailNewTab('_new','projNew')">➕ 新增專案</button>
         <input type="file" id="new-proj-doc-file" accept="application/pdf,image/jpeg,image/png,image/webp"
           style="display:none" onchange="onNewProjectDocSelected(event)">
         <button class="btn btn-secondary btn-sm" onclick="$('new-proj-doc-file').click()">📄 上傳業主回簽合約，自動新增專案</button>
@@ -643,6 +648,45 @@ input[type="time"].inp{min-width:0}
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION: 廠商資料 / 業主資料（財務專區） ═══════════ -->
+<div class="app-section" id="sec-vendors" style="overflow-x:auto">
+  <div class="pg-title">🏭 廠商資料設定</div>
+  <div class="card">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      廠商列表 <span class="badge bd-muted" id="party-cnt-vendors"></span>
+      <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="party-showdel-vendors" onchange="renderPartyTable('vendors')"> 顯示已刪除
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="openPartyModal('vendors', null)">➕ 新增廠商</button>
+    </div>
+    <div style="overflow-x:auto"><table class="tbl"><thead id="party-thead-vendors"></thead><tbody id="party-tbody-vendors"></tbody></table></div>
+  </div>
+</div>
+<div class="app-section" id="sec-owners" style="overflow-x:auto">
+  <div class="pg-title">🏢 業主資料設定</div>
+  <div class="card">
+    <div class="card-hd" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      業主列表 <span class="badge bd-muted" id="party-cnt-owners"></span>
+      <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="party-showdel-owners" onchange="renderPartyTable('owners')"> 顯示已刪除
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="openPartyModal('owners', null)">➕ 新增業主</button>
+    </div>
+    <div style="overflow-x:auto"><table class="tbl"><thead id="party-thead-owners"></thead><tbody id="party-tbody-owners"></tbody></table></div>
+  </div>
+</div>
+<div class="modal-wrap" id="partyModal">
+  <div class="modal-box" style="max-width:520px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="partyModal-title"></div>
+    <div id="partyModal-fields"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <span id="partyMsg" style="font-size:13px;margin-right:auto"></span>
+      <button class="btn btn-ghost" onclick="closeModal('partyModal')">取消</button>
+      <button class="btn btn-primary" id="partySaveBtn" onclick="savePartyModal()">💾 儲存</button>
     </div>
   </div>
 </div>
@@ -753,7 +797,12 @@ input[type="time"].inp{min-width:0}
           <option value="">— 選擇部門 —</option>
         </select>
       </div>
+      <div>
+        <label class="lbl">業主</label>
+        <select class="inp" id="np-owner"><option value="">— 未指定 —</option></select>
+      </div>
     </div>
+    <datalist id="np-vendor-datalist"></datalist>
     <div style="margin-bottom:14px" id="np-subsidy-row">
       <div style="margin-bottom:10px">
         <label class="lbl">私車公用補助類型</label>
@@ -809,17 +858,28 @@ input[type="time"].inp{min-width:0}
          儲存時跟上面的基本資料合併成一次 addProject/updateProject 送出）
          拆成兩個 section：先「業主端」，再「協力廠商端」（可多家，各自獨立分期）-->
     <div style="margin-bottom:14px;border-top:1px solid var(--border);padding-top:16px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:12px">🏢 業主端分期</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px">🏢 業主端分期</div>
+        <button type="button" class="btn btn-ghost btn-sm js-np-party-btn" style="margin-left:auto;display:none"
+          onclick="openAppTabNewTab('owners')" title="另開新分頁編輯業主資料">⚙️ 業主資料設定</button>
+      </div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
         <div id="np-client-editor"></div>
       </div>
     </div>
 
     <div style="margin-bottom:14px;border-top:1px solid var(--border);padding-top:16px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:12px">🚚 協力廠商端分期</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px">🚚 協力廠商端分期</div>
+        <button type="button" class="btn btn-ghost btn-sm js-np-party-btn" style="margin-left:auto;display:none"
+          onclick="openAppTabNewTab('vendors')" title="另開新分頁編輯廠商資料">⚙️ 廠商資料設定</button>
+        <button type="button" class="btn btn-secondary btn-sm js-np-party-btn" style="display:none"
+          onclick="npVendorQuoteStart()" title="上傳廠商議價單，AI 辨識後自動新增採購品項明細">📄 上傳廠商議價單</button>
+        <input type="file" id="np-vendor-quote-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="npVendorQuoteSelected(event)">
+      </div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
         <div style="display:flex;gap:8px;margin-bottom:14px">
-          <input class="inp" id="np-new-vendor" placeholder="協力廠商名稱" style="flex:1"
+          <input class="inp" id="np-new-vendor" list="np-vendor-datalist" placeholder="輸入或選擇協力廠商（可選自廠商資料）" style="flex:1"
             onkeydown="if(event.key==='Enter'){event.preventDefault();npAddVendorQuick()}">
           <button type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="npAddVendorQuick()">＋ 新增協力廠商</button>
         </div>
@@ -829,7 +889,7 @@ input[type="time"].inp{min-width:0}
 
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
       <span id="npMsg" style="font-size:13px;margin-right:auto"></span>
-      <button class="btn btn-ghost" onclick="closeModal('projectModal')">取消</button>
+      <button class="btn btn-ghost" onclick="cancelProjectModal()">取消</button>
       <button class="btn btn-primary" id="btnAddProj" onclick="saveProjectModal()">💾 儲存</button>
     </div>
   </div>
@@ -1301,6 +1361,8 @@ input[type="time"].inp{min-width:0}
       <button class="navmenu-item" onclick="openSettingsModal()">⚙️ 專案設定</button>
       <button class="navmenu-item" id="navFinanceBtn" onclick="switchSection('finance');closeNavMenu()" style="display:none">💰 財務專區</button>
       <button class="navmenu-item" id="navAttendanceBtn" onclick="switchSection('attendance');closeNavMenu()" style="display:none">🕒 出勤統計</button>
+      <button class="navmenu-item" id="navOwnersBtn" onclick="switchSection('owners');closeNavMenu()" style="display:none">🏢 業主資料</button>
+      <button class="navmenu-item" id="navVendorsBtn" onclick="switchSection('vendors');closeNavMenu()" style="display:none">🏭 廠商資料</button>
       <div class="navmenu-sep" id="navSecSepAdmin"></div>
       <div class="nav-sec" id="navSecAdmin">管理</div>
       <button class="navmenu-item" id="navSysadminBtn" onclick="switchSection('sysadmin');closeNavMenu()" style="display:none">🛠 系統管理</button>
@@ -1649,7 +1711,7 @@ let _lineConfig = null; // { channelId, redirectUri, liffId }
 
 // 深層連結：?tab=expense 之類的參數，在網址被登入流程清掉之前先記下來，
 // 供 finishLogin() 決定登入後要切到哪個分頁（支援值見 VALID_TAB_SECTIONS）
-const VALID_TAB_SECTIONS = ['project','expense','todo','summary','proj-settings','finance','sysadmin'];
+const VALID_TAB_SECTIONS = ['project','expense','todo','summary','proj-settings','finance','sysadmin','vendors','owners'];
 // 會計科目：私車補助類（category==='私車補助'）一律自動歸「燃料費」；其餘六個由 Gemini 分類，AI 判斷不出來保底「其他」
 const ACCT_TYPES = ['停車費','燃料費','車輛保養費','耗材費','零件材料費','維修工具','其他'];
 let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
@@ -1657,19 +1719,150 @@ let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
 // 這兩個參數跟 _pendingTab 一樣要撐過 LINE OAuth 轉一手（見 state 編碼那段）才不會遺失
 let _pendingView      = new URLSearchParams(window.location.search).get('view') || '';
 let _pendingProjectId = new URLSearchParams(window.location.search).get('projectId') || '';
-const VALID_DETAIL_VIEWS = ['projSales', 'projPurchase', 'projReceipt', 'projEdit'];
+const VALID_DETAIL_VIEWS = ['projSales', 'projPurchase', 'projReceipt', 'projEdit', 'projNew', 'projProgress'];
 
-function openProjectDetailNewTab(projectId, view) {
-  const base = (_lineConfig?.liffId && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+function _appBaseUrl() {
+  return (_lineConfig?.liffId && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
     ? `https://liff.line.me/${_lineConfig.liffId}`
     : window.location.href.split('?')[0];
-  const url = `${base}?view=${view}&projectId=${encodeURIComponent(projectId)}`;
-  window.open(url, '_blank');
 }
+function openProjectDetailNewTab(projectId, view) {
+  window.open(`${_appBaseUrl()}?view=${view}&projectId=${encodeURIComponent(projectId)}`, '_blank');
+}
+// 開「業主資料／廠商資料」設定頁（?tab=owners / ?tab=vendors）
+function openAppTabNewTab(tab) {
+  window.open(`${_appBaseUrl()}?tab=${encodeURIComponent(tab)}`, '_blank');
+}
+
+// ════════════════════════════════════════════════════════════
+// 跨分頁登入狀態：新分頁（?view= / ?tab= 深層連結）直接沿用同瀏覽器已登入的身分，不再重新登入。
+// localStorage 同網域各分頁共用；只在「帶深層連結參數」時才還原，一般開網頁仍維持原本登入流程。
+// 後端每個 action 本來就以 lineId 驗證權限，這裡只是把前端已登入的身分帶過去。
+// ════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════
+// 業主資料 / 廠商資料設定（財務專區）— 兩頁共用同一組列表＋編輯彈窗邏輯
+// ════════════════════════════════════════════════════════════
+const PARTY_CFG = {
+  vendors: {
+    label: '廠商', getAction: 'getVendorsAdmin', listKey: 'vendors', saveAction: 'saveVendorAdmin', delAction: 'deleteVendorAdmin',
+    fields: [
+      { k:'name', t:'廠商名稱', req:true }, { k:'taxId', t:'統一編號' }, { k:'contact', t:'聯絡人' }, { k:'phone', t:'電話' },
+      { k:'bankName', t:'匯款銀行' }, { k:'bankAccountName', t:'匯款帳戶名稱' }, { k:'bankAccount', t:'匯款帳號' },
+    ],
+    cols: ['code','name','taxId','contact','phone','bankName','bankAccount'],
+  },
+  owners: {
+    label: '業主', getAction: 'getOwnersAdmin', listKey: 'owners', saveAction: 'saveOwnerAdmin', delAction: 'deleteOwnerAdmin',
+    fields: [
+      { k:'name', t:'業主名稱', req:true }, { k:'taxId', t:'統一編號' }, { k:'contact', t:'聯絡人' }, { k:'phone', t:'電話' },
+      { k:'email', t:'Email' }, { k:'address', t:'地址' },
+    ],
+    cols: ['code','name','taxId','contact','phone','email','address'],
+  },
+};
+const PARTY_COL_TITLES = { code:'代號', name:'名稱', taxId:'統編', contact:'聯絡人', phone:'電話', bankName:'匯款銀行', bankAccount:'匯款帳號', email:'Email', address:'地址' };
+const _partyData = { vendors: [], owners: [] };
+let _partyEditing = null; // { kind, row|null }
+const escH = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+async function loadParty(kind) {
+  const c = PARTY_CFG[kind];
+  const tb = $('party-tbody-' + kind);
+  if (tb) tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">載入中...</td></tr>`;
+  const res = await callGAS({ action: c.getAction, lineId: S.user?.lineId ?? '' });
+  if (!res.success) {
+    if (tb) tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:24px">❌ ${escH(res.error || '載入失敗')}</td></tr>`;
+    return;
+  }
+  _partyData[kind] = res[c.listKey] || [];
+  renderPartyTable(kind);
+}
+
+function renderPartyTable(kind) {
+  const c = PARTY_CFG[kind];
+  const showDel = !!$('party-showdel-' + kind)?.checked;
+  const rows = _partyData[kind].filter(r => showDel || !r.deleted);
+  $('party-cnt-' + kind).textContent = rows.length + ' 筆';
+  $('party-thead-' + kind).innerHTML = '<tr>' + c.cols.map(k => `<th style="white-space:nowrap">${PARTY_COL_TITLES[k]}</th>`).join('') + '<th style="white-space:nowrap">操作</th></tr>';
+  const tb = $('party-tbody-' + kind);
+  if (!rows.length) { tb.innerHTML = `<tr><td colspan="${c.cols.length + 1}" style="text-align:center;color:var(--muted);padding:24px">尚無資料</td></tr>`; return; }
+  tb.innerHTML = rows.map(r => {
+    const idx = _partyData[kind].indexOf(r);
+    const dim = r.deleted ? 'opacity:.5' : '';
+    return `<tr style="${dim}">` + c.cols.map(k => `<td style="white-space:nowrap">${escH(r[k])}${k==='name' && r.deleted ? ' <span class="badge bd-muted">已刪除</span>' : ''}</td>`).join('') +
+      `<td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openPartyModal('${kind}',${idx})">✏️ 編輯</button> ` +
+      `<button class="btn btn-ghost btn-sm" onclick="togglePartyDeleted('${kind}',${idx})">${r.deleted ? '↩️ 還原' : '🗑 刪除'}</button></td></tr>`;
+  }).join('');
+}
+
+function openPartyModal(kind, idx) {
+  const c = PARTY_CFG[kind];
+  const row = idx === null ? null : _partyData[kind][idx];
+  _partyEditing = { kind, row };
+  $('partyModal-title').textContent = (row ? '✏️ 編輯' : '➕ 新增') + c.label + (row ? '：' + row.code : '');
+  $('partyModal-fields').innerHTML = c.fields.map(f => `<div style="margin-bottom:12px">
+      <label class="lbl">${f.t}${f.req ? ' <span style="color:var(--danger)">*</span>' : ''}</label>
+      <input class="inp" id="pf-${f.k}" value="${escH(row ? row[f.k] : '')}"></div>`).join('');
+  $('partyMsg').textContent = '';
+  openModal('partyModal');
+}
+
+async function savePartyModal() {
+  const { kind, row } = _partyEditing || {};
+  if (!kind) return;
+  const c = PARTY_CFG[kind];
+  const payload = { action: c.saveAction, lineId: S.user?.lineId ?? '', isNew: !row, rowIndex: row ? row.rowIndex : undefined };
+  c.fields.forEach(f => { payload[f.k] = ($('pf-' + f.k)?.value || '').trim(); });
+  const msg = $('partyMsg');
+  if (!payload.name) { msg.textContent = `⚠️ 請填寫${c.label}名稱`; msg.style.color = 'var(--red)'; return; }
+  setBtnLoading('partySaveBtn', true, '儲存中...');
+  const res = await callGAS(payload);
+  setBtnLoading('partySaveBtn', false, '💾 儲存');
+  if (!res.success) { msg.textContent = '❌ ' + (res.error || '儲存失敗'); msg.style.color = 'var(--red)'; return; }
+  toast('✅ 已儲存');
+  _dirtyModals.delete('partyModal');
+  closeModal('partyModal');
+  loadParty(kind);
+}
+
+async function togglePartyDeleted(kind, idx) {
+  const c = PARTY_CFG[kind];
+  const r = _partyData[kind][idx]; if (!r) return;
+  if (!r.deleted && !(await showConfirm(`確定刪除${c.label}「${esc(r.name)}」？（為註記刪除，可在「顯示已刪除」中還原）`))) return;
+  const res = await callGAS({ action: c.delAction, lineId: S.user?.lineId ?? '', code: r.code, deleted: !r.deleted });
+  if (!res.success) { toast('❌ ' + (res.error || '操作失敗')); return; }
+  loadParty(kind);
+}
+
+const SESSION_KEY = 'pm_session_v1';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 小時
+function saveSession(person) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ person, ts: Date.now() })); } catch (_) {}
+}
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (_) {} }
+function loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (!s || !s.person || !s.person.lineId) return null;
+    if (Date.now() - (s.ts || 0) > SESSION_TTL_MS) { clearSession(); return null; }
+    return s.person;
+  } catch (_) { return null; }
+}
+function hasDeepLinkParams() {
+  return (VALID_DETAIL_VIEWS.includes(_pendingView) && !!_pendingProjectId) || VALID_TAB_SECTIONS.includes(_pendingTab);
+}
+// 其他分頁儲存專案後會寫入這個 key，這裡收到就重新整理專案資料
+window.addEventListener('storage', e => {
+  if (e.key === 'pm_project_changed' && S.user) {
+    try { loadProjectList(false); loadProjectsForBoard(); } catch (_) {}
+  }
+});
 
 // 專案卡片「💰 銷貨明細」「📦 採購」開的獨立分頁（不是彈窗）：內容較多，
 // 桌機視窗開小小的modal會很擠，改成整頁呈現，直接把原本nav跟其他分頁藏起來。
 function closeProjectDetailPage() {
+  unmountProjectFormFromPage();
   const page = $('projDetailPage');
   if (page) page.style.display = 'none';
   const nav = $('mainNav'); if (nav) nav.style.display = 'flex';
@@ -1704,51 +1897,85 @@ async function openProjectDetailPage(view, projectId) {
     projPurchase: '🧾 採購單（本專案）',
     projReceipt:  '📥 進貨單（本專案）',
     projEdit:     '✏️ 專案編輯',
+    projNew:      '➕ 新增專案',
+    projProgress: '📊 進度與估驗',
   };
   const title = titles[view] || '專案';
   page.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin:20px 0 16px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="closeProjectDetailPage()">← 回主畫面</button>
       <div class="pg-title" style="margin:0">${title}</div>
-      <span style="color:var(--muted)">${esc(p?.id||projectId)}　${esc(p?.name||'')}</span>
+      ${view === 'projNew' ? '' : `<span style="color:var(--muted)">${esc(p?.id||projectId)}　${esc(p?.name||'')}</span>`}
     </div>
     <div id="projDetailBody"></div>`;
   if (view === 'projSales')        await renderProjSalesDetailPage(projectId);
-  else if (view === 'projEdit')    await renderProjEditPage(projectId);
+  else if (view === 'projEdit')    await renderProjEditPage(projectId, false);
+  else if (view === 'projNew')     await renderProjEditPage(null, true);
+  else if (view === 'projProgress') await renderProjProgressPage(projectId);
   else                             await renderProjPurchaseDetailPage(projectId, view === 'projReceipt' ? 'receipt' : 'purchase');
 }
 
-// 專案編輯（新分頁）：沿用既有的編輯視窗（openProjectModal），只是在獨立分頁裡自動打開，
-// 關掉視窗後頁面上留著「重新開啟編輯」，不用回主畫面再找一次這個專案。
-async function renderProjEditPage(projectId) {
+// 專案編輯／新增（新分頁）：把專案表單直接掛在整頁上（不是彈窗），欄位多、版面寬，方便填寫。
+// 表單仍是同一份 #projectModal 裡的 .modal-box（沿用所有 np-* 欄位與儲存邏輯），只是搬到頁面主體並加上 page-mode 樣式。
+async function renderProjEditPage(projectId, isNew) {
   const body = $('projDetailBody');
   body.innerHTML = `<div style="text-align:center;color:var(--muted);padding:20px">載入中...</div>`;
-  try { await S._configPromise; } catch (_) {}  // 編輯視窗的部門下拉選單要等 getConfig 回來才有資料
-  if (!S._projListRaw) {
-    const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
-    if (!res.success) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">載入失敗：${esc(res.error||'')}</div>`; return; }
-    S._projListRaw = res.rows || [];
+  try { await S._configPromise; } catch (_) {}  // 部門下拉選單要等 getConfig 回來才有資料
+  let idx = null;
+  if (!isNew) {
+    if (!S._projListRaw) {
+      const res = await callGAS({ action: 'getProjects', lineId: S.user?.lineId || '' });
+      if (!res.success) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">載入失敗：${esc(res.error||'')}</div>`; return; }
+      S._projListRaw = res.rows || [];
+    }
+    const raw = S._projListRaw.find(x => x.id === projectId);
+    if (!raw) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">找不到專案 ${esc(projectId)}（可能已刪除，或你沒有這個專案所屬部門的權限）</div>`; return; }
+    // openProjectModal 以 S._projList 的索引取專案；已結案的專案可能被列表篩掉，這裡用完整清單
+    S._projList = S._projListRaw.slice();
+    idx = S._projList.findIndex(x => x.id === projectId);
   }
-  const raw = S._projListRaw.find(x => x.id === projectId);
-  if (!raw) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">找不到專案 ${esc(projectId)}（可能已刪除，或你沒有這個專案所屬部門的權限）</div>`; return; }
-  body.innerHTML = `
-    <div class="card" style="padding:18px">
-      <div style="font-size:14px;color:var(--muted);margin-bottom:12px">在編輯視窗儲存後，這個分頁可以直接關閉；其他分頁的專案列表重新整理後會看到更新。</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="reopenProjEditModal('${esc(projectId)}')">✏️ 開啟編輯視窗</button>
-        <button class="btn btn-ghost" onclick="window.close()">關閉此分頁</button>
-      </div>
-    </div>`;
-  reopenProjEditModal(projectId);
+  mountProjectFormInPage(body);
+  openProjectModal(idx, { inline: true });
 }
 
-function reopenProjEditModal(projectId) {
-  // openProjectModal 以 S._projList（目前列表篩選後的結果）的索引取專案，
-  // 已結案的專案預設被篩掉，這裡自己重建一份包含該專案的清單再開。
-  const raw = (S._projListRaw || []).find(x => x.id === projectId);
-  if (!raw) return;
-  S._projList = (S._projListRaw || []).slice();
-  openProjectModal(S._projList.findIndex(x => x.id === projectId));
+function mountProjectFormInPage(body) {
+  const box = document.querySelector('#projectModal .modal-box') || document.querySelector('#projDetailBody .modal-box.page-mode');
+  if (!box) return;
+  box.classList.add('page-mode');
+  body.innerHTML = '';
+  body.appendChild(box);
+  S._projPageMode = true;
+  S._projPageDirty = false;
+  if (!box._pmDirtyBound) {
+    const mark = () => { S._projPageDirty = true; };
+    box.addEventListener('input', mark, true);
+    box.addEventListener('change', mark, true);
+    box._pmDirtyBound = true;
+  }
+}
+
+// 離開整頁模式時把表單放回原本的彈窗容器，避免其他入口再開 #projectModal 時找不到內容
+function unmountProjectFormFromPage() {
+  const box = document.querySelector('#projDetailBody .modal-box.page-mode');
+  const wrap = $('projectModal');
+  if (box && wrap) { box.classList.remove('page-mode'); box.style.display = ''; wrap.appendChild(box); }
+  $('np-done-card')?.remove();
+  S._projPageMode = false;
+  S._projPageDirty = false;
+}
+
+// 表單「取消」：整頁模式關閉此分頁（關不掉就回主畫面）；彈窗模式維持原行為
+function cancelProjectModal() {
+  if (!S._projPageMode) { closeModal('projectModal'); return; }
+  if (S._projPageDirty && !confirm('有尚未儲存的變更，確定要離開嗎？')) return;
+  S._projPageDirty = false;
+  window.close();
+  setTimeout(() => { if (!window.closed) closeProjectDetailPage(); }, 200);
+}
+
+// 整頁模式儲存成功後：通知其他分頁重新整理專案資料
+function notifyProjectChanged() {
+  try { localStorage.setItem('pm_project_changed', String(Date.now())); } catch (_) {}
 }
 
 async function renderProjSalesDetailPage(projectId) {
@@ -1867,6 +2094,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); onFilePick(e.dataTransfer.files); });
+
+  // ── 新分頁深層連結：同瀏覽器已有登入狀態就直接進入，免重新登入 ──
+  if (hasDeepLinkParams()) {
+    const saved = loadSession();
+    if (saved) {
+      finishLogin(saved);
+      callGAS({ action: 'getLineConfig' }).then(c => { if (c.success) _lineConfig = c; }).catch(() => {});
+      return;
+    }
+  }
 
   // ── 預先拿 LINE 設定（LIFF ID + Channel ID + Redirect URI）
   // LIFF 初始化和登入按鈕共用同一份，不重複呼叫後端
@@ -2103,6 +2340,7 @@ function handleLineCallback() {
 
 function finishLogin(person) {
   S.user = person;
+  saveSession(person);
   $('loginCallbackMsg').style.display = 'none';
   $('bindNameSection').style.display  = 'none';
   $('loginWrap').style.display = 'none';
@@ -2192,6 +2430,7 @@ function renderUserBar() {
   if (finBtn) finBtn.style.display = isFinance ? 'block' : 'none';
   const attBtn = $('navAttendanceBtn');
   if (attBtn) attBtn.style.display = isFinance ? 'block' : 'none';
+  ['navOwnersBtn','navVendorsBtn'].forEach(id => { const b = $(id); if (b) b.style.display = isFinance ? 'block' : 'none'; });
 
   // 系統管理入口：員工表／財務專區／管理員 任一權限都看得到（財務專區要看月工資總額、管理員要異動權限，都得先進得了這頁）
   const sysBtn = $('navSysadminBtn');
@@ -2223,6 +2462,7 @@ function renderUserBar() {
 
 function logout() {
   S.user = null;
+  clearSession();
   // 重置所有懶載入 flag 與快取，確保下次登入（可能是不同使用者）重新拉取資料
   Object.keys(S._loaded).forEach(k => { S._loaded[k] = false; });
   S._ocrPageLoadedOnce = false;
@@ -3793,6 +4033,7 @@ function renderFuelTab(fuelReceipts) {
     const isNew  = r._isNew;
     const newTag = isNew ? `<span style="font-size:11px;background:var(--green);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">新產生</span>` : '';
     const dupBadge = r._isDuplicate ? `<span class="badge bd-red" style="margin-left:4px">⚠️重複</span>` : '';
+    const exportedTag = r.exported ? `<span style="font-size:11px;background:var(--muted);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px">已匯出</span>` : '';
     return `<div id="fuel-inv-${r.id}" style="border-bottom:1px solid var(--border)">
       <!-- 列頭 -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0;flex-wrap:wrap;cursor:pointer"
@@ -3801,7 +4042,7 @@ function renderFuelTab(fuelReceipts) {
           onclick="event.stopPropagation();upR('${r.id}','_checked',this.classList.toggle('on'));syncAllOcrChk();updateStats()"
           style="flex-shrink:0"></div>
         <div style="flex:1;min-width:120px">
-          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}</div>
+          <div style="font-size:14px;font-weight:800">${r.vendor}${newTag}${dupBadge}${exportedTag}</div>
           <div style="font-size:12px;color:var(--muted)">${r.date||''} · ${r.invoiceNo||'—'}</div>
         </div>
         <div class="mono" style="font-size:16px;font-weight:800;color:var(--gold)">
@@ -5931,7 +6172,7 @@ function switchSection(name) {
   document.querySelectorAll('.mainnav-btn').forEach(b=>
     b.classList.toggle('active', b.dataset.section===displayName));
 
-  ['project','todo','summary','proj-settings','finance','attendance','sysadmin',
+  ['project','todo','summary','proj-settings','finance','attendance','sysadmin','vendors','owners',
    'expense-upload','expense-ocr','expense-history'].forEach(s=> {
     const el = $('sec-'+s);
     if (el) el.classList.remove('active');
@@ -5984,6 +6225,10 @@ function switchSection(name) {
       loadExportHistoryList('att-export-history-tbody', l => l === '出勤紀錄Excel' || l === '餐費支出申請PDF');
     }
   }
+  if (name === 'vendors' || name === 'owners') {
+    if (!hasPermission('財務專區')) { switchSection('project'); return; } // 防呆：僅財務專區
+    loadParty(name);
+  }
   if (name === 'summary' && !S._loaded.summary) {
     S._loaded.summary = true;
     loadSummaryDates();
@@ -6011,7 +6256,7 @@ function switchSection(name) {
 
 // 漢堡選單：專案設定在「專案」nav-btn active 狀態下顯示
 function isProjectRelated(name) {
-  return name === 'project' || name === 'proj-settings' || name === 'finance' || name === 'attendance' || name === 'sysadmin';
+  return name === 'project' || name === 'proj-settings' || name === 'finance' || name === 'attendance' || name === 'sysadmin' || name === 'vendors' || name === 'owners';
 }function switchExpensePage(page) {
   _currentExpensePage = page;
   closeNavMenu();
@@ -6479,7 +6724,7 @@ function collectNpSubsidyMap() {
 
 // 預收款 toggle
 // 開啟新增/編輯專案 Modal；i 為 null 表示新增，否則依 S._projList[i] 填值編輯
-function openProjectModal(i) {
+function openProjectModal(i, opts) {
   populateNpDept();
   const isNew = (i === null || i === undefined);
   const p = isNew ? null : (S._projList || [])[i];
@@ -6493,6 +6738,7 @@ function openProjectModal(i) {
   $('np-code').placeholder = isNew ? '新增後由系統自動產生' : '';
   $('np-name').value     = isNew ? '' : (p.name || '');
   $('np-dept').value     = isNew ? '' : (p.deptCode || '');
+  { const os = $('np-owner'); if (os) { os.dataset.want = isNew ? '' : (p.ownerCode || ''); npApplyPartyOptions(); delete os.dataset.want; } }
   $('np-sign').value     = isNew ? '' : (p.signDate || '');   // item3：簽約日
   $('np-effect').value   = isNew ? '' : (p.effectDate || '');  // item3：開工日（沿用原生效日欄位）
   $('np-close').value    = isNew ? '' : (p.closeDate || '');
@@ -6517,10 +6763,14 @@ function openProjectModal(i) {
     vendors: (!isNew && p.vendors) ? JSON.parse(JSON.stringify(p.vendors)) : [],
   };
   npRenderEditor();
+  npLoadPartyOptions();
 
   $('npMsg').textContent = '';
   const btn = $('btnAddProj');
   if (btn) { btn.disabled = false; btn.innerHTML = '💾 儲存'; }
+  // 業主／廠商資料設定入口：僅財務專區可見
+  document.querySelectorAll('.js-np-party-btn').forEach(b => { b.style.display = hasPermission('財務專區') ? '' : 'none'; });
+  if (opts && opts.inline) { S._projPageDirty = false; return; } // 整頁模式：表單已掛在頁面上，不開彈窗
   openModal('projectModal');
 }
 
@@ -6575,7 +6825,7 @@ async function saveProjectModal() {
         lineId: S.user?.lineId ?? '',
         name, quota, subsidy,
         signDate: sign || '', effectDate: effect, closeDate: close || '',
-        deptCode: deptCode || '',
+        deptCode: deptCode || '', ownerCode: $('np-owner')?.value || '',
         client: scheduleClient, vendors: scheduleVendors,
         prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
         addedBy: S.user?.name || '',
@@ -6583,7 +6833,7 @@ async function saveProjectModal() {
     : {
         action: 'updateProject',
         lineId: S.user?.lineId ?? '',
-        id, name, deptCode, quota, subsidy,
+        id, name, deptCode, quota, subsidy, ownerCode: $('np-owner')?.value || '',
         signDate: sign || '', effectDate: effect, closeDate: close || '',
         client: scheduleClient, vendors: scheduleVendors,
         prepay: { enabled: prepayEnabled, amount: prepayAmount, deductPct: prepayPct },
@@ -6598,6 +6848,23 @@ async function saveProjectModal() {
       loadProjectList(true);
       loadConfig();
       loadProjectsForBoard();
+      if (S._projPageMode) {
+        S._projPageDirty = false;
+        notifyProjectChanged();
+        if (isNew) {
+          // 新增完成：避免同一份表單再按儲存重複新增，改顯示完成畫面
+          const pg = $('projDetailBody');
+          const bx = pg && pg.querySelector('.modal-box');
+          if (bx) bx.style.display = 'none';
+          if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="card" id="np-done-card" style="padding:24px;text-align:center">
+            <div style="font-size:18px;font-weight:700;margin-bottom:6px">✅ 專案已新增${res.id ? '：' + esc(res.id) : ''}</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:16px">其他分頁的專案列表會自動更新。</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="window.location.reload()">➕ 再新增一個專案</button>
+              <button class="btn btn-ghost" onclick="cancelProjectModal()">關閉此分頁</button>
+            </div></div>`);
+        }
+      }
     } else {
       if (msg) { msg.textContent = '❌ ' + (res.error || (isNew ? '新增失敗' : '儲存失敗')); msg.style.color = 'var(--red)'; }
     }
@@ -7156,19 +7423,16 @@ function pjClientCard(c, opts) {
   // 收款 badge
   let payBadge;
   if (c.paid) {
-    payBadge = `<span class="badge bd-green" style="cursor:pointer"
-      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
-      title="點擊編輯收款狀態">💰 已收款${c.payDate?' '+c.payDate:''} ✎</span>`;
+    payBadge = `<span class="badge bd-green" style="cursor:default"
+      title="收款狀態請至財務專區的待開票列表更新">💰 已收款${c.payDate?' '+c.payDate:''}</span>`;
   } else if (c.underReview) {
     // item6-2: 曾選擇「待查帳」儲存過，與初始的「待收款」做視覺區分，避免使用者誤以為儲存沒生效
-    payBadge = `<span class="badge bd-orange" style="cursor:pointer"
-      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
-      title="點擊更新收款狀態">💰 待查帳 ✎</span>`;
+    payBadge = `<span class="badge bd-orange" style="cursor:default"
+      title="收款狀態請至財務專區的待開票列表更新">💰 待查帳</span>`;
   } else if (c.accepted || c.invoiced) {
     // item8: 驗收完成後 → 待收款（可點）
-    payBadge = `<span class="badge bd-orange" style="cursor:pointer"
-      onclick="pjEditClientPay('${opts.projectId}',${opts.periodIndex})"
-      title="點擊更新收款狀態">💰 待收款 ✎</span>`;
+    payBadge = `<span class="badge bd-orange" style="cursor:default"
+      title="收款狀態請至財務專區的待開票列表更新">💰 待收款</span>`;
   } else {
     // item7: 未開始 / 進行中（驗收前）→ 未收款（不可點）
     payBadge = `<span class="badge bd-muted" style="cursor:default">💰 未收款</span>`;
@@ -7191,6 +7455,7 @@ function pjClientCard(c, opts) {
     ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
         onclick="pjQuickAccept('${opts.projectId}','client',null,${opts.periodIndex},this)">
         ✓ 驗收完成</button>` : ''}
+    ${(c.accepted || c.invoiced || c.paid) ? pjClientDocButtons(opts.projectId, opts.periodIndex) : ''}
   </div>`;
 }
 
@@ -7251,7 +7516,272 @@ function pjVendorCard(c, opts) {
     ${showAccept ? `<button class="btn btn-primary btn-sm" style="margin-top:10px"
         onclick="pjQuickAccept('${opts.projectId}','vendor',${opts.vendorIndex},${opts.periodIndex},this)">
         ✓ 驗收完成</button>` : ''}
+    ${(c.invAccepted || c.invReceived || c.vendorPaid) ? pjVendorDocButtons(opts.projectId, opts.vendorIndex, opts.periodIndex) : ''}
   </div>`;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 專案文件：開立發票申請單 → 請款單（業主端）／廠商付款申請單（協力廠商端）
+// 驗收完成後出現按鈕；表單先帶入系統資料，所有欄位都可修改，儲存後才能列印 PDF。
+// 請款單要等發票申請單儲存後才會出現，且沿用發票申請單的品項明細。
+// ══════════════════════════════════════════════════════════════
+S._docs = S._docs || {};
+const PJ_DOC_TITLES = { invoiceReq:'📄 開立發票申請單', claim:'🧾 請款單', vendorPay:'📝 廠商付款申請單' };
+const pjDocKey = (type, pid, vi, pi) => [type, pid, type === 'vendorPay' ? Number(vi) : -1, Number(pi)].join('|');
+const pjDocSaved = (type, pid, vi, pi) => !!S._docs[pid]?.keys?.[pjDocKey(type, pid, vi, pi)];
+
+async function pjLoadDocStatus(pid) {
+  const st = S._docs[pid];
+  if (st && (st.loaded || st.loading)) return;
+  S._docs[pid] = { keys: {}, loading: true };
+  const res = await callGAS({ action:'getProjectDocStatus', lineId:S.user?.lineId ?? '', projectId:pid });
+  const keys = {};
+  if (res.success) (res.docs || []).forEach(d => { keys[d.key] = d; });
+  S._docs[pid] = { keys, loaded: !!res.success, loading: false };
+  if (res.success && Object.keys(keys).length && S._projSelectId === pid) renderProjectBoard();
+}
+
+function pjClientDocButtons(pid, pi) {
+  const inv = pjDocSaved('invoiceReq', pid, -1, pi), clm = pjDocSaved('claim', pid, -1, pi);
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn ${inv ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="pjOpenDoc('invoiceReq','${pid}',-1,${pi})">${inv ? '✏️ 開立發票申請單' : '📄 開立發票申請單'}</button>
+    ${inv ? `<button class="btn ${clm ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="pjOpenDoc('claim','${pid}',-1,${pi})">${clm ? '✏️ 請款單' : '🧾 請款單'}</button>` : ''}
+  </div>`;
+}
+function pjVendorDocButtons(pid, vi, pi) {
+  const ok = pjDocSaved('vendorPay', pid, vi, pi);
+  return `<div style="margin-top:10px"><button class="btn ${ok ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="pjOpenDoc('vendorPay','${pid}',${vi},${pi})">${ok ? '✏️ 廠商付款申請單' : '📝 廠商付款申請單'}</button></div>`;
+}
+
+async function pjOpenDoc(type, pid, vi, pi, redraft) {
+  const res = await callGAS({ action:'getProjectDoc', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi, redraft: !!redraft });
+  if (!res.success) { toast('❌ ' + (res.error || '開啟失敗')); return; }
+  S._doc = { type, pid, vi, pi, data: res.data || {}, saved: !!res.saved };
+  pjRenderDocModal();
+}
+
+const PJ_DOC_FIELDS = {
+  invoiceReq: [
+    ['date','日期','date'],['applyDept','申請部門','text'],['companyName','公司名稱（客戶）','text'],['taxId','統一編號','text'],
+    ['projectName','專案名稱','text','full'],['invoiceDate','發票日期（客戶指定才填）','date'],['expectedPayDate','預計收款日','date'],
+  ],
+  claim: [
+    ['projectName','專案名稱','text','full'],['clientName','客戶名稱','text'],['clientTaxId','客戶統一編號','text'],
+    ['claimDate','請款日期','date'],['contact','聯絡人','text'],
+  ],
+  vendorPay: [
+    ['applyDate','申請日期','date'],['payee','受款人','text'],['payeeTaxId','公司統編','text'],['projectName','專案名稱','text'],
+    ['contractAmount','合約金額（發包，含稅）','number'],['paidBefore','已付款金額（不含本次）','number'],['thisAmount','本次付款金額','number'],
+  ],
+};
+const PJ_DOC_SELECTS = {
+  taxType:   [['taxable','應稅'],['zero','零稅'],['exempt','免稅']],
+  sendMethod:[['mail','財務郵寄'],['self','申請人自送']],
+  payMethod: [['check','支票'],['transfer','匯款/轉帳'],['cash','現金']],
+  checkTerm: [['immediate','即期'],['m30','月結30天'],['m60','月結60天'],['other','其他']],
+  pickup:    [['self','申請人自取'],['mail','郵寄']],
+};
+function pjDocInput(name, label, type, d, full) {
+  const v = d[name] ?? '';
+  return `<div${full ? ' style="grid-column:1/-1"' : ''}><label class="lbl">${label}</label>
+    <input class="inp" id="pd-${name}" type="${type === 'number' ? 'number' : type}" value="${esc(v)}"></div>`;
+}
+function pjDocSelect(name, label, d) {
+  return `<div><label class="lbl">${label}</label><select class="inp" id="pd-${name}">${PJ_DOC_SELECTS[name].map(([k, t]) => `<option value="${k}"${d[name] === k ? ' selected' : ''}>${t}</option>`).join('')}</select></div>`;
+}
+function pjDocText(name, label, d, rows) {
+  return `<div style="grid-column:1/-1"><label class="lbl">${label}</label><textarea class="inp" id="pd-${name}" rows="${rows || 4}" style="resize:vertical">${esc(d[name] ?? '')}</textarea></div>`;
+}
+function pjDocItemsHtml() {
+  const t = S._doc.type, items = S._doc.data.items || [];
+  const showUnit = t === 'claim';
+  return `<table class="tbl" style="font-size:13px"><thead><tr><th style="width:36px">#</th><th>品名／請款項目</th>${showUnit ? '<th style="width:60px">單位</th>' : ''}<th style="width:90px">數量</th><th style="width:130px">單價</th><th style="width:130px">金額</th><th style="width:36px"></th></tr></thead><tbody>` +
+    items.map((x, i) => `<tr><td>${i + 1}</td>
+      <td><input class="inp" value="${esc(x.name)}" onchange="pjDocItem(${i},'name',this.value)"></td>
+      ${showUnit ? `<td><input class="inp" value="${esc(x.unit || '')}" onchange="pjDocItem(${i},'unit',this.value)"></td>` : ''}
+      <td><input class="inp" type="number" value="${esc(x.qty)}" onchange="pjDocItem(${i},'qty',this.value)"></td>
+      <td><input class="inp" type="number" value="${esc(x.unitPrice)}" onchange="pjDocItem(${i},'unitPrice',this.value)"></td>
+      <td><input class="inp" type="number" value="${esc(x.amount)}" onchange="pjDocItem(${i},'amount',this.value)"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="pjDocItemDel(${i})">✕</button></td></tr>`).join('') +
+    `</tbody></table><button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="pjDocItemAdd()">＋ 新增品項</button>`;
+}
+function pjDocItem(i, f, v) {
+  const x = S._doc.data.items[i];
+  if (f === 'name' || f === 'unit') x[f] = v;
+  else {
+    x[f] = Number(v) || 0;
+    if (f === 'qty' || f === 'unitPrice') x.amount = Math.round((Number(x.qty) || 0) * (Number(x.unitPrice) || 0));
+  }
+  pjDocRecalc(true);
+}
+function pjDocItemAdd() { S._doc.data.items = S._doc.data.items || []; S._doc.data.items.push({ name:'', unit:'式', qty:1, unitPrice:0, amount:0 }); pjDocRecalc(true); }
+function pjDocItemDel(i) { S._doc.data.items.splice(i, 1); pjDocRecalc(true); }
+// 品項改動後重算：銷售額/稅金/總計（應稅 5%，零稅/免稅 0）
+function pjDocRecalc(rerender) {
+  pjDocCollect();
+  const d = S._doc.data, items = d.items || [];
+  const sum = items.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const rate = (S._doc.type === 'invoiceReq' && d.taxType !== 'taxable') ? 0 : 0.05;
+  if (S._doc.type === 'invoiceReq') { d.salesTotal = sum; d.tax = Math.round(sum * rate); d.total = sum + d.tax; }
+  else if (S._doc.type === 'claim') { d.subtotal = sum; d.tax = Math.round(sum * 0.05); d.total = sum + d.tax; }
+  if (rerender) pjRenderDocModal(true);
+}
+// 把畫面上的欄位值收回 S._doc.data
+function pjDocCollect() {
+  const d = S._doc.data;
+  document.querySelectorAll('#_pjDocWrap [id^="pd-"]').forEach(el => {
+    const k = el.id.slice(3);
+    d[k] = el.type === 'number' ? (Number(el.value) || 0) : el.value;
+  });
+}
+
+function pjRenderDocModal(keepScroll) {
+  const { type, data: d } = S._doc;
+  const old = $('_pjDocWrap');
+  const scroll = keepScroll && old ? old.querySelector('.modal-box')?.scrollTop : 0;
+  old?.remove();
+  const f = PJ_DOC_FIELDS[type].map(([n, l, t, full]) => pjDocInput(n, l, t, d, full)).join('');
+  let body = `<div class="fg2" style="margin-bottom:14px">${f}</div>`;
+  if (type === 'invoiceReq') {
+    body += `<div style="font-weight:700;margin:6px 0">開立內容</div>${pjDocItemsHtml()}
+      <div class="fg2" style="margin-top:10px">${pjDocSelect('taxType', '課稅別', d)}
+        ${pjDocInput('salesTotal','銷售額合計','number',d)}${pjDocInput('tax','營業稅','number',d)}${pjDocInput('total','總計','number',d)}</div>
+      <div class="fg2" style="margin-top:10px">${pjDocText('desc', '說明', d, 7)}${pjDocText('terms', '交易條件', d, 2)}
+        ${pjDocSelect('sendMethod', '寄送方式', d)}${pjDocInput('recipient','收件人','text',d)}${pjDocInput('recipientPhone','連絡電話','text',d)}${pjDocInput('address','地址','text',d)}</div>
+      ${d._meta && !d._meta.fromSales ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">ℹ️ 本期尚無銷貨明細，已先以期款金額帶入一筆，請依實際開立內容修改。</div>` : ''}`;
+  } else if (type === 'claim') {
+    body += `<div style="font-weight:700;margin:6px 0">請款明細</div>${pjDocItemsHtml()}
+      <div class="fg2" style="margin-top:10px">${pjDocInput('subtotal','合計（未稅）','number',d)}${pjDocInput('tax','稅金','number',d)}${pjDocInput('total','總計（含稅）','number',d)}
+        ${pjDocInput('prepayDeductEx','預付款扣抵（未稅）','number',d)}${pjDocInput('prepayDeduct','預付款扣抵（含稅）','number',d)}</div>
+      <div style="font-weight:700;margin:12px 0 6px">備註欄金額</div>
+      <div class="fg2">${pjDocInput('contractTotal','合約總價（含稅）','number',d)}${pjDocInput('claimedBefore','已請款（含定金）','number',d)}
+        ${pjDocInput('thisAmount','本次請款金額','number',d)}${pjDocInput('remaining','尚未請款金額','number',d)}</div>`;
+  } else {
+    body += `<div class="fg2">${pjDocText('desc', '說明', d, 9)}${pjDocSelect('payMethod','付款方式',d)}${pjDocSelect('checkTerm','支票期別（付款方式為支票時）',d)}
+      ${pjDocSelect('pickup','領取方式（支票）',d)}${pjDocInput('mailAddr','郵寄地址','text',d)}${pjDocInput('bankInfo','匯款資料（顯示在匯款/轉帳旁）','text',d,true)}</div>`;
+  }
+  const wrap = document.createElement('div');
+  wrap.id = '_pjDocWrap'; wrap.className = 'modal-wrap open';
+  wrap.innerHTML = `<div class="modal-box" style="max-width:860px;max-height:92vh;overflow-y:auto">
+    <div style="font-weight:700;font-size:17px;margin-bottom:4px">${PJ_DOC_TITLES[type]}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${S._doc.saved ? '已儲存過，修改後請再按「儲存」；' : '尚未儲存；'}所有欄位都可修改，儲存後才能列印 PDF。</div>
+    ${body}
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;align-items:center">
+      ${type === 'claim' ? `<button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="pjDocRedraft()">↻ 重新帶入發票申請單內容</button>` : ''}
+      <button class="btn btn-ghost" onclick="$('_pjDocWrap').remove()">關閉</button>
+      <button class="btn btn-primary" id="pdSaveBtn" onclick="pjDocSave(false)">💾 儲存</button>
+      <button class="btn btn-primary" id="pdPrintBtn" onclick="pjDocSave(true)">🖨️ 儲存並列印 PDF</button>
+    </div></div>`;
+  document.body.appendChild(wrap);
+  if (scroll) wrap.querySelector('.modal-box').scrollTop = scroll;
+}
+
+async function pjDocRedraft() {
+  if (!(await showConfirm('確定用目前的發票申請單內容，覆蓋這張請款單已填的內容？'))) return;
+  const { pid, pi } = S._doc;
+  const res = await callGAS({ action:'getProjectDoc', lineId:S.user?.lineId ?? '', docType:'claim', projectId:pid, vendorIndex:-1, periodIndex:pi, redraft:true });
+  if (!res.success) { toast('❌ ' + (res.error || '失敗')); return; }
+  S._doc.data = res.data; pjRenderDocModal();
+}
+
+async function pjDocSave(andPrint) {
+  pjDocCollect();
+  const { type, pid, vi, pi, data } = S._doc;
+  // 列印要在使用者點擊當下先開分頁，等 PDF 產好再導過去，否則會被瀏覽器當成彈出視窗擋掉
+  const win = andPrint ? window.open('', '_blank') : null;
+  const btn = $(andPrint ? 'pdPrintBtn' : 'pdSaveBtn'); if (btn) btn.disabled = true;
+  const save = await callGAS({ action:'saveProjectDoc', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi, data });
+  if (!save.success) { if (btn) btn.disabled = false; win?.close(); toast('❌ ' + (save.error || '儲存失敗')); return; }
+  S._doc.saved = true;
+  S._docs[pid] = S._docs[pid] || { keys:{}, loaded:true };
+  S._docs[pid].keys[pjDocKey(type, pid, vi, pi)] = { type };
+  if (!andPrint) {
+    if (btn) btn.disabled = false;
+    toast('✅ 已儲存');
+    renderProjectBoard();
+    if (type === 'invoiceReq') pjRenderDocModal(true); // 發票申請單儲存後，卡片上才會出現請款單按鈕
+    return;
+  }
+  const pdf = await callGAS({ action:'exportProjectDocPdf', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi });
+  if (btn) btn.disabled = false;
+  renderProjectBoard();
+  if (!pdf.success) { win?.close(); toast('❌ ' + (pdf.error || '產生 PDF 失敗')); return; }
+  if (win) win.location.href = pdf.url; else window.open(pdf.url, '_blank');
+  toast('✅ 已儲存並產生 PDF');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 進度與估驗（新分頁）：設備出貨／工程實際進度總覽 ＋ 每期估驗計價表（可列印 PDF）
+// 資料全由銷貨明細推算（後端 progress.gs）；進度請在「銷貨明細」登錄，這裡只看、不改。
+// ══════════════════════════════════════════════════════════════
+const _pgBar = (label, pct, sub) => `<div style="margin-bottom:12px">
+  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:700">${label}</span><span class="mono">${pct}%${sub ? `　<span style="color:var(--muted);font-weight:400">${sub}</span>` : ''}</span></div>
+  <div class="proj-progress"><div class="proj-progress-fill" style="width:${Math.min(100, pct)}%"></div></div></div>`;
+const _pgNum = x => (Math.round(Number(x) * 100) / 100).toLocaleString();
+
+async function renderProjProgressPage(projectId) {
+  const body = $('projDetailBody');
+  body.innerHTML = `<div style="text-align:center;color:var(--muted);padding:20px">載入中...</div>`;
+  const res = await callGAS({ action:'getProgressOverview', lineId:S.user?.lineId ?? '', projectId });
+  if (!res.success) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">載入失敗：${esc(res.error || '')}</div>`; return; }
+  S._pgView = { projectId, periods: res.periods };
+  const s = res.summary;
+  const rowsOf = (list, isEq) => list.length ? list.map(e => `<tr>
+      <td>${esc(e.item)}</td><td class="mono" style="text-align:right">${_pgNum(e.done)} / ${_pgNum(e.qty)} ${esc(e.unit || '')}</td>
+      <td style="min-width:130px"><div class="proj-progress" style="margin:0"><div class="proj-progress-fill" style="width:${Math.min(100, e.pct)}%"></div></div></td>
+      <td class="mono" style="text-align:right">${Math.round(e.pct)}%</td>
+      <td class="mono" style="text-align:right">$${Number(e.doneAmt).toLocaleString()}</td>
+      <td style="font-size:12px;color:var(--muted)">${e.unvaluedQty > 0 ? `<span class="badge bd-orange">尚有 ${_pgNum(e.unvaluedQty)}${isEq ? '' : (e.unit === '%' ? '%' : '')} 未計入估驗</span>` : ''} ${esc(e.lastDate || '')}</td></tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:14px">尚無明細</td></tr>`;
+  const tbl = (title, list, isEq) => `<div class="card" style="margin-bottom:14px"><div class="card-hd">${title}</div>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>${isEq ? '品項' : '工項'}</th><th style="text-align:right">${isEq ? '已出貨 / 合約' : '已完成 / 合約'}</th><th></th><th style="text-align:right">進度</th><th style="text-align:right">對應金額(未稅)</th><th>備註／最近日期</th></tr></thead><tbody>${rowsOf(list, isEq)}</tbody></table></div></div>`;
+  const opts = res.periods.map(p => `<option value="${p.idx}">${esc(p.label)}</option>`).join('');
+  body.innerHTML = `
+    <div class="card" style="margin-bottom:14px"><div class="card-hd">整體進度</div><div class="card-bd">
+      ${_pgBar('實際完成進度（設備出貨＋工程完成，依金額加權）', s.overallActualPct, `$${s.actualAmt.toLocaleString()} / $${(s.eqTotal + s.enTotal).toLocaleString()}（未稅）`)}
+      ${_pgBar('已估驗進度（已歸入各期估驗）', s.valuedPct, `$${s.valuedAmt.toLocaleString()}`)}
+      ${_pgBar('設備出貨進度', s.equipmentPct, `合約 $${s.eqTotal.toLocaleString()}`)}
+      ${_pgBar('工程實際進度', s.engineeringPct, `合約 $${s.enTotal.toLocaleString()}`)}
+      <div style="font-size:13px;margin-top:6px">${s.unvaluedAmt > 0
+        ? `<span class="badge bd-orange">已完成但尚未估驗：$${s.unvaluedAmt.toLocaleString()}（未稅）</span>　<span style="color:var(--muted)">在財務待收款視窗將完成度計入某一期後，就會出現在該期估驗。</span>`
+        : `<span class="badge bd-green">已完成的部分都已計入估驗</span>`}</div>
+    </div></div>
+    ${tbl('📦 設備出貨進度', res.equipment, true)}
+    ${tbl('🏗️ 工程實際進度', res.engineering, false)}
+    <div class="card"><div class="card-hd" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">🧮 估驗計價表
+      <select class="inp" id="pg-period" style="width:auto;margin-left:auto" onchange="pgLoadValuation()">${opts}</select>
+      <button class="btn btn-primary btn-sm" onclick="pgPrintValuation()">🖨️ 列印 PDF</button></div>
+      <div class="card-bd" id="pg-valuation" style="overflow-x:auto"></div></div>`;
+  if (res.periods.length) pgLoadValuation(); else $('pg-valuation').innerHTML = '<div style="color:var(--muted)">此專案尚無業主分期</div>';
+}
+
+async function pgLoadValuation() {
+  const box = $('pg-valuation'); if (!box) return;
+  const idx = Number($('pg-period').value) || 0;
+  box.innerHTML = '<div style="color:var(--muted)">載入中...</div>';
+  const res = await callGAS({ action:'getValuation', lineId:S.user?.lineId ?? '', projectId:S._pgView.projectId, periodIndex:idx });
+  if (!res.success) { box.innerHTML = `<div style="color:var(--danger)">${esc(res.error || '載入失敗')}</div>`; return; }
+  const v = res.valuation;
+  if (!v.sections.length) { box.innerHTML = '<div style="color:var(--muted)">此專案尚無銷貨明細</div>'; return; }
+  const q = x => x === 0 ? '-' : _pgNum(x), m = x => x === 0 ? '-' : Number(x).toLocaleString();
+  const grp = v.sections.map(sec => `<tr style="background:var(--surface2)"><td colspan="14" style="font-weight:700">${esc(sec.title)}</td></tr>` +
+    sec.rows.map((r, i) => `<tr><td>${i + 1}. ${esc(r.name)}</td><td>${esc(r.unit || '')}</td>
+      <td class="mono r">${q(r.cQty)}</td><td class="mono r">${m(r.cAmt)}</td><td class="mono r">${q(r.pQty)}</td><td class="mono r">${m(r.pAmt)}</td>
+      <td class="mono r" style="background:rgba(232,119,34,.08)">${q(r.tQty)}</td><td class="mono r" style="background:rgba(232,119,34,.08);font-weight:700">${m(r.tAmt)}</td>
+      <td class="mono r">${q(r.aQty)}</td><td class="mono r">${m(r.aAmt)}</td></tr>`).join('')).join('');
+  const foot = (l, o, bold) => `<tr style="${bold ? 'font-weight:800' : 'font-weight:600'}"><td colspan="2" style="text-align:center">${l}</td><td></td><td class="mono r">${m(o.c)}</td><td></td><td class="mono r">${m(o.p)}</td><td></td><td class="mono r">${m(o.t)}</td><td></td><td class="mono r">${m(o.a)}</td></tr>`;
+  box.innerHTML = `<div style="font-size:13px;margin-bottom:8px">合約金額(含稅) <b class="mono">$${v.total.c.toLocaleString()}</b>　前期估驗 <b class="mono">$${v.total.p.toLocaleString()}</b>　本期估驗 <b class="mono">$${v.total.t.toLocaleString()}</b>　累計估驗 <b class="mono">$${v.total.a.toLocaleString()}</b></div>
+    <table class="tbl" style="font-size:12px"><thead><tr><th>名稱及項目</th><th>單位</th><th class="r">合約數量</th><th class="r">合約複價</th><th class="r">前期數量</th><th class="r">前期複價</th><th class="r">本期數量</th><th class="r">本期複價</th><th class="r">累計數量</th><th class="r">累計複價</th></tr></thead><tbody>${grp}
+    ${foot('合計(未稅)', v.sub)}${foot('稅金5%', v.tax)}${foot('總計(含稅)', v.total, true)}</tbody></table>`;
+}
+async function pgPrintValuation() {
+  const idx = Number($('pg-period')?.value) || 0;
+  const win = window.open('', '_blank'); // 先在點擊當下開分頁，避免被擋
+  const res = await callGAS({ action:'exportValuationPdf', lineId:S.user?.lineId ?? '', projectId:S._pgView.projectId, periodIndex:idx }, 90000);
+  if (!res.success) { win?.close(); toast('❌ ' + (res.error || '產生失敗')); return; }
+  if (win) win.location.href = res.url; else window.open(res.url, '_blank');
 }
 
 // ── 專案 tab：唯讀展示 ──────────────────────────────────────
@@ -7275,7 +7805,7 @@ function renderProjectBoard() {
   // 目前專案：純顯示，點擊直接跳到「專案設定」開啟該專案的編輯視窗，
   // 不再是可輸入搜尋的欄位——搜尋切換功能獨立到下面常駐的搜尋框
   dispEl.innerHTML = `<div class="card" style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px"
-      onclick="jumpToProjectSettingsEdit('${p.id}')" title="點擊前往「專案設定」編輯此專案">
+      onclick="openProjectDetailNewTab('${p.id}','projEdit')" title="點擊以新分頁編輯此專案">
     <span style="font-weight:800;font-family:monospace;color:var(--accent)">${esc(p.code||p.id)}</span>
     <span style="font-weight:700;font-size:15px">${esc(p.name)}</span>
     <span style="margin-left:auto;font-size:13px;color:var(--muted)">✏️ 編輯專案設定</span>
@@ -7296,6 +7826,7 @@ function renderProjectBoard() {
   }, S._recentProjIds || []);
 
   board.innerHTML = `<div class="card"><div class="card-bd">${pjRenderDetail(p)}</div></div>`;
+  pjLoadDocStatus(p.id); // 已儲存的發票申請單／請款單／付款申請單，決定要顯示哪些按鈕
 }
 
 // 從「專案進度」頁點目前專案，直接跳到「專案設定」並開啟該專案的編輯視窗
@@ -7389,6 +7920,7 @@ function pjRenderDetail(p) {
             ${clientDone}/${clientItems.length} 期</span>
           <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();pjOpenSalesStaging('${p.id}')">📦 銷貨暫存</button>
           <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();openProjectDetailNewTab('${p.id}','projSales')">💰 銷貨明細</button>
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();openProjectDetailNewTab('${p.id}','projProgress')">📊 進度與估驗</button>
           <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();openProjectDetailNewTab('${p.id}','projPurchase')">🧾 採購</button>
           <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="event.stopPropagation();openProjectDetailNewTab('${p.id}','projReceipt')">📥 進貨</button>
         </div>
@@ -7623,7 +8155,10 @@ async function spSavePayStatus(projectId, periodIndex) {
   if (res.success) {
     S._clientExpand = S._clientExpand || {};
     S._clientExpand[projectId] = true;
+    const frow = (_finRows.invoice||[]).find(r => r.proj.id === projectId && r.periodIdx === idx);
+    if (frow) Object.assign(frow.c, { paid:c.paid, payDate:c.payDate, underReview:c.underReview, accepted:c.accepted });
     renderProjectBoard();
+    try { renderFinanceInvoice(); } catch (_) {}
     toast('✅ 已更新收款狀態');
   } else {
     Object.assign(c, snapshot);
@@ -8592,11 +9127,14 @@ function renderFinanceInvoice() {
   tbody.innerHTML = visible.map(({ proj:p, periodIdx:j, c }) => {
     const net = Number(c.amount||0) - Number(c.prepayDeduct||0);
     const invDone = !!c.invoiceDate && c.invoiced && c.paid && !!c.payDate;
+    const payClick = `style="cursor:pointer" onclick="pjEditClientPay('${p.id}',${j})" title="點擊更新收款狀態"`;
     const payBadge = c.paid
-      ? `<span class="badge bd-green">已收款</span>`
-      : (c.accepted || c.invoiced)
-        ? `<span class="badge bd-orange">待收款</span>`
-        : `<span class="badge bd-muted">未收款</span>`;
+      ? `<span class="badge bd-green" ${payClick}>已收款 ✎</span>`
+      : c.underReview
+        ? `<span class="badge bd-orange" ${payClick}>待查帳 ✎</span>`
+        : (c.accepted || c.invoiced)
+          ? `<span class="badge bd-orange" ${payClick}>待收款 ✎</span>`
+          : `<span class="badge bd-muted">未收款</span>`;
     const rowStyle = invDone ? 'opacity:.55' : '';
     return `<tr style="${rowStyle}">
       <td style="font-weight:700;white-space:nowrap">${esc(p.code||p.id)}</td>
@@ -8997,9 +9535,126 @@ function npAddVendorQuick() {
   const name = input?.value.trim();
   if (!name) return;
   sc.vendors = sc.vendors || [];
-  sc.vendors.push({ name, periods: [] });
+  const m = npFindPartyByName('vendors', name);
+  sc.vendors.push({ name: m ? m.name : name, vendorCode: m ? m.code : '', periods: [] });
   input.value = '';
   npRenderVendors();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 上傳廠商議價單 → AI 辨識 → 覆核（可編輯）→ 新增廠商（若沒有）＋採購單品項明細＋付款分期
+// 後端：vendor-quote.gs。需要專案已儲存（採購單要掛專案代號），僅財務專區。
+// ════════════════════════════════════════════════════════════
+function npVendorQuoteStart() {
+  if (!$('np-id')?.value) { toast('❌ 請先儲存專案，再上傳廠商議價單（採購單需要專案代號）'); return; }
+  $('np-vendor-quote-file').click();
+}
+async function npVendorQuoteSelected(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type)) { toast('❌ 僅支援 PDF/JPEG/PNG/WebP'); return; }
+  toast('🔎 AI 辨識議價單中，請稍候...', 8000);
+  try {
+    const base64 = await toBase64(file);
+    const res = await callGAS({ action:'parseVendorQuotation', lineId:S.user?.lineId ?? '', fileName:file.name, mimeType:file.type, base64 }, 90000);
+    if (!res.success) throw new Error(res.error || '辨識失敗');
+    S._vq = res; S._vq.addPeriods = (res.paymentTerms || []).length > 0;
+    npVqRender();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+function npVqCollect() {
+  const v = S._vq; if (!v) return;
+  v.vendorName = $('vq-name')?.value.trim() ?? v.vendorName;
+  v.taxId = $('vq-tax')?.value.trim() ?? v.taxId;
+  v.quoteDate = $('vq-date')?.value ?? v.quoteDate;
+  v.addPeriods = !!$('vq-addperiods')?.checked;
+  // 名稱改動後重新比對廠商主檔
+  const m = npFindPartyByName('vendors', v.vendorName);
+  v.vendorCode = m ? m.code : '';
+}
+function npVqItem(i, f, val) {
+  npVqCollect();
+  const x = S._vq.items[i];
+  if (['itemName','spec','unit'].includes(f)) x[f] = val;
+  else { x[f] = Number(val) || 0; if (f === 'qty' || f === 'unitPrice') x.amount = Math.round(x.qty * x.unitPrice); }
+  S._vq.subtotal = S._vq.items.reduce((s, y) => s + y.amount, 0);
+  S._vq.total = Math.round(S._vq.subtotal * (1 + (S._vq.taxRate || 0.05)));
+  npVqRender();
+}
+function npVqItemDel(i) { npVqCollect(); S._vq.items.splice(i, 1); S._vq.subtotal = S._vq.items.reduce((s, y) => s + y.amount, 0); S._vq.total = Math.round(S._vq.subtotal * (1 + (S._vq.taxRate || 0.05))); npVqRender(); }
+function npVqTerm(i, f, val) { npVqCollect(); S._vq.paymentTerms[i][f] = f === 'amount' ? (val === '' ? null : Number(val)) : val; }
+function npVqTermDel(i) { npVqCollect(); S._vq.paymentTerms.splice(i, 1); npVqRender(); }
+function npVqRender() {
+  const v = S._vq;
+  const old = $('_vqWrap'); const sc = old?.querySelector('.modal-box')?.scrollTop || 0; old?.remove();
+  const termSum = (v.paymentTerms || []).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const wrap = document.createElement('div');
+  wrap.id = '_vqWrap'; wrap.className = 'modal-wrap open';
+  wrap.innerHTML = `<div class="modal-box" style="max-width:920px;max-height:92vh;overflow-y:auto">
+    <div style="font-weight:700;font-size:17px;margin-bottom:4px">📄 廠商議價單辨識結果</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${esc(v.fileName)}　請核對後再確認；確認後會新增採購單品項明細${v.vendorCode ? '' : '，並在廠商資料新增這家廠商'}。</div>
+    <div class="fg2" style="margin-bottom:12px">
+      <div><label class="lbl">廠商名稱 ${v.vendorCode ? `<span class="badge bd-blue">🔗 ${esc(v.vendorCode)}</span>` : '<span class="badge bd-orange">將新增廠商</span>'}</label>
+        <input class="inp" id="vq-name" list="np-vendor-datalist" value="${esc(v.vendorName)}" onchange="npVqCollect();npVqRender()"></div>
+      <div><label class="lbl">統一編號</label><input class="inp" id="vq-tax" value="${esc(v.taxId)}"></div>
+      <div><label class="lbl">議價單日期</label><input class="inp" type="date" id="vq-date" value="${esc(v.quoteDate)}"></div>
+    </div>
+    <div style="font-weight:700;margin:6px 0">品項明細（議價後）</div>
+    <table class="tbl" style="font-size:13px"><thead><tr><th>品名</th><th>規格</th><th style="width:70px">數量</th><th style="width:60px">單位</th><th style="width:100px">單價</th><th style="width:110px">金額</th><th style="width:34px"></th></tr></thead><tbody>
+    ${v.items.map((x, i) => `<tr>
+      <td><input class="inp" value="${esc(x.itemName)}" onchange="npVqItem(${i},'itemName',this.value)"></td>
+      <td><input class="inp" value="${esc(x.spec)}" onchange="npVqItem(${i},'spec',this.value)"></td>
+      <td><input class="inp" type="number" value="${esc(x.qty)}" onchange="npVqItem(${i},'qty',this.value)"></td>
+      <td><input class="inp" value="${esc(x.unit)}" onchange="npVqItem(${i},'unit',this.value)"></td>
+      <td><input class="inp" type="number" value="${esc(x.unitPrice)}" onchange="npVqItem(${i},'unitPrice',this.value)"></td>
+      <td><input class="inp" type="number" value="${esc(x.amount)}" onchange="npVqItem(${i},'amount',this.value)"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="npVqItemDel(${i})">✕</button></td></tr>`).join('')}
+    </tbody></table>
+    <div style="text-align:right;margin-top:6px;font-size:13px">未稅小計 <b>$${Number(v.subtotal).toLocaleString()}</b>　含稅總計 <b>$${Number(v.total).toLocaleString()}</b>
+      ${v.check && !v.check.ok ? `<div style="color:var(--danger);margin-top:4px">⚠️ 辨識的品項加總 ($${Number(v.check.itemSum).toLocaleString()}) 與單據小計 ($${Number(v.check.subtotal).toLocaleString()}) 不一致，請對照原始單據。</div>` : ''}</div>
+    ${(v.paymentTerms || []).length ? `<div style="font-weight:700;margin:14px 0 6px">付款條件</div>
+    <table class="tbl" style="font-size:13px"><thead><tr><th>期別／條件</th><th style="width:70px">%</th><th style="width:130px">金額（含稅）</th><th style="width:34px"></th></tr></thead><tbody>
+    ${v.paymentTerms.map((t, i) => `<tr><td><input class="inp" value="${esc(t.label)}" onchange="npVqTerm(${i},'label',this.value)"></td>
+      <td>${t.percent ?? ''}</td><td><input class="inp" type="number" value="${esc(t.amount ?? '')}" onchange="npVqTerm(${i},'amount',this.value)"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="npVqTermDel(${i})">✕</button></td></tr>`).join('')}</tbody></table>
+    <label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="vq-addperiods" ${v.addPeriods ? 'checked' : ''}>
+      同時加入專案的協力廠商分期（付款條件合計 $${termSum.toLocaleString()}；該廠商已有分期時不覆蓋）</label>` : ''}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+      <button class="btn btn-ghost" onclick="$('_vqWrap').remove()">取消</button>
+      <button class="btn btn-primary" id="vqConfirmBtn" onclick="npVqConfirm()">✅ 確認新增</button>
+    </div></div>`;
+  document.body.appendChild(wrap);
+  if (sc) wrap.querySelector('.modal-box').scrollTop = sc;
+}
+async function npVqConfirm() {
+  npVqCollect();
+  const v = S._vq;
+  if (!v.vendorName) { toast('❌ 請填寫廠商名稱'); return; }
+  if (v.items.some(x => !String(x.itemName).trim())) { toast('❌ 品項名稱不可空白'); return; }
+  const btn = $('vqConfirmBtn'); btn.disabled = true;
+  const res = await callGAS({ action:'confirmVendorQuotation', lineId:S.user?.lineId ?? '', projectId:$('np-id').value,
+    vendorName:v.vendorName, vendorCode:v.vendorCode, taxId:v.taxId, quoteDate:v.quoteDate, items:v.items, note:'' }, 60000);
+  btn.disabled = false;
+  if (!res.success) { toast('❌ ' + (res.error || '新增失敗')); return; }
+  // 把廠商（與付款分期）帶進專案表單，按專案「儲存」後才會寫入專案
+  const sc = S._npSchedule;
+  if (sc) {
+    sc.vendors = sc.vendors || [];
+    let vd = sc.vendors.find(x => (res.vendorCode && x.vendorCode === res.vendorCode) || x.name === v.vendorName);
+    if (!vd) { vd = { name: v.vendorName, vendorCode: res.vendorCode, periods: [] }; sc.vendors.push(vd); }
+    vd.vendorCode = res.vendorCode;
+    let periodNote = '';
+    if (v.addPeriods && (v.paymentTerms || []).length) {
+      if ((vd.periods || []).length) periodNote = '（該廠商已有分期，未覆蓋）';
+      else vd.periods = v.paymentTerms.map(t => ({ ...pjBlankVendorPeriod(), label: t.label || '', amount: Number(t.amount) || 0 }));
+    }
+    npRenderVendors();
+    S._partyOptsStale = true; try { npLoadPartyOptions(); } catch (_) {}
+    $('_vqWrap')?.remove();
+    toast(`✅ 已新增採購單 ${res.poId}${res.createdVendor ? '，並建立廠商 ' + res.vendorCode : ''}${periodNote}。請記得按專案「儲存」以存入付款分期`, 6000);
+  } else { $('_vqWrap')?.remove(); toast(`✅ 已新增採購單 ${res.poId}`); }
 }
 
 // 兩個 section 一起重繪
@@ -9046,8 +9701,10 @@ function npRenderVendors() {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;${vi?'margin-top:12px':''}">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
         <span style="flex-shrink:0">🚚</span>
-        <input class="inp" value="${esc(v.name||'')}" placeholder="協力廠商名稱" style="flex:1;font-weight:700"
+        <input class="inp" list="np-vendor-datalist" value="${esc(v.name||'')}" placeholder="協力廠商名稱" style="flex:1;font-weight:700"
           onchange="npSetVendorName(${vi},this.value)">
+        <span class="badge ${v.vendorCode ? 'bd-blue' : 'bd-muted'}" style="flex-shrink:0;white-space:nowrap"
+          title="${v.vendorCode ? '已連結廠商資料' : '尚未連結廠商資料，輸入的名稱需與廠商資料完全相同才會連結'}">${v.vendorCode ? '🔗 ' + esc(v.vendorCode) : '未連結'}</span>
         <button type="button" class="btn btn-danger btn-sm" style="flex-shrink:0" onclick="npRemoveVendor(${vi})">🗑 刪除</button>
       </div>
       <div id="np-periods-${vi}" style="background:var(--surface2);border-radius:8px;overflow:hidden"></div>
@@ -9058,8 +9715,49 @@ function npRenderVendors() {
 
 function npSetVendorName(vi, v) {
   const vd = S._npSchedule?.vendors?.[vi];
-  if (vd) vd.name = v.trim();
+  if (!vd) return;
+  const name = v.trim();
+  const m = npFindPartyByName('vendors', name);
+  vd.name = m ? m.name : name;
+  vd.vendorCode = m ? m.code : '';
+  npRenderVendors();
 }
+
+// ── 業主／廠商主檔選項（只含代號＋名稱，任何登入者可讀）──
+function npFindPartyByName(kind, name) {
+  const n = String(name || '').trim();
+  return n ? (S._partyOpts?.[kind] || []).find(x => x.name === n) : null;
+}
+async function npLoadPartyOptions() {
+  const res = await callGAS({ action: 'getPartyOptions', lineId: S.user?.lineId ?? '' });
+  if (!res.success) return;
+  S._partyOpts = { owners: res.owners || [], vendors: res.vendors || [] };
+  npApplyPartyOptions();
+}
+function npApplyPartyOptions() {
+  const o = S._partyOpts || { owners: [], vendors: [] };
+  const sel = $('np-owner');
+  if (sel) {
+    const cur = sel.dataset.want ?? sel.value;
+    sel.innerHTML = '<option value="">— 未指定 —</option>' +
+      o.owners.map(x => `<option value="${escH(x.code)}">${escH(x.name)}（${escH(x.code)}）</option>`).join('');
+    // 專案已連結的業主若後來被刪除，仍保留一個選項，避免儲存時被悄悄清掉
+    if (cur && !o.owners.some(x => x.code === cur)) sel.insertAdjacentHTML('beforeend', `<option value="${escH(cur)}">${escH(cur)}（已停用）</option>`);
+    sel.value = cur || '';
+  }
+  const dl = $('np-vendor-datalist');
+  if (dl) dl.innerHTML = o.vendors.map(x => `<option value="${escH(x.name)}">${escH(x.code)}</option>`).join('');
+  // 之前輸入但尚未連結的廠商，主檔補上後自動補連結
+  let changed = false;
+  (S._npSchedule?.vendors || []).forEach(v => {
+    if (!v.vendorCode) { const m = npFindPartyByName('vendors', v.name); if (m) { v.vendorCode = m.code; changed = true; } }
+  });
+  if (changed) npRenderVendors();
+}
+// 從「業主／廠商資料設定」分頁回來時，重新抓一次選項
+window.addEventListener('focus', () => {
+  if (S.user && ($('projectModal')?.classList.contains('open') || S._projPageMode)) npLoadPartyOptions();
+});
 
 function npRenderPeriods(target) {
   const wrap  = $('np-periods-' + target);
