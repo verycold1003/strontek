@@ -265,6 +265,14 @@ input[type="time"].inp{min-width:0}
   .modal-box::before{content:'';display:block;width:36px;height:4px;
     background:var(--border2);border-radius:2px;margin:0 auto 16px;opacity:.6}
 }
+/* 彈窗：右上角 ✕（捲動時固定）＋底部操作列固定，內容很長時不用捲到底才能儲存／關閉 */
+.modal-x{position:sticky;top:0;float:right;margin:-14px -14px 4px 10px;z-index:6;width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.modal-x:hover{color:var(--text);background:var(--surface2)}
+.modal-actions-sticky{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--border);
+  margin:18px -28px -28px!important;padding:12px 28px 16px!important}
+@media(max-width:640px){.modal-actions-sticky{margin:18px -20px -20px!important;padding:10px 20px 14px!important}}
 /* 專案新增/編輯整頁模式：表單掛在頁面主體，不受彈窗寬高限制 */
 .modal-box.page-mode{width:100%!important;max-width:1100px!important;max-height:none!important;overflow:visible!important;
   margin:0 auto;border-radius:16px!important;animation:none!important;padding:28px!important;position:static!important}
@@ -1719,15 +1727,20 @@ let _pendingTab = new URLSearchParams(window.location.search).get('tab') || '';
 // 這兩個參數跟 _pendingTab 一樣要撐過 LINE OAuth 轉一手（見 state 編碼那段）才不會遺失
 let _pendingView      = new URLSearchParams(window.location.search).get('view') || '';
 let _pendingProjectId = new URLSearchParams(window.location.search).get('projectId') || '';
-const VALID_DETAIL_VIEWS = ['projSales', 'projPurchase', 'projReceipt', 'projEdit', 'projNew', 'projProgress'];
+const VALID_DETAIL_VIEWS = ['projSales', 'projPurchase', 'projReceipt', 'projEdit', 'projNew', 'projProgress', 'projPeriod', 'projStaging', 'projDoc'];
 
 function _appBaseUrl() {
   return (_lineConfig?.liffId && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
     ? `https://liff.line.me/${_lineConfig.liffId}`
     : window.location.href.split('?')[0];
 }
-function openProjectDetailNewTab(projectId, view) {
-  window.open(`${_appBaseUrl()}?view=${view}&projectId=${encodeURIComponent(projectId)}`, '_blank');
+// extras：夾帶在 projectId 後面的額外參數（期別、文件類型…）。
+// 用「固定的視窗名稱」開啟：同一個頁面重複點只會重用、跳到原本那個分頁，不會一直多開。
+function openProjectDetailNewTab(projectId, view, extras) {
+  const raw = [projectId, ...(extras || [])].join('__');
+  const url = `${_appBaseUrl()}?view=${view}&projectId=${encodeURIComponent(raw)}`;
+  const w = window.open(url, ('pm_' + view + '_' + raw).replace(/[^\w]/g, '_'));
+  try { w && w.focus(); } catch (_) {}
 }
 // 開「業主資料／廠商資料」設定頁（?tab=owners / ?tab=vendors）
 function openAppTabNewTab(tab) {
@@ -1855,13 +1868,24 @@ function hasDeepLinkParams() {
 // 其他分頁儲存專案後會寫入這個 key，這裡收到就重新整理專案資料
 window.addEventListener('storage', e => {
   if (e.key === 'pm_project_changed' && S.user) {
+    S._docs = {}; // 文件儲存狀態重抓
     try { loadProjectList(false); loadProjectsForBoard(); } catch (_) {}
+    try { if ($('sec-finance') && getComputedStyle($('sec-finance')).display !== 'none') loadFinance(); } catch (_) {}
   }
 });
 
 // 專案卡片「💰 銷貨明細」「📦 採購」開的獨立分頁（不是彈窗）：內容較多，
 // 桌機視窗開小小的modal會很擠，改成整頁呈現，直接把原本nav跟其他分頁藏起來。
+// 離開詳細頁：新分頁就關閉分頁（關不掉才回主畫面）。同一個專案頁重複點會重用同一分頁（見 openProjectDetailNewTab）
+function pmLeavePage() {
+  if (S._projPageDirty && !confirm('有尚未儲存的變更，確定要離開嗎？')) return;
+  S._projPageDirty = false;
+  window.close();
+  setTimeout(() => { if (!window.closed) closeProjectDetailPage(); }, 200);
+}
+
 function closeProjectDetailPage() {
+  S._detailHost = false;
   unmountProjectFormFromPage();
   const page = $('projDetailPage');
   if (page) page.style.display = 'none';
@@ -1878,16 +1902,21 @@ async function ensureProjectStoreLoaded(projectId) {
   if (res.success) { S._pjBoard = res.rows ?? []; ProjectStore.rebuild(); }
 }
 
-async function openProjectDetailPage(view, projectId) {
+async function openProjectDetailPage(view, rawProjectId) {
+  // 網址的 projectId 可以夾帶額外參數（用 __ 分隔）：專案代號__期別、專案代號__文件類型__廠商index__期別
+  const [projectId, ...extra] = String(rawProjectId).split('__');
+  S._detailExtra = extra;
+  S._detailHost = true;
   document.querySelectorAll('.app-section').forEach(el => el.style.display = 'none');
   const nav = $('mainNav'); if (nav) nav.style.display = 'none';
   let page = $('projDetailPage');
   if (!page) {
     page = document.createElement('div');
     page.id = 'projDetailPage';
-    page.style.cssText = 'max-width:1100px;margin:0 auto;padding:20px 16px 60px';
     document.body.appendChild(page);
   }
+  // html/body 是 overflow:hidden（App 外殼），所以詳細頁自己要是全螢幕的捲動容器，內容太長才捲得動
+  page.style.cssText = 'position:fixed;inset:0;overflow-y:auto;background:var(--bg);z-index:50;-webkit-overflow-scrolling:touch';
   page.style.display = '';
 
   await ensureProjectStoreLoaded(projectId);
@@ -1899,20 +1928,58 @@ async function openProjectDetailPage(view, projectId) {
     projEdit:     '✏️ 專案編輯',
     projNew:      '➕ 新增專案',
     projProgress: '📊 進度與估驗',
+    projPeriod:   '💰 收款與本期銷貨',
+    projStaging:  '📦 銷貨暫存覆核',
+    projDoc:      '📄 專案文件',
   };
   const title = titles[view] || '專案';
-  page.innerHTML = `
+  page.innerHTML = `<div style="max-width:1100px;margin:0 auto;padding:0 16px 90px">
     <div style="display:flex;align-items:center;gap:10px;margin:20px 0 16px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="closeProjectDetailPage()">← 回主畫面</button>
+      <button class="btn btn-ghost btn-sm" onclick="pmLeavePage()">✕ 關閉此頁</button>
       <div class="pg-title" style="margin:0">${title}</div>
       ${view === 'projNew' ? '' : `<span style="color:var(--muted)">${esc(p?.id||projectId)}　${esc(p?.name||'')}</span>`}
     </div>
-    <div id="projDetailBody"></div>`;
+    <div id="projDetailBody"></div></div>`;
   if (view === 'projSales')        await renderProjSalesDetailPage(projectId);
   else if (view === 'projEdit')    await renderProjEditPage(projectId, false);
   else if (view === 'projNew')     await renderProjEditPage(null, true);
   else if (view === 'projProgress') await renderProjProgressPage(projectId);
+  else if (view === 'projPeriod')  await pjRenderClientPay(projectId, Number(extra[0]) || 0);
+  else if (view === 'projStaging') await pjRenderSalesStaging(projectId);
+  else if (view === 'projDoc')     await pjRenderDocPage(projectId, extra[0], Number(extra[1]), Number(extra[2]));
   else                             await renderProjPurchaseDetailPage(projectId, view === 'projReceipt' ? 'receipt' : 'purchase');
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 彈窗 UX：右上角 ✕（捲動時固定）＋底部操作列固定
+// 整頁模式（詳細頁）：把原本動態建立的 .modal-box 直接放進頁面，不再浮在畫面上
+// ════════════════════════════════════════════════════════════
+function enhanceModalBox(box, closeFn) {
+  if (!box || box.dataset.enh) return;
+  box.dataset.enh = '1';
+  if (!/[✕×✖]/.test(box.firstElementChild?.textContent || '')) {
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'modal-x'; x.textContent = '✕'; x.title = '關閉'; x.setAttribute('aria-label', '關閉');
+    x.onclick = closeFn;
+    box.insertBefore(x, box.firstChild);
+  }
+  const bar = [...box.children].reverse().find(el => el.tagName === 'DIV' && /display:\s*flex/.test(el.getAttribute('style') || '') && [...el.children].some(c => c.tagName === 'BUTTON'));
+  if (bar) bar.classList.add('modal-actions-sticky');
+}
+function presentModalWrap(wrap) {
+  const box = wrap.querySelector('.modal-box');
+  const host = S._detailHost ? $('projDetailBody') : null;
+  if (host) {
+    box.classList.add('page-mode');
+    host.innerHTML = '';
+    host.appendChild(box);
+    enhanceModalBox(box, () => pmLeavePage());
+    return box;
+  }
+  document.body.appendChild(wrap);
+  enhanceModalBox(box, () => wrap.remove());
+  return box;
 }
 
 // 專案編輯／新增（新分頁）：把專案表單直接掛在整頁上（不是彈窗），欄位多、版面寬，方便填寫。
@@ -1944,6 +2011,7 @@ function mountProjectFormInPage(body) {
   box.classList.add('page-mode');
   body.innerHTML = '';
   body.appendChild(box);
+  enhanceModalBox(box, () => cancelProjectModal());
   S._projPageMode = true;
   S._projPageDirty = false;
   if (!box._pmDirtyBound) {
@@ -7554,11 +7622,23 @@ function pjVendorDocButtons(pid, vi, pi) {
   return `<div style="margin-top:10px"><button class="btn ${ok ? 'btn-ghost' : 'btn-primary'} btn-sm" onclick="pjOpenDoc('vendorPay','${pid}',${vi},${pi})">${ok ? '✏️ 廠商付款申請單' : '📝 廠商付款申請單'}</button></div>`;
 }
 
-async function pjOpenDoc(type, pid, vi, pi, redraft) {
-  const res = await callGAS({ action:'getProjectDoc', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi, redraft: !!redraft });
-  if (!res.success) { toast('❌ ' + (res.error || '開啟失敗')); return; }
+// 入口：開新分頁（同一份文件重複點會重用同一分頁）
+function pjOpenDoc(type, pid, vi, pi) { openProjectDetailNewTab(pid, 'projDoc', [type, vi, pi]); }
+
+// 新分頁內：載入文件並顯示在頁面上
+async function pjRenderDocPage(pid, type, vi, pi) {
+  const body = $('projDetailBody');
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">載入中...</div>';
+  const res = await callGAS({ action:'getProjectDoc', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi });
+  if (!res.success) { body.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(res.error || '開啟失敗')}</div>`; return; }
   S._doc = { type, pid, vi, pi, data: res.data || {}, saved: !!res.saved };
   pjRenderDocModal();
+}
+// 發票申請單 ⇄ 請款單 直接在同一頁切換（網址同步更新，重新整理仍停在目前這份）
+async function pjGoDoc(type) {
+  const { pid, pi } = S._doc;
+  try { history.replaceState({}, '', `${location.pathname}?view=projDoc&projectId=${encodeURIComponent([pid, type, -1, pi].join('__'))}`); } catch (_) {}
+  await pjRenderDocPage(pid, type, -1, pi);
 }
 
 const PJ_DOC_FIELDS = {
@@ -7630,7 +7710,7 @@ function pjDocRecalc(rerender) {
 // 把畫面上的欄位值收回 S._doc.data
 function pjDocCollect() {
   const d = S._doc.data;
-  document.querySelectorAll('#_pjDocWrap [id^="pd-"]').forEach(el => {
+  document.querySelectorAll('#projDetailBody [id^="pd-"]').forEach(el => {
     const k = el.id.slice(3);
     d[k] = el.type === 'number' ? (Number(el.value) || 0) : el.value;
   });
@@ -7638,9 +7718,7 @@ function pjDocCollect() {
 
 function pjRenderDocModal(keepScroll) {
   const { type, data: d } = S._doc;
-  const old = $('_pjDocWrap');
-  const scroll = keepScroll && old ? old.querySelector('.modal-box')?.scrollTop : 0;
-  old?.remove();
+  const scroll = keepScroll ? ($('projDetailPage')?.scrollTop || 0) : 0;
   const f = PJ_DOC_FIELDS[type].map(([n, l, t, full]) => pjDocInput(n, l, t, d, full)).join('');
   let body = `<div class="fg2" style="margin-bottom:14px">${f}</div>`;
   if (type === 'invoiceReq') {
@@ -7668,13 +7746,14 @@ function pjRenderDocModal(keepScroll) {
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${S._doc.saved ? '已儲存過，修改後請再按「儲存」；' : '尚未儲存；'}所有欄位都可修改，儲存後才能列印 PDF。</div>
     ${body}
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;align-items:center">
-      ${type === 'claim' ? `<button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="pjDocRedraft()">↻ 重新帶入發票申請單內容</button>` : ''}
-      <button class="btn btn-ghost" onclick="$('_pjDocWrap').remove()">關閉</button>
+      ${type === 'claim' ? `<button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="pjGoDoc('invoiceReq')">← 發票申請單</button><button class="btn btn-ghost btn-sm" onclick="pjDocRedraft()">↻ 重新帶入發票申請單內容</button>` : ''}
+      ${type === 'invoiceReq' && S._doc.saved ? `<button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="pjGoDoc('claim')">🧾 前往請款單 →</button>` : ''}
+      <button class="btn btn-ghost" onclick="pmLeavePage()">關閉</button>
       <button class="btn btn-primary" id="pdSaveBtn" onclick="pjDocSave(false)">💾 儲存</button>
       <button class="btn btn-primary" id="pdPrintBtn" onclick="pjDocSave(true)">🖨️ 儲存並列印 PDF</button>
     </div></div>`;
-  document.body.appendChild(wrap);
-  if (scroll) wrap.querySelector('.modal-box').scrollTop = scroll;
+  presentModalWrap(wrap);
+  if (scroll && $('projDetailPage')) $('projDetailPage').scrollTop = scroll;
 }
 
 async function pjDocRedraft() {
@@ -7696,16 +7775,15 @@ async function pjDocSave(andPrint) {
   S._doc.saved = true;
   S._docs[pid] = S._docs[pid] || { keys:{}, loaded:true };
   S._docs[pid].keys[pjDocKey(type, pid, vi, pi)] = { type };
+  notifyProjectChanged(); // 主畫面專案卡片才會出現「請款單」按鈕等
   if (!andPrint) {
     if (btn) btn.disabled = false;
     toast('✅ 已儲存');
-    renderProjectBoard();
-    if (type === 'invoiceReq') pjRenderDocModal(true); // 發票申請單儲存後，卡片上才會出現請款單按鈕
+    if (type === 'invoiceReq') pjRenderDocModal(true); // 儲存後顯示「前往請款單」
     return;
   }
   const pdf = await callGAS({ action:'exportProjectDocPdf', lineId:S.user?.lineId ?? '', docType:type, projectId:pid, vendorIndex:vi, periodIndex:pi });
   if (btn) btn.disabled = false;
-  renderProjectBoard();
   if (!pdf.success) { win?.close(); toast('❌ ' + (pdf.error || '產生 PDF 失敗')); return; }
   if (win) win.location.href = pdf.url; else window.open(pdf.url, '_blank');
   toast('✅ 已儲存並產生 PDF');
@@ -8092,14 +8170,16 @@ function retryLoadProjectExpenses(projectId) {
 // ── 業主端「待收款/已收款」badge 點擊 → 大彈窗：收款狀態 + 本期銷貨 ──────
 // 本期銷貨只在業主端顯示（銷貨=賣給業主；協力廠商端是採購/進貨，邏輯上不相關）
 // 品項可以直接在這個彈窗新增，不用等業主回簽OCR上傳流程
-async function pjEditClientPay(projectId, periodIndex) {
+// 入口：開新分頁（同一期重複點會重用同一分頁）；實際內容在 pjRenderClientPay
+function pjEditClientPay(projectId, periodIndex) { openProjectDetailNewTab(projectId, 'projPeriod', [Number(periodIndex)]); }
+
+async function pjRenderClientPay(projectId, periodIndex) {
   const p = ProjectStore.find(projectId);
-  if (!p) return;
+  if (!p) { $('projDetailBody').innerHTML = '<div style="color:var(--danger)">找不到專案（可能沒有此專案的部門權限）</div>'; return; }
   const idx = Number(periodIndex);
   const c = (p.client||[])[idx];
-  if (!c) return;
+  if (!c) { $('projDetailBody').innerHTML = '<div style="color:var(--danger)">找不到這一期款</div>'; return; }
 
-  $('_salesPeriodWrap')?.remove();
   const wrap = document.createElement('div');
   wrap.id = '_salesPeriodWrap';
   wrap.className = 'modal-wrap open';
@@ -8126,10 +8206,10 @@ async function pjEditClientPay(projectId, periodIndex) {
       <div id="sp-sales-body"><div style="text-align:center;color:var(--muted);padding:20px">載入中...</div></div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:18px">
-      <button class="btn btn-ghost" onclick="$('_salesPeriodWrap').remove()">關閉</button>
+      <button class="btn btn-ghost" onclick="pmLeavePage()">關閉</button>
     </div>
   </div>`;
-  document.body.appendChild(wrap);
+  presentModalWrap(wrap);
   S._spCtx = { projectId, periodIndex: idx };
   await spReloadSalesBody();
 }
@@ -8159,6 +8239,7 @@ async function spSavePayStatus(projectId, periodIndex) {
     if (frow) Object.assign(frow.c, { paid:c.paid, payDate:c.payDate, underReview:c.underReview, accepted:c.accepted });
     renderProjectBoard();
     try { renderFinanceInvoice(); } catch (_) {}
+    notifyProjectChanged(); // 主畫面（專案／財務待開票列表）同步更新
     toast('✅ 已更新收款狀態');
   } else {
     Object.assign(c, snapshot);
@@ -8177,8 +8258,9 @@ async function spSavePayStatus(projectId, periodIndex) {
 // 暫存資料的可變編輯狀態，key 為暫存單號，value 為 { equipmentItems, engineeringStages }
 S._stagingEdit = S._stagingEdit || {};
 
-async function pjOpenSalesStaging(projectId) {
-  $('_stagingWrap')?.remove();
+function pjOpenSalesStaging(projectId) { openProjectDetailNewTab(projectId, 'projStaging'); }
+
+async function pjRenderSalesStaging(projectId) {
   const wrap = document.createElement('div');
   wrap.id = '_stagingWrap';
   wrap.className = 'modal-wrap open';
@@ -8194,10 +8276,10 @@ async function pjOpenSalesStaging(projectId) {
     <div id="staging-upload-status" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
     <div id="staging-body"><div style="text-align:center;color:var(--muted);padding:20px">載入中...</div></div>
     <div style="display:flex;justify-content:flex-end;margin-top:18px">
-      <button class="btn btn-ghost" onclick="$('_stagingWrap').remove()">關閉</button>
+      <button class="btn btn-ghost" onclick="pmLeavePage()">關閉</button>
     </div>
   </div>`;
-  document.body.appendChild(wrap);
+  presentModalWrap(wrap);
   S._stagingProjectId = projectId;
   await stagingReload();
 }
@@ -8470,8 +8552,25 @@ function spRenderSalesToolbar() {
     <button class="btn btn-secondary btn-sm" onclick="spOpenExportModal('salesOrder')">🖨 匯出銷貨單（勾選品項）</button>
     <button class="btn btn-secondary btn-sm" onclick="spOpenExportModal('invoiceRequest')">📝 開立發票申請單（勾選品項）</button>
     <button class="btn btn-secondary btn-sm" onclick="poOpenFromSalesSelection()">🔄 轉採購單（勾選品項）</button>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-left:auto">
+      <input type="checkbox" ${S._spHideOrdered ? 'checked' : ''} onchange="S._spHideOrdered=this.checked;spRerenderSalesBody()"> 隱藏已匯出銷貨單的品項
+    </label>
   </div>`;
 }
+// 只重畫畫面（不重新打 API）：切換「隱藏已匯出」時用
+function spRerenderSalesBody() {
+  const body = $('sp-sales-body'); if (!body) return;
+  body.innerHTML = spRenderSalesToolbar() + spRenderEquipmentBlock() + spRenderEngineeringItemsBlock() + spRenderStageBlock();
+}
+// 已匯出銷貨單的標示：最近一次的時間＋PDF 連結（多次匯出顯示次數）
+function spOrderBadge(r) {
+  const list = r.orderExports || [];
+  if (!list.length) return '';
+  const last = list[list.length - 1];
+  return `<span class="badge bd-green" title="${esc(list.map(x => x.at + ' ' + (x.by || '')).join('\n'))}">🖨 已匯出銷貨單 ${esc((last.at || '').slice(0, 10))}${list.length > 1 ? ` ×${list.length}` : ''}</span>` +
+    (last.url ? ` <a href="${esc(last.url)}" target="_blank" class="btn btn-ghost btn-sm">📄 銷貨單PDF</a>` : '');
+}
+const spIsOrdered = r => (r.orderExports || []).length > 0;
 
 function spCollectCheckedSalesIds() {
   const equipmentIds    = [...document.querySelectorAll('.sp-eq-chk:checked')].map(el => el.value);
@@ -8501,9 +8600,13 @@ const _EXPORT_EXTRA_FIELDS = {
   ],
 };
 
-function spOpenExportModal(docType) {
+async function spOpenExportModal(docType) {
   const { equipmentIds, projectStageIds } = spCollectCheckedSalesIds();
   if (!equipmentIds.length && !projectStageIds.length) { toast('⚠️ 請先勾選至少一筆設備或工程品項'); return; }
+  if (docType === 'salesOrder') {
+    const done = [...(S._spEquipment || []).filter(r => equipmentIds.includes(r.id)), ...(S._spStages || []).filter(r => projectStageIds.includes(r.id))].filter(spIsOrdered);
+    if (done.length && !(await showConfirm(`勾選的品項中有 ${done.length} 筆已經匯出過銷貨單，確定要再匯出一次嗎？`, { title: '⚠️ 重複匯出', okLabel: '再匯出一次', okClass: 'btn-primary' }))) return;
+  }
   S._exportDraft = { docType, projectId: S._spCtx.projectId, equipmentIds, projectStageIds };
   $('exportExtra-title').textContent = docType === 'salesOrder' ? '🖨 匯出銷貨單' : '📝 開立發票申請單';
   $('exportExtra-fields').innerHTML = _EXPORT_EXTRA_FIELDS[docType].map(f => `
@@ -8529,13 +8632,13 @@ async function submitExportExtra() {
   toast('✅ 匯出完成');
   closeModal('exportExtraModal');
   window.open(res.url, '_blank');
-  if (docType === 'invoiceRequest') spReloadSalesBody(); // 發票申請單匯出後會連動標記「已申請」，重新整理狀態
+  spReloadSalesBody(); // 發票申請單會連動標記「已申請」、銷貨單會標記「已匯出」，重新整理狀態
 }
 
 // ── 設備銷貨：本期出貨明細 ──────────────────────────────────
 function spRenderEquipmentBlock() {
   const { periodIndex } = S._spCtx;
-  const rows = S._spEquipment || [];
+  const rows = (S._spEquipment || []).filter(r => !(S._spHideOrdered && spIsOrdered(r)));
   const rowsHtml = rows.map(r => {
     const thisPeriodQty = (r.shipments||[]).filter(s=>String(s.periodIndex)===String(periodIndex))
       .reduce((s,x)=>s+(Number(x.qty)||0),0);
@@ -8545,7 +8648,7 @@ function spRenderEquipmentBlock() {
         (r.invoicePdfUrl ? `<a href="${esc(r.invoicePdfUrl)}" target="_blank" class="btn btn-ghost btn-sm">📄 開立發票申請單PDF</a>` : '');
     return `<div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px">
-        <span style="font-weight:700"><input type="checkbox" class="sp-eq-chk" value="${esc(r.id)}" style="margin-right:6px">${esc(r.item)}${r.spec?`（${esc(r.spec)}）`:''}</span>
+        <span style="font-weight:700"><input type="checkbox" class="sp-eq-chk" value="${esc(r.id)}" style="margin-right:6px">${esc(r.item)}${r.spec?`（${esc(r.spec)}）`:''} ${spOrderBadge(r)}</span>
         <span class="mono" style="color:var(--gold)">$${r.amount.toLocaleString()}</span>
       </div>
       <div style="font-size:12px;color:var(--muted);margin:4px 0">
@@ -8715,7 +8818,7 @@ function spRenderStageBlock() {
   const p = ProjectStore.find(projectId);
   const c = (p?.client||[])[periodIndex];
   const defaultContractAmt = Number(c?.amount) || 0;
-  const stages = (S._spStages||[]).filter(s => String(s.clientPeriodIdx) === String(periodIndex));
+  const stages = (S._spStages||[]).filter(s => String(s.clientPeriodIdx) === String(periodIndex)).filter(s => !(S._spHideOrdered && spIsOrdered(s)));
   const rowsHtml = stages.map(s => {
     const expected  = Math.round((Number(s.contractAmount)||0) * (Number(s.percent)||0) / 100);
     const mismatch  = Math.abs(expected - (Number(s.amount)||0)) > 1;
@@ -8725,7 +8828,7 @@ function spRenderStageBlock() {
         (s.invoicePdfUrl ? `<a href="${esc(s.invoicePdfUrl)}" target="_blank" class="btn btn-ghost btn-sm">📄 開立發票申請單PDF</a>` : '');
     return `<div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px">
-        <span style="font-weight:700"><input type="checkbox" class="sp-st-chk" value="${esc(s.id)}" style="margin-right:6px">${esc(s.stageLabel)}</span>
+        <span style="font-weight:700"><input type="checkbox" class="sp-st-chk" value="${esc(s.id)}" style="margin-right:6px">${esc(s.stageLabel)} ${spOrderBadge(s)}</span>
         <span style="font-size:12px;color:var(--muted)">合約原始金額 $${(Number(s.contractAmount)||0).toLocaleString()}</span>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">
@@ -9626,6 +9729,7 @@ function npVqRender() {
       <button class="btn btn-primary" id="vqConfirmBtn" onclick="npVqConfirm()">✅ 確認新增</button>
     </div></div>`;
   document.body.appendChild(wrap);
+  enhanceModalBox(wrap.querySelector('.modal-box'), () => wrap.remove());
   if (sc) wrap.querySelector('.modal-box').scrollTop = sc;
 }
 async function npVqConfirm() {
@@ -10479,7 +10583,7 @@ function setGoogleAuthEmail() {
 
 const $ = id => document.getElementById(id);
 function se(id, txt)    { const el=$(id); if(el) el.textContent=txt; }
-function openModal(id)  { _dirtyModals.delete(id); $(id).classList.add('open'); }
+function openModal(id)  { _dirtyModals.delete(id); $(id).classList.add('open'); enhanceModalBox($(id).querySelector('.modal-box'), () => closeModal(id)); }
 async function closeModal(id) {
   // App 內關 modal（點✕/取消/背景）：若有未存變更先跟使用者確認
   if (DIRTY_TRACKED_MODALS.includes(id) && _dirtyModals.has(id)) {
