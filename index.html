@@ -1194,8 +1194,8 @@ input[type="time"].inp{min-width:0}
     </div>
   </div>
 
-  <!-- 採購/進貨/付款/傳票：尚在測試，由 CFG.FEATURE_FLAGS.financeDocs 控制顯示 -->
-  <div id="fin-docs-testing-section" style="display:none">
+  <!-- 採購/進貨/付款/傳票（已正式上線） -->
+  <div id="fin-docs-testing-section">
 
   <!-- 採購單列表 -->
   <div class="card" style="margin-top:16px">
@@ -1541,11 +1541,6 @@ input[type="time"].inp{min-width:0}
 // ════════════════════════════════════════════════════════════
 const CFG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbxXR39PY2JplA6h5CdVDxfA9RCvk3zjQnVwijVL2w44ZQ7ZklSErjvurnUX5vs6_waZhw/exec',
-  // 尚在測試、避免影響正式區的功能開關：改成 true 才會在畫面上顯示。
-  FEATURE_FLAGS: {
-    financeDocs:   true, // 財務專區：採購單／進貨單／付款單／傳票
-    salesStaging:  true, // 專案管理：📦 銷貨暫存
-  },
 };
 
 // ════════════════════════════════════════════════════════════
@@ -2019,7 +2014,7 @@ async function togglePartyDeleted(kind, idx) {
 }
 
 // ── 後端版本檢查：網頁呼叫到的部署若是舊版或缺 .gs 檔，管理員／財務登入後會看到提示 ──
-const EXPECTED_BACKEND_BUILD = '2026-10-28.1';
+const EXPECTED_BACKEND_BUILD = '2026-10-30.1';
 function maybeShowBuildBanner() {
   const cfg = S._buildInfo;
   if (!cfg || !S.user || S._buildBannerShown) return;
@@ -6539,10 +6534,7 @@ function switchSection(name) {
     S._loaded.finance = true;
     loadFinance();
     loadExportHistoryList('fin-export-history-tbody', l => l === '專案財務報表');
-    if (CFG.FEATURE_FLAGS.financeDocs) {
-      const sec = $('fin-docs-testing-section'); if (sec) sec.style.display = '';
-      loadDocExportLists();
-    }
+    loadDocExportLists();
   }
   if (name === 'attendance') {
     if (!hasPermission('財務專區')) { switchSection('project'); return; } // 防呆：無權限者不應到得了這裡
